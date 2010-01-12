@@ -45,13 +45,14 @@ extern PhoImage* gCurImage;
 
 /* Monitor resolution */
 extern int gMonitorWidth, gMonitorHeight;
+extern int gPhysMonitorWidth, gPhysMonitorHeight;
 
 /* We only have one image at a time, so make it global. */
 extern GdkPixbuf* gImage;
 
 extern int gDebug;    /* debugging messages */
 
-/* Scaling modes */
+/* ************** Scaling modes ************** */
 /* Normal: show at full size if it fits on screen, otherwise size to screen. */
 #define PHO_SCALE_NORMAL       0
 /* Full Screen: make it as big as necessary to fill the screen,
@@ -73,11 +74,17 @@ extern int gDebug;    /* debugging messages */
 extern int gScaleMode;
 extern double gScaleRatio;     /* only used for PHO_SCALE_*_RATIO */
 
-/* Display modes */
+/* ************** Display modes ************** */
 #define PHO_DISPLAY_NORMAL       0
 #define PHO_DISPLAY_PRESENTATION 1
 #define PHO_DISPLAY_KEYWORDS     2
 extern int gDisplayMode;
+
+/* Set all the view modes at once -- this will also do assorted
+ * other housekeeping and is the recommended way to set ANY
+ * of the three.
+ */
+extern void SetViewModes(int dispmode, int scalemode, double scalefactor);
 
 /* Some window managers don't deal well with windows that resize,
  * or don't retain focus if a resized window no longer contains
@@ -93,30 +100,32 @@ extern int gDelaySeconds;
 /* Get the keyword string associated with a note number */
 extern char* KeywordString(int notenum);
 
-/* Set the display mode, which may involve some modifications to
- * window size or type
- */
-extern void SetDisplayMode(int newmode);
-
 /* Update toggles for the flags */
 extern void SetInfoDialogToggle(int which, int newval);
 extern void SetKeywordsDialogToggle(int which, int newval);
 
 /* Other routines that need to be public */
 extern void PrepareWindow();
+extern void DrawImage();
+extern void ScaleAndRotate(PhoImage* img, int degrees);
+
+extern PhoImage* AddImage(char* filename);
 extern void DeleteImage(PhoImage* img);
+extern void ClearImageList();
+extern void ChangeWorkingFileSet();
+
 extern void Usage();
 extern void VerboseHelp();
+extern void EndSession();
+
 extern int NextImage();
 extern int PrevImage();
 extern int ThisImage();
-extern void EndSession();
-extern void ToggleNoteFlag(PhoImage* img, int note);
-extern void ScaleAndRotate(PhoImage* img, int degrees);
 extern int ShowImage();
+
+extern void ToggleNoteFlag(PhoImage* img, int note);
 extern void InitNotes();
 extern void PrintNotes();
-extern void ClearImageList();
 
 /* event handler. Ugh, this introduces gtk stuff */
 extern gint HandleGlobalKeys();

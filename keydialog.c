@@ -60,7 +60,7 @@ void UpdateKeywordsDialog()
     gtk_window_set_title(GTK_WINDOW(KeywordsDialog), buffer);
 
     s = gCurImage->comment;
-    //gtk_entry_set_text(GTK_ENTRY(KeywordsDEntry), s ? s : "");
+    /*gtk_entry_set_text(GTK_ENTRY(KeywordsDEntry), s ? s : "");*/
 
     gtk_label_set_text(GTK_LABEL(KeywordsDImgName), gCurImage->filename);
 
@@ -253,7 +253,7 @@ void HideKeywordsDialog()
     RememberKeywords();
     if (IsVisible(KeywordsDialog))
         gtk_widget_hide(KeywordsDialog);
-    gDisplayMode = PHO_DISPLAY_NORMAL;
+    /*gDisplayMode = PHO_DISPLAY_NORMAL;*/
     sLastImage = 0;
 }
 

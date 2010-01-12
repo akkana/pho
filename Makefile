@@ -1,9 +1,9 @@
 # Makefile for pho
 
-VERSION = 0.9.7-pre1
+VERSION = 0.9.7-pre2
 
 # Locate the gtk/gdk libraries (thanks to nev for this!)
-CFLAGS = -g -Wall -DVERSION='"$(VERSION)"'
+CFLAGS = -g -Wall -pedantic -DVERSION='"$(VERSION)"'
 G1FLAGS := $(shell gdk-pixbuf-config --cflags 2> /dev/null)
 G2FLAGS := $(shell pkg-config --cflags gtk+-2.0 gdk-2.0 2> /dev/null)
 CFLAGS := $(CFLAGS) $(shell if test -n "${G2FLAGS}"; then echo "${G2FLAGS}"; else echo "${G1FLAGS}"; fi)
@@ -23,7 +23,9 @@ TARFILE = pho-$(VERSION).tar.gz
 
 EXIFLIB = exif/libphoexif.a
 
-SRCS = pho.c gmain.c imagenote.c gdialogs.c keydialog.c
+SRCS = pho.c gmain.c gwin.c imagenote.c gdialogs.c keydialog.c
+
+# winman.c
 
 OBJS = $(subst .c,.o,$(SRCS))
 

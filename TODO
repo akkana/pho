@@ -6,8 +6,9 @@ BUGS:
 
 - EXIF rotation problems (maybe fixed)
 
-- non-presentation mode, first DrawImage doesn't allow space for titlebar
-  like subsequent ones.
+- Going from presentation mode to non-presentation mode,
+  we don't get an expose so we don't get a chance to check the
+  frame size and adjust window size accordingly.
 
 - Calling DrawImage too many times
 

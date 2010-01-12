@@ -53,7 +53,6 @@ static gint DelayTimer(gpointer data)
 int ShowImage()
 {
     ScaleAndRotate(gCurImage, 0);
-    PrepareWindow();
     /* Keywords dialog will be updated if necessary from DrawImage */
 
     if (gDelaySeconds > 0 && gPendingTimeout == 0
@@ -67,9 +66,7 @@ int ShowImage()
 
 static int LoadImageFromFile(PhoImage* img)
 {
-#if GTK_MAJOR_VERSION == 2
     GError* err = NULL;
-#endif
     int rot;
     int firsttime;
 
@@ -85,19 +82,11 @@ static int LoadImageFromFile(PhoImage* img)
         gImage = 0;
     }
 
-#if GTK_MAJOR_VERSION==2
     gImage = gdk_pixbuf_new_from_file(img->filename, &err);
-#else
-    gImage = gdk_pixbuf_new_from_file(img->filename);
-#endif
     if (!gImage)
     {
         gImage = 0;
-#if GTK_MAJOR_VERSION == 2
         fprintf(stderr, "Can't open %s: %s\n", img->filename, err->message);
-#else
-        fprintf(stderr, "Can't open %s\n", img->filename);
-#endif
         return -1;
     }
 
@@ -213,7 +202,7 @@ static void ScaleToFit(int *new_width, int *new_height,
 }
 
 #define SWAP(a, b) { int temp = a; a = b; b = temp; }
-//#define SWAP(a, b)  {a ^= b; b ^= a; a ^= b;}
+/*#define SWAP(a, b)  {a ^= b; b ^= a; a ^= b;}*/
 
 /* Rotate the image according to the current scale mode, scaling as needed.
  * 
@@ -235,6 +224,7 @@ void ScaleAndRotate(PhoImage* img, int degrees)
     int new_width;
     int new_height;
     int aspect_changing;
+    int unrot_new_height, unrot_new_width;
 
     if (gDebug)
         printf("ScaleAndRotate(%d (cur = %d))\n", degrees, img->curRot);
@@ -274,32 +264,16 @@ void ScaleAndRotate(PhoImage* img, int degrees)
         int max_width = gMonitorWidth;
         int max_height = gMonitorHeight;
         int diff;
-        if (gScaleMode == PHO_SCALE_SCREEN_RATIO) {
-            max_width *= gScaleRatio;
-            max_height *= gScaleRatio;
-            /* If we're scaled up or down, then keep the image's maximum
-             * size the same whether we're horizontal or vertical; no need
-             * to limit the vertical's size.
-             */
-            if (gScaleRatio != 1.)
-                max_width = max_height = MAX(max_width, max_height);
-        }
 
         new_width = true_width;
         new_height = true_height;
 
-        /* In screen scale mode, if scale ratio is greater than 1,
-         * scale the image up by that ratio if we can do that without
-         * exceeding the maximum size.
-         */
-        if (gScaleMode == PHO_SCALE_SCREEN_RATIO && gScaleRatio > 1) {
-            new_width *= gScaleRatio;
-            new_height *= gScaleRatio;
-        }
-
         if (new_width > max_width || new_height > max_height) {
             ScaleToFit(&new_width, &new_height, max_width, max_height);
         }
+
+        new_width *= gScaleRatio;
+        new_height *= gScaleRatio;
 
         /* Now w and h hold the desired sizes.  See if we're close already. */
         diff = abs(cur_width - new_width)
@@ -311,12 +285,13 @@ void ScaleAndRotate(PhoImage* img, int degrees)
     }
 
     else if (gScaleMode == PHO_SCALE_IMG_RATIO) {
+        int diff;
         new_width = true_width * gScaleRatio;
         new_height = true_height * gScaleRatio;
 
         /* See if we're close */
-        int diff = abs(cur_width - new_width)
-            + abs(cur_height - new_height);
+        diff = abs(cur_width - new_width)
+               + abs(cur_height - new_height);
         if (diff < NORMAL_SCALE_SLOP) {
             new_width = cur_width;
             new_height = cur_height;
@@ -406,9 +381,8 @@ void ScaleAndRotate(PhoImage* img, int degrees)
 
     /* new_* are the sizes we want after rotation. But we need
      * to compare them now to the sizes before rotation. So we
-     * need to compensate for rotation:
+     * need to compensate for rotation.
      */
-    int unrot_new_height, unrot_new_width;
 
     /* If we're going to scale up, then do the rotation first,
      * before scaling. Otherwise, scale down first then rotate.
@@ -466,6 +440,11 @@ void ScaleAndRotate(PhoImage* img, int degrees)
            gCurImage->curRot, gCurImage->curWidth, gCurImage->curHeight,
            gCurImage->trueWidth, gCurImage->trueHeight);
 #endif
+
+    /* We've finished making our changes. Now we may need to make
+     * changes in the window size or position.
+     */
+    PrepareWindow();
 }
 
 PhoImage* NewPhoImage(char* fnam)

@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>    /* for free() */
+#include <unistd.h>
 
 static GtkWidget* InfoDialog = 0;
 static GtkWidget* InfoDEntry = 0;
@@ -187,8 +188,10 @@ static gint InfoDialogExpose(GtkWidget* widget, GdkEventKey* event)
     if (gDebug)
         printf("InfoDialogExpose\n");
     UpdateInfoDialog(gCurImage);
-//    gtk_signal_handler_unblock_by_func(GTK_OBJECT(InfoDialog),
-//                                       (GtkSignalFunc)InfoDialogExpose, 0);
+    /*
+    gtk_signal_handler_unblock_by_func(GTK_OBJECT(InfoDialog),
+                                       (GtkSignalFunc)InfoDialogExpose, 0);
+     */
     /* Return FALSE so that the regular dialog expose handler will
      * draw the dialog properly the first time.
      */
@@ -260,8 +263,6 @@ void ToggleInfo()
     vbox = GTK_DIALOG(InfoDialog)->vbox;
 #endif /* SCROLLER */
 
-    //vbox = GTK_DIALOG(InfoDialog)->vbox;
-    //gtk_box_set_spacing(GTK_BOX(vbox), 3);
     gtk_container_set_border_width(GTK_CONTAINER(vbox), 8);
 
     /* Make the button */
@@ -278,7 +279,6 @@ void ToggleInfo()
     gtk_widget_show(InfoDImgName);
 
     box = gtk_table_new(3, 2, FALSE);
-    //gtk_table_set_row_spacings(GTK_TABLE(box), 2);
     gtk_table_set_col_spacings(GTK_TABLE(box), 7);
     label = gtk_label_new("Displayed Size:");
     gtk_misc_set_alignment(GTK_MISC(label), 1., .5);
@@ -318,7 +318,8 @@ void ToggleInfo()
     gtk_widget_show(label);
     for (i=0; i<10; ++i)
     {
-        char str[2] = { i + '0', '\0' };
+        char str[2] = { '\0', '\0' };
+        str[0] = i + '0';
         InfoFlag[i] = gtk_toggle_button_new_with_label(str);
         gtk_table_attach_defaults(GTK_TABLE(box), InfoFlag[i], i+1, i+2, 0, 1);
         gtk_widget_show(InfoFlag[i]);
@@ -343,10 +344,11 @@ void ToggleInfo()
 
     InfoExifContainer = gtk_table_new(NUM_EXIF_FIELDS, 2, FALSE);
     /* set_padding doesn't work on tables, apparently */
-    //gtk_misc_set_padding(GTK_MISC(InfoExifContainer), 7, 7);
+    /*gtk_misc_set_padding(GTK_MISC(InfoExifContainer), 7, 7);*/
     gtk_table_set_row_spacings(GTK_TABLE(InfoExifContainer), 2);
     gtk_table_set_col_spacings(GTK_TABLE(InfoExifContainer), 5);
     gtk_box_pack_start(GTK_BOX(vbox), InfoExifContainer, TRUE, TRUE, 0);
+
     /* Loop over the various EXIF elements */
     for (i=0; i<NUM_EXIF_FIELDS; ++i)
     {
@@ -367,8 +369,9 @@ void ToggleInfo()
                        (GtkSignalFunc)InfoDialogExpose, 0);
 
     gtk_widget_show(InfoDialog);
-    // Don't call UpdateInfoDialog: it won't actually update
-    // everything it needs until after the first expose.
+    /* Don't call UpdateInfoDialog: it won't actually update
+     * everything it needs until after the first expose.
+     */
     UpdateInfoDialog(gCurImage);
 }
 
@@ -377,7 +380,6 @@ void ToggleInfo()
  */
 
 static GtkWidget* promptDialog = 0;
-//static int qYesNo = -1;
 
 static char* defaultYesChars = "yY\n";
 static char* defaultNoChars = "nN";   /* ESC always works to cancel */
@@ -461,8 +463,10 @@ int Prompt(char* msg, char* yesStr, char* noStr, char* yesChars, char* noChars)
         KeepOnTop(promptDialog);
 
         /* Make sure Enter will activate OK, not Cancel */
-        //gtk_dialog_set_default_response(GTK_DIALOG(promptDialog),
-        //                                GTK_RESPONSE_OK);
+        /*
+        gtk_dialog_set_default_response(GTK_DIALOG(promptDialog),
+                                        GTK_RESPONSE_OK);
+         */
 
         gtk_signal_connect(GTK_OBJECT(promptDialog), "key_press_event",
                            (GtkSignalFunc)HandlePromptKeyPress, 0);
@@ -480,6 +484,66 @@ int Prompt(char* msg, char* yesStr, char* noStr, char* yesChars, char* noChars)
 
     gtk_widget_hide(promptDialog);
     return qYesNo;
+}
+
+static void SetNewFiles(GtkWidget *dialog, gint res)
+{
+	GSList *files, *cur;
+    gboolean overwrite;
+
+    if (res == GTK_RESPONSE_ACCEPT)
+        overwrite = FALSE;
+    else if (res == GTK_RESPONSE_OK)
+        overwrite = TRUE;
+    else {
+        gtk_widget_destroy (dialog);
+        return;
+    }
+
+    files = cur = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
+
+    if (overwrite)
+        ClearImageList();
+
+    gCurImage = 0;
+
+    while (cur)
+    {
+        PhoImage* img = AddImage((char*)(cur->data));
+        if (!gCurImage)
+            gCurImage = img;
+
+        cur = cur->next;
+    }
+    if (files)
+        g_slist_free (files);
+
+    gtk_widget_destroy (dialog);
+
+    ThisImage();
+}
+
+void ChangeWorkingFileSet()
+{
+    GtkWidget* fsd = gtk_file_chooser_dialog_new("Change file set", NULL,
+                                         GTK_FILE_CHOOSER_ACTION_OPEN,
+                                         GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+                                         GTK_STOCK_ADD, GTK_RESPONSE_ACCEPT,
+                                         GTK_STOCK_NEW, GTK_RESPONSE_OK,
+                                         NULL);
+    gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(fsd), TRUE);
+
+    if (gCurImage && gCurImage->filename && gCurImage->filename[0] == '/')
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(fsd),
+                                            g_dirname(gCurImage->filename));
+    else {
+        char buf[BUFSIZ];
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(fsd),
+                                            getcwd(buf, BUFSIZ));
+    }
+
+	g_signal_connect(G_OBJECT(fsd), "response", G_CALLBACK(SetNewFiles), 0);
+	gtk_widget_show(fsd);
 }
 
 
