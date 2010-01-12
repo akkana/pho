@@ -1,9 +1,11 @@
 <html>
 <head>
-<title>yass</title>
+<title>pho: an image viewer</title>
 </head>
 
 <body bgcolor=white>
+
+<img align=right src="pho.jpg" width=213 height=340 alt="">
 
 <h1>pho: View and annotate multiple images</h1>
 
@@ -11,19 +13,20 @@
 
 <p>
 <b>pho</b> is a lightweight program for viewing large numbers of
-images at once, and making notes about what to do with each image --
+images quickly, rotating or deleting some,
+and making notes about what to do with each image --
 for instance, for going through hundreds of
 images after uploading them from a digital camera.
 
 <h2>Why another image viewer?  Surely there are plenty of those?</h2>
 
 <p>
-I used to use xv for paging through images -- it's an excellent
+I used to use xv for paging through images -- it's quite a good
 viewing program -- but it had a few features which annoyed me.  For
 example, it creates a directory called .xvpics in every directory it touches;
-and if an image has to be resized to fit the screen, and you save it
-(perhaps after rotating it), it saves at the smaller size and boom,
-there goes your high-res image.
+and if an image has to be resized to fit the screen, and after that
+you save it (perhaps after rotating it), it saves at the smaller size
+and boom, there goes your high-res image.
 
 <p>
 But, more important, there were a few extra things I needed.
@@ -36,11 +39,18 @@ During image triage, I need to be able to do a few things quickly:
 </ul>
 With xv, I found that I was writing these lists on paper, or trying
 to keep track of them in my head.  That's dumb!  Why not make the
-computer do that work?
+computer do that work?  So I did.
 
 <p>
-Currently, pho doesn't make any changes to the files on disk.
+Currently, pho can delete images on disk, but it can't save rotated
+images yet.
 I use my <a href="imagebatch.html">imagebatch</a> scripts for that.
+
+<p>
+Pho can read any format supported by gdk-pixbuf.  I haven't found a
+list of those formats anywhere, but it seems to be substantial.
+The only format I've hit so far that it doesn't read is photocd.
+I usually use <i>hpcdtoppm</i> for PhotoCDs.
 
 <h2>How to use pho</h2>
 
@@ -71,12 +81,14 @@ and list 5 might be the images I want to make into a web page.)
 <h2>Getting pho</h2>
 
 pho uses the
-<a href="http://developer.gnome.org/doc/API/gdk-pixbuf/index.html">gdk_pixbuf</a>
+<a href="http://developer.gnome.org/doc/API/gdk-pixbuf/index.html">gdk-pixbuf</a>
 library for reading, scaling, and displaying images.
 So you will need gdk-pixbuf installed in order to run pho.
 To compile it, you will also need gdk-pixbuf-devel.
 You may need to edit the Makefile if your system has gdk-pixbuf
 installed in different place from my system (sorry, no autoconf yet).
+Also included is a little xlib program, xpho, which is mostly
+interesting as an example of how to use gdk_pixbuf_xlib.
 
 <p>
 As far as I know, gdk-pixbuf is Unix only, so this program won't
@@ -87,7 +99,7 @@ image drawing code.)
 <p>
 <a href="pho">pho binary for Linux i386</a> (compiled on Redhat 7.3)
 <br>
-<a href="pho-0.5.tgz">pho source tarball</a>
+<a href="pho-0.5.1.tgz">latest pho source tarball</a> (includes man page)
 
 <p>
 If you like pho, or if you think it's promising but there's some
@@ -96,9 +108,11 @@ feature it really needs, or have an idea for a better name for it
 
 <h2>Changelog</h2>
 <dl>
-<dt>7/11/2002, Pho 0.5:
+<dt>7/21/2002, <a href="pho-0.5.1.tgz">Pho 0.5</a>:
+<dd>Fix a bug where image rotations were wrong when going backward.
+<dt>7/11/2002, <a href="pho-0.5.tgz">Pho 0.5</a>:
 <dd>Add delete dialog, and really delete files on disk.
-<dt>7/3/2002, Pho 0.4:
+<dt>7/3/2002, <a href="pho-0.4.tgz">Pho 0.4</a>:
 <dd>Fixed a bug with gif rotation.
 <dt>7/1/2002, Pho 0.3:
 <dd>Rename yass to pho, add info dialog.

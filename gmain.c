@@ -96,7 +96,7 @@ static gint HandleExpose(GtkWidget* widget, GdkEventKey* event)
     return TRUE;
 }
 
-static void EndSession()
+void EndSession()
 {
     PrintNotes();
     gtk_main_quit();

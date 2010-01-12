@@ -47,7 +47,11 @@ int LoadImageFromFile()
     // Rotate if necessary:
     FindImgNote(ArgP);
     if (curNote && curNote->rotation != 0)
-        RotateImage(curNote->rotation);
+    {
+        int rot = curNote->rotation;
+        curNote->rotation = 0;
+        RotateImage(rot);
+    }
 
     return 0;
 }
@@ -83,14 +87,20 @@ void DeleteImage()
 {
     FindImgNote(ArgP);
     if (!curNote) return;
-    curNote->deleted = 1;
     ShowDeleteDialog();
 }
 
 void ReallyDelete()
 {
-    unlink(ArgV[ArgP]);
-    NextImage();
+    curNote->deleted = 1;
+    if (unlink(ArgV[ArgP]) < 0)
+    {
+        printf("OOPS!  Can't delete %s\n", ArgV[ArgP]);
+        return;
+    }
+    if (NextImage() != 0)
+        if (PrevImage() != 0)
+            EndSession();
     ShowImage();
 }
 
@@ -198,7 +208,7 @@ int RotateImage(int degrees)
 
 void Usage()
 {
-    printf("pho version 0.5.  Copyright 2002 Akkana Peck.\n");
+    printf("pho version 0.5.1.  Copyright 2002 Akkana Peck.\n");
     printf("Usage: pho [-d] image [image ...]\n");
     exit(1);
 }

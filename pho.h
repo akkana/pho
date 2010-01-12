@@ -54,6 +54,9 @@ extern void SetFlags(int index, unsigned int flags);
 extern int IsDeleted(int index);
 extern void SetDeleted(int index, unsigned int deleted);
 
+/* *main.c */
+extern void EndSession();
+
 /* dialogs.c */
 extern void ToggleInfo();
 extern void ShowDeleteDialog();

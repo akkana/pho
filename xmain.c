@@ -60,7 +60,7 @@ void ShowImage()
 // stub, unused
 void ShowDeleteDialog() { }
 
-static void EndSession()
+void EndSession()
 {
     PrintNotes();
     exit(0);
@@ -136,6 +136,7 @@ int HandleEvent()
                 RotateImage(180);
                 break;
             case XK_q:
+                EndSession();
                 return -1;
             default:
                 if (Debug)
@@ -197,6 +198,7 @@ int main(int argc, char** argv)
         ;
 
     PrintNotes();
+    EndSession();
     return 0;
 }
 
