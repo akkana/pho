@@ -76,7 +76,8 @@ extern int NextImage();
 extern int PrevImage();
 extern void EndSession();
 extern void ToggleNoteFlag(PhoImage* img, int note);
-extern int RotateImage(int degrees);
+extern int RotateImage(PhoImage* img, int degrees);
+extern void ScaleImage(PhoImage* img);
 extern int ShowImage();
 extern void PrintNotes();
 

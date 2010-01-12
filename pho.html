@@ -20,12 +20,12 @@ images after uploading them from a digital camera.
 
 <p><a href="#download">Skip to the download section.</a>
 
-<p>7/13/2004: a new release is imminent.  Lots of cool new improvements.
+<p>10/10/2004: a new release is imminent.  Lots of cool new improvements.
 Works in gtk2 if you have it, but should still build on a gtk1
 system.  New "presentation mode" to do fullscreen (no window
 borders).
 If you want to help test it, grab <a
-href="pho-0.9.5-pre2.tar.gz">pho-0.9.5-pre2.tar.gz</a>.
+href="pho-0.9.5-pre3.tar.gz">pho-0.9.5-pre3.tar.gz</a>.
 Let me know if you have problems.
 
 <h2>Why another image viewer?  Surely there are plenty of those?</h2>
@@ -100,8 +100,9 @@ and list 5 might be the images I want to make into a web page.)
 <a name="download">
 <h2>Getting pho</h2>
 
-The current version of pho is: <b>0.9.2</b> (updated 9/30/2003).
+The current released version of pho is: <b>0.9.2</b> (updated 9/30/2003).
 The binary packages are lagging slightly; stay tuned.
+The current development version of pho is <b>0.9.5-pre3</b>.
 
 <p>
 <i>Dependencies:</i>
@@ -116,11 +117,12 @@ Also included is a little xlib program, xpho, which is mostly
 interesting as an example of how to use gdk_pixbuf_xlib.
 
 <ul>
-<li><a href="pho-0.9.2.tar.gz">latest pho source tarball</a>.
+<li><a href="pho-0.9.2.tar.gz">Pho 0.9.2 source tarball</a>.
 <li><a href="pho_0.9_i386.deb">Debian package (.deb)</a>
 <li><a href="pho-0.9-1.i386.rpm">RPM for Linux/i386</a>
   (built on Redhat 7.3)
 and a Redhat <a href="pho-0.9-1.src.rpm">Source RPM</a>
+<li><a href="pho-0.9.5-pre3.tar.gz">Pho 0.9.5-pre3 source tarball</a>.
 </ul>
 
 <p>
@@ -146,6 +148,10 @@ feature it really needs ... <a href="../../mailme.html">let me know!</a>
 
 <h2>Changelog</h2>
 <dl>
+<dt>10/9/2004, <a href="pho-0.9.5-pre3.tar.gz">Pho 0.9.5-pre3</a>:
+<dd>Fixed a crash bug when revisiting an image which was previously rotated.
+    <br>Added a workaround for Metacity's evil window size handling.
+    <br>Made the background black when in presentation mode.
 <dt>9/30/2004, <a href="pho-0.9.5-pre2.tar.gz">Pho 0.9.5-pre2</a>:
 <dd>Fixed some bugs involving ending up at the wrong image when
     deleting or pressing HOME.  Cleaned up handing of image list.<br>

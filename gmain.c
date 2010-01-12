@@ -10,26 +10,56 @@
 #include "dialogs.h"
 #include "exif/phoexif.h"
 
-#include <stdlib.h>       // for getenv()
+#include <stdlib.h>       /* for getenv() */
 #include <stdio.h>
 #include <string.h>
 
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
-#include <gtk/gtk.h>
 
-#include <gdk/gdkx.h>    // for gdk_x11_display_grab
+#include <gdk/gdkx.h>    /* for gdk_x11_display_grab */
 
 /* Some window managers don't deal well with windows that resize,
  * or don't retain focus if a resized window no longer contains
  * the mouse pointer.
- * Make new windows instead, by default.
+ * Offer an option to make new windows instead.
  */
 int gMakeNewWindows = 0;
+
+static GdkColor sBlack;
 
 /* gtk/X related window attributes */
 static GtkWidget *sWin = 0;
 static GtkWidget *sDrawingArea = 0;
+
+static void hide_cursor(GtkWidget* w)
+{
+#if GTK_MAJOR_VERSION == 2
+    static char invisible_cursor_bits[] = { 0x0 };
+    static GdkBitmap *empty_bitmap = 0;
+    static GdkCursor* cursor = 0;
+
+    if (empty_bitmap == 0 || cursor == 0) {
+        empty_bitmap = gdk_bitmap_create_from_data(NULL,
+                                                   invisible_cursor_bits,
+                                                   1, 1);
+        cursor = gdk_cursor_new_from_pixmap (empty_bitmap, empty_bitmap, &sBlack, &sBlack, 1, 1);
+    }
+    gdk_window_set_cursor(w->window, cursor);
+
+    /* If we need to free this, do it this way:
+    gdk_cursor_unref(cursor);
+    g_object_unref(empty_bitmap);
+     */
+#endif
+}
+
+static void show_cursor(GtkWidget* w)
+{
+#if GTK_MAJOR_VERSION == 2
+    gdk_window_set_cursor(w->window, NULL);
+#endif
+}    
 
 /* DrawImage is called from the expose callback.
  * It assumes we already have the image in gImage.
@@ -44,12 +74,15 @@ void DrawImage()
 
     /* If we're in presentation mode, clear the screen first: */
     if (gPresentationMode) {
+        hide_cursor(sDrawingArea);
         gdk_window_clear(sDrawingArea->window);
 
         /* Center the image */
         dstX = (gMonitorWidth - gCurImage->curWidth) / 2;
         dstY = (gMonitorHeight - gCurImage->curHeight) / 2;
     }
+    else
+        show_cursor(sDrawingArea);
 
     gdk_pixbuf_render_to_drawable(gImage, sDrawingArea->window,
                    sDrawingArea->style->fg_gc[GTK_WIDGET_STATE(sDrawingArea)],
@@ -57,7 +90,7 @@ void DrawImage()
                                   gCurImage->curWidth, gCurImage->curHeight,
                                   GDK_RGB_DITHER_NONE, 0, 0);
 
-    // Update the titlebar
+    /* Update the titlebar */
     sprintf(title, "pho: %s (%d x %d)", gCurImage->filename,
             gCurImage->trueWidth, gCurImage->trueHeight);
     if (HasExif())
@@ -71,6 +104,10 @@ void DrawImage()
             strcat(title, ")");
         }
     }
+    if (gScaleMode == PHO_SCALE_FULLSIZE)
+        strcat(title, " (fullsize)");
+    else if (gScaleMode == PHO_SCALE_FULLSCREEN)
+        strcat(title, " (fullscreen)");
     gtk_window_set_title(GTK_WINDOW(sWin), title);
 
     UpdateInfoDialog(gCurImage);
@@ -78,6 +115,12 @@ void DrawImage()
 
 static gint HandleExpose(GtkWidget* widget, GdkEventExpose* event)
 {
+#if GTK_MAJOR_VERSION == 2
+    if (gPresentationMode) {
+        gtk_widget_modify_bg(sDrawingArea, GTK_STATE_NORMAL, &sBlack);
+    }
+#endif
+
     DrawImage();
 
 #if GTK_MAJOR_VERSION == 2
@@ -143,6 +186,7 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
               gScaleMode = PHO_SCALE_FULLSIZE;
           else
               gScaleMode = PHO_SCALE_NORMAL;
+          ScaleImage(gCurImage);
           ShowImage();
           return TRUE;
       case GDK_f:
@@ -150,6 +194,7 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
               gScaleMode = PHO_SCALE_FULLSCREEN;
           else
               gScaleMode = PHO_SCALE_NORMAL;
+          ScaleImage(gCurImage);
           ShowImage();
           return TRUE;
       case GDK_p:
@@ -168,22 +213,23 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
       case GDK_9:
           ToggleNoteFlag(gCurImage, event->keyval - GDK_0);
           return TRUE;
-      case GDK_t:   // make life easier for xv users
+      case GDK_t:   /* make life easier for xv users */
       case GDK_r:
       case GDK_Right:
       case GDK_KP_Right:
-          RotateImage(90);
+          RotateImage(gCurImage, 90);
           return TRUE;
-      case GDK_T:   // make life easier for xv users
+      case GDK_T:   /* make life easier for xv users */
       case GDK_R:
       case GDK_l:
       case GDK_L:
       case GDK_Left:
       case GDK_KP_Left:
-          RotateImage(-90);
+          RotateImage(gCurImage, -90);
           return TRUE;
       case GDK_Up:
-          RotateImage(180);
+      case GDK_Down:
+          RotateImage(gCurImage, 180);
           return TRUE;
       case GDK_plus:
       case GDK_KP_Add:
@@ -207,7 +253,7 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
           ShowImage();
           return TRUE;
 #if 0
-      case GDK_g:  // start gimp
+      case GDK_g:  /* start gimp */
           if ((i = CallExternal("gimp-remotte -n", gCurImage->filename) != 0) {
               i = CallExternal("gimp", gCurImage->filename);
               printf("Called gimp, returned %d\n", i);
@@ -227,7 +273,7 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
               printf("Don't know key 0x%lu\n", (unsigned long)(event->keyval));
           return FALSE;
     }
-    // Keep gcc 2.95 happy:
+    /* Keep gcc 2.95 happy: */
     return FALSE;
 }
 
@@ -272,15 +318,15 @@ static void NewWindow()
                               gMonitorWidth, gMonitorHeight);
 #if GTK_MAJOR_VERSION == 2
         gtk_window_fullscreen(GTK_WINDOW(sWin));
-        /* XXX Would like to set the background color to black here.  How?
-         * gtk_style documentation shows how to set a window's background
-         * to a style, but it doesn't say how to make a style be "black".
-         */
 #endif
     }
-    else
+    else {
         gtk_drawing_area_size(GTK_DRAWING_AREA(sDrawingArea),
                               gCurImage->curWidth, gCurImage->curHeight);
+#if GTK_MAJOR_VERSION == 2
+        gtk_window_unfullscreen(GTK_WINDOW(sWin));
+#endif
+    }
 
 #if 0
     /* This doesn't seem to make any difference. */
@@ -323,14 +369,12 @@ static void NewWindow()
  * due to the issue in http://bugzilla.gnome.org/show_bug.cgi?id=150668
  * 
  **/
-//#define GDK_WINDOW_SCREEN(win)	      (GDK_DRAWABLE_IMPL_X11 (((GdkWindowObject *)win)->impl)->screen)
-//#define GDK_WINDOW_DISPLAY(win)       (GDK_SCREEN_X11 (GDK_WINDOW_SCREEN (win))->display)
-//#define GDK_WINDOW_XROOTWIN(win)      (GDK_SCREEN_X11 (GDK_WINDOW_SCREEN (win))->xroot_window)
-
 #define GDK_WINDOW_DISPLAY(win)       gdk_drawable_get_display(win)
 #define GDK_WINDOW_SCREEN(win)	      gdk_drawable_get_screen(win)
 #define GDK_WINDOW_XROOTWIN(win)      GDK_ROOT_WINDOW()
 
+#if GTK_MAJOR_VERSION == 2
+#ifdef TEST_FOCUS
 static void
 pho_window_focus (GdkWindow *window,
                   guint32    timestamp)
@@ -379,6 +423,8 @@ pho_window_focus (GdkWindow *window,
        */
   }
 }
+#endif /* TEST_FOCUS */
+#endif
 
 /* PrepareWindow is responsible for making the window the right
  * size and position, so the user doesn't see flickering.
@@ -405,14 +451,25 @@ void PrepareWindow()
     }
     else {
 #if GTK_MAJOR_VERSION == 2
-        gtk_window_unfullscreen(GTK_WINDOW(sWin));
         /* We need to size the actual window, not just the drawing area.
          * Resizing the drawing area will resize the window for some
          * window managers, like openbook, but not for metacity.
+         *
+         * Worse, metacity maximizes a window if the initial size is
+         * bigger in either dimension than the screen size.
+         * Since we don't know the size of the wm decorations,
+         * we will probably hit this and get unintentionally maximized,
+         * after which metacity refuses to resize the window any smaller.
+         * (Mac OS X apparently does this too.)
+         * So force non-maximal mode.  (Users who want a maximized
+         * window will probably prefer fullscreen mode anyway.)
          */
+        gtk_window_unfullscreen(GTK_WINDOW(sWin));
+        gtk_window_unmaximize(GTK_WINDOW(sWin));
         gtk_window_resize(GTK_WINDOW(sWin),
                           gCurImage->curWidth, gCurImage->curHeight);
 #else
+        /* In gtk1 we're happy, things "just work", even in metacity */
         gdk_window_resize(sWin->window,
                           gCurImage->curWidth, gCurImage->curHeight);
 #endif
@@ -435,9 +492,9 @@ void PrepareWindow()
      * Neither gtk_window_present nor gdk_window_focus seem to work.
      */
 #if GTK_MAJOR_VERSION == 2
+#ifdef TEST_FOCUS
     pho_window_focus(sWin->window, GDK_CURRENT_TIME);
 
-#if 0
     /* None of these actually work!  Is there any way to get keyboard
      * focus into a window?
      */
@@ -454,7 +511,7 @@ void PrepareWindow()
                                   GDK_WINDOW_XID(sWin->window),
                                   TRUE,
                                   GDK_CURRENT_TIME);
-#endif
+#endif /* TEST_FOCUS */
 #endif
 
     DrawImage();
@@ -520,6 +577,9 @@ int main(int argc, char** argv)
 
     gMonitorWidth = gdk_screen_width();
     gMonitorHeight = gdk_screen_height();
+
+    /* Initialize the "black" color */
+    sBlack.red = sBlack.green = sBlack.blue = 0x0000;
 
     /* Load the first image */
     if (NextImage() != 0)

@@ -1,3 +1,22 @@
+pho (0.9.5) unstable; urgency=low
+
+  * Code cleanup: rewrote the image list handling to use a linked list.
+  * Port to gtk2, and build under either gtk1 or gtk2.
+  * Add new "fullscreen mode" (e.g. for presentations, or for difficult
+    window managers).
+  * Added a workaround for Metacity's evil window size handling.
+
+ -- Akkana Peck <akkana@shallowsky.com>  Mon, 11 Oct 2004 13:45:00 -0800
+
+pho (0.9.2) unstable; urgency=low
+
+  * Don't try to move the window unless the image size has changed
+    (fix the annoying bug where pho wouldn't let you move windows).
+  * Fix a crash after dismissing the info dialog by clicking
+    on the windowmanager "X".
+
+ -- Akkana Peck <akkana@shallowsky.com>  Tue, 30 Sep 2003 23:24:01 -0800
+
 pho (0.9.1) unstable; urgency=low
 
   * Rusty Russell: fix an off-by-one error in rotation code,
@@ -5,18 +24,18 @@ pho (0.9.1) unstable; urgency=low
   * Brian Langenberger: bracket printed filenames with quotes if
     they contain spaces or quote characters.
 
- -- Akkana Peck <dev@shallowsky.com>  Wed,  8 Jan 2002 23:24:01 -0800
+ -- Akkana Peck <akkana@shallowsky.com>  Wed, 26 Feb 2003 23:24:01 -0800
 
 pho (0.9) unstable; urgency=low
 
   * Add EXIF handling, using code from jhead.
   * Fix some build errors, and release 0.9.
 
- -- Akkana Peck <dev@shallowsky.com>  Wed,  8 Jan 2002 23:24:01 -0800
+ -- Akkana Peck <akkana@shallowsky.com>  Wed,  8 Jan 2002 23:24:01 -0800
 
 pho (0.8-1) unstable; urgency=low
 
   * Initial Debian Release.
 
- -- Akkana Peck <dev@shallowsky.com>  Tue,  15 Oct 2002 21:49:27 -0700
+ -- Akkana Peck <akkana@shallowsky.com>  Tue,  15 Oct 2002 21:49:27 -0700
 

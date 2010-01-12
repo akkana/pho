@@ -1,7 +1,0 @@
-# Automatically added by dh_installdocs
-if [ "$1" = "configure" ]; then
-	if [ -d /usr/doc -a ! -e /usr/doc/pho -a -d /usr/share/doc/pho ]; then
-		ln -sf ../share/doc/pho /usr/doc/pho
-	fi
-fi
-# End automatically added section

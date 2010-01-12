@@ -9,7 +9,7 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <stdlib.h>       // for malloc()
+#include <stdlib.h>       /* for malloc() */
 #include <glib.h>
 #include <ctype.h>
 
@@ -150,8 +150,9 @@ void PrintNotes()
         if (img == gFirstImage) break;
     }
 
-    // Now we've looped over all the structs, so we can print out
-    // the tables of rotation and notes.
+    /* Now we've looped over all the structs, so we can print out
+     * the tables of rotation and notes.
+     */
     if (rot90)
         printf("\nRotate 90 (CW): %s\n", rot90);
     if (rot270)

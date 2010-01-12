@@ -31,11 +31,10 @@ int gScaleMode = PHO_SCALE_NORMAL;
 
 int gPresentationMode = 0;
 
-static void ScaleImage(PhoImage* img);  /* forward */
+//static void ScaleImage(PhoImage* img);  /* forward */
 
 int ShowImage()
 {
-    ScaleImage(gCurImage);
     PrepareWindow();
     return 0;
 }
@@ -72,22 +71,22 @@ static int LoadImageFromFile(PhoImage* img)
         return -1;
     }
 
-    img->trueWidth = gdk_pixbuf_get_width(gImage);
-    img->trueHeight = gdk_pixbuf_get_height(gImage);
+    img->curWidth = img->trueWidth = gdk_pixbuf_get_width(gImage);
+    img->curHeight = img->trueHeight = gdk_pixbuf_get_height(gImage);
 
     /* do any necessary rotation */
     ExifReadInfo(img->filename);
-    if (img->rotation) {
+    if (img->rotation != 0) {
         rot = img->rotation;
         img->rotation = 0;
-        RotateImage(rot);
+        RotateImage(gCurImage, rot);
     }
     else if (HasExif() && (rot = ExifGetInt(ExifOrientation)) != 0) {
-        RotateImage(rot);
+        RotateImage(gCurImage, rot);
     }
+    /* RotateImage will scale, but if we don't call it, then scale it here. */
+    else ScaleImage(gCurImage);
 
-    img->curWidth = img->trueWidth;
-    img->curHeight = img->trueHeight;
     return 0;
 }
 
@@ -140,7 +139,7 @@ int PrevImage()
 /* Scale the image according to the current scale mode.
  * Any rotation has already happened before calling Scale.
  */
-static void ScaleImage(PhoImage* img)
+void ScaleImage(PhoImage* img)
 {
     /* Absolute Size: size has already been set, just follow it.
      */
@@ -305,47 +304,38 @@ void DeleteImage(PhoImage* img)
         ReallyDelete(img);
 }
 
-#define IsResized(img)  (((img)->curWidth != (img)->trueWidth) || ((img)->curHeight != (img)->trueHeight))
-
-#define IsSmaller(img)  (((img)->curWidth < (img)->trueWidth) || ((img)->curHeight < (img)->trueHeight))
-
-int RotateImage(int degrees)
+/* RotateImage is responsible for calling ScaleImage():
+ * because only RotateImage knows whether the aspect ratio is changing,
+ * and hence, whether scaling should happen early or late.
+ */
+int RotateImage(PhoImage* img, int degrees)
 {
     guchar *oldpixels, *newpixels;
     int x, y;
     int oldrowstride, newrowstride, nchannels, bitsper, alpha;
-#if GTK_MAJOR_VERSION == 2
-    GError* err = NULL;
-#endif
 
-    // If we've resized it smaller than original, but after
-    // rotating it we'd be able to show it bigger than current size,
-    // then read in the original first before rotating.
-    if (IsSmaller(gCurImage) && degrees != 180
-        && (gCurImage->curWidth < gMonitorWidth
-            || gCurImage->curHeight < gMonitorHeight))
-    {
-        if (gImage) {
-            gdk_pixbuf_unref(gImage);
-	    gImage = 0;
-	}
-#if GTK_MAJOR_VERSION == 2
-        gImage = gdk_pixbuf_new_from_file(gCurImage->filename, &err);
-#else
-        gImage = gdk_pixbuf_new_from_file(gCurImage->filename);
-#endif
-        if (gImage == 0) return 1;
-        gCurImage->trueWidth = gdk_pixbuf_get_width(gImage);
-        gCurImage->trueHeight = gdk_pixbuf_get_height(gImage);
-        gCurImage->curWidth = gCurImage->trueWidth;
-        gCurImage->curHeight = gCurImage->trueHeight;
+    /* Make sure degrees is between 0 and 360 even if it's -90 */
+    degrees = (degrees + 360) % 360;
 
-        degrees = (degrees + gCurImage->rotation) % 360;
-        gCurImage->rotation = 0;
+    /* Decide whether to scale the image. */
+    if (degrees == 90 || degrees == 270) {
+        /* We're changing aspect ratio, so temporarily swap
+         * screen width and height before rescaling:
+         */
+        int temp = gMonitorHeight;
+        gMonitorHeight = gMonitorWidth;
+        gMonitorWidth = temp;
+        ScaleImage(img);
+        temp = gMonitorHeight;
+        gMonitorHeight = gMonitorWidth;
+        gMonitorWidth = temp;
     }
+    else
+        ScaleImage(img);
 
-    // degrees might be zero now, since we might have just
-    // read from disk and might now be rotating back to zero.
+    /* degrees might be zero now, since we might have just
+     * read from disk and might now be rotating back to zero.
+     */
     if (degrees == 0)
     {
         ShowImage();
@@ -355,36 +345,37 @@ int RotateImage(int degrees)
     oldrowstride = gdk_pixbuf_get_rowstride(gImage);
     bitsper = gdk_pixbuf_get_bits_per_sample(gImage);
     nchannels = gdk_pixbuf_get_n_channels(gImage);
+    if (oldrowstride != img->curWidth * nchannels)
+        printf("Yikes!  rowstride doesn't match!\n");
     alpha = gdk_pixbuf_get_has_alpha(gImage);
     if (degrees == 90 || degrees == -90 || degrees == 270)
         newrowstride = oldrowstride
-            * gCurImage->curHeight / gCurImage->curWidth;
+            * img->curHeight / img->curWidth;
     else
         newrowstride = oldrowstride;
 
     oldpixels = gdk_pixbuf_get_pixels(gImage);
-    newpixels = malloc(gCurImage->curWidth * gCurImage->curHeight * nchannels);
+    newpixels = malloc(img->curWidth * img->curHeight * nchannels);
 
-    for (x = 0; x < gCurImage->curWidth; ++x)
+    for (x = 0; x < img->curWidth; ++x)
     {
-        for (y = 0; y < gCurImage->curHeight; ++y)
+        for (y = 0; y < img->curHeight; ++y)
         {
             int newx, newy;
             int i;
             switch (degrees)
             {
               case 90:
-                newx = gCurImage->curHeight - y - 1;
+                newx = img->curHeight - y - 1;
                 newy = x;
                 break;
-              case -90:
               case 270:
                 newx = y;
-                newy = gCurImage->curWidth - x - 1;
+                newy = img->curWidth - x - 1;
                 break;
               case 180:
-                newx = gCurImage->curWidth - x - 1;
-                newy = gCurImage->curHeight - y - 1;
+                newx = img->curWidth - x - 1;
+                newy = img->curHeight - y - 1;
                 break;
               default:
                 printf("Illegal rotation value!\n");
@@ -392,34 +383,42 @@ int RotateImage(int degrees)
             }
             for (i=0; i<nchannels; ++i)
             {
-                //printf("(%d, %d) -> (%d, %d) # %d\n", x, y, newx, newy, i);
+#if 0
+                if (x > img->curWidth-3 && y > img->curHeight-3)
+                {
+                    printf("(%d, %d) -> (%d, %d) # %d\n", x, y, newx, newy, i);
+                    printf("%d -> %d\n",
+                           newy*newrowstride + newx*nchannels + i,
+                           y*oldrowstride + x*nchannels + i);
+                }
+#endif
                 newpixels[newy*newrowstride + newx*nchannels + i]
                     = oldpixels[y*oldrowstride + x*nchannels + i];
             }
         }
     }
 
-    // Swap X and Y if appropriate.
-    if (degrees == 90 || degrees == -90 || degrees == 270)
+    /* Swap X and Y if appropriate. */
+    if (degrees == 90 || degrees == 270)
     {
         int temp;
-        temp = gCurImage->curWidth;
-        gCurImage->curWidth = gCurImage->curHeight;
-        gCurImage->curHeight = temp;
-        temp = gCurImage->trueWidth;
-        gCurImage->trueWidth = gCurImage->trueHeight;
-        gCurImage->trueHeight = temp;
+        temp = img->curWidth;
+        img->curWidth = img->curHeight;
+        img->curHeight = temp;
+        temp = img->trueWidth;
+        img->trueWidth = img->trueHeight;
+        img->trueHeight = temp;
     }
 
-    gCurImage->rotation = (gCurImage->rotation + degrees + 360) % 360;
+    img->rotation = (img->rotation + degrees + 360) % 360;
 
     if (gImage)
         gdk_pixbuf_unref(gImage);
     gImage = gdk_pixbuf_new_from_data(newpixels,
-                                     GDK_COLORSPACE_RGB, alpha, bitsper,
-                                     gCurImage->curWidth, gCurImage->curHeight,
+                                      GDK_COLORSPACE_RGB, alpha, bitsper,
+                                     img->curWidth, img->curHeight,
                                       newrowstride,
-                                     FreePixels, newpixels);
+                                      FreePixels, newpixels);
     if (!gImage) return 1;
 
     ShowImage();

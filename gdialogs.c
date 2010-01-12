@@ -194,7 +194,7 @@ void ToggleInfo()
     //gtk_box_set_spacing(GTK_BOX(vbox), 3);
     gtk_container_set_border_width(GTK_CONTAINER(vbox), 8);
 
-    // Make the button
+    /* Make the button */
     ok = gtk_button_new_with_label("Ok");
     gtk_box_pack_start(GTK_BOX(GTK_DIALOG(InfoDialog)->action_area),
                        ok, TRUE, TRUE, 0);
@@ -202,7 +202,7 @@ void ToggleInfo()
                        (GtkSignalFunc)PopdownInfoDialog, 0);
     gtk_widget_show(ok);
 
-    // Add the info items
+    /* Add the info items */
     InfoDImgName = gtk_label_new("imgName");
     gtk_box_pack_start(GTK_BOX(vbox), InfoDImgName, TRUE, TRUE, 4);
     gtk_widget_show(InfoDImgName);
@@ -272,7 +272,7 @@ void ToggleInfo()
     gtk_widget_show(label);
 
     InfoExifContainer = gtk_table_new(NUM_EXIF_FIELDS, 2, FALSE);
-    // set_padding doesn't work on tables, apparently
+    /* set_padding doesn't work on tables, apparently */
     //gtk_misc_set_padding(GTK_MISC(InfoExifContainer), 7, 7);
     gtk_table_set_row_spacings(GTK_TABLE(InfoExifContainer), 2);
     gtk_table_set_col_spacings(GTK_TABLE(InfoExifContainer), 5);
@@ -390,19 +390,17 @@ int Prompt(char* msg, char* yesStr, char* noStr, char* yesChars, char* noChars)
     else
     {
         /* First time through: make the dialog */
-
         promptDialog = gtk_dialog_new();
-
-        // This is stupid: to make the dialog modal we have to use
-        // new_with_buttons, but that doesn't let us get to to the buttons
-        // to change their labels later!
-        // Figure out how to add modality some other time.
-        //promptDialog = gtk_dialog_new_with_buttons("Prompt", 
+        /* This is stupid: to make the dialog modal we have to use
+         * new_with_buttons, but that doesn't let us get to to the buttons
+         * to change their labels later!
+         * Figure out how to add modality some other time.
+	 */
 
         gtk_signal_connect(GTK_OBJECT(promptDialog), "key_press_event",
                            (GtkSignalFunc)HandlePromptKeyPress, 0);
 
-        // Make the buttons:
+        /* Make the buttons: */
         yesBtn = gtk_button_new_with_label(yesStr);
         gtk_box_pack_start(GTK_BOX(GTK_DIALOG(promptDialog)->action_area),
                            yesBtn, TRUE, TRUE, 0);
@@ -417,7 +415,7 @@ int Prompt(char* msg, char* yesStr, char* noStr, char* yesChars, char* noChars)
         gtk_widget_show(yesBtn);
         gtk_widget_show(noBtn);
 
-        // Make the label:
+        /* Make the label: */
         question = gtk_label_new(msg);
         gtk_box_pack_start(GTK_BOX(GTK_DIALOG(promptDialog)->vbox),
                            question, TRUE, TRUE, 15);
