@@ -76,8 +76,10 @@ void ShowImage()
                                   GDK_RGB_DITHER_NONE, 0, 0);
 
     // Update the titlebar
-    sprintf(title, "pho%s: %s",
-            gFullScreenMode ? " (fullscreen)" : "", ArgV[ArgP]);
+    sprintf(title, "pho: %s (%d x %d)%s",
+            ArgV[ArgP],
+            realXSize, realYSize,
+            gFullScreenMode ? " (fullscreen)" : "");
     gtk_window_set_title(GTK_WINDOW(win), title);
 
     UpdateInfoDialog();
@@ -155,6 +157,11 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
       case GDK_BackSpace:
       case GDK_minus:
           if (PrevImage() == 0)
+              ShowImage();
+          return TRUE;
+      case GDK_Home:
+          ArgP = 0;
+          if (NextImage() == 0)
               ShowImage();
           return TRUE;
       case GDK_f:

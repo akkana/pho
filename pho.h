@@ -56,7 +56,8 @@ extern void EndSession();
 
 /* dialogs.c */
 extern void ToggleInfo();
-extern int PromptDialog(char* s, char* yesStr, char* noStr,
-                        char* yesChars, char* noChars);
+extern int PromptDialog(char* question,
+                        char* yesStr, char* noStr,     // displayed on the btns
+                        char* yesChars, char* noChars);// to activate btns
 
 

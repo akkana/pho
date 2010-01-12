@@ -1,0 +1,13 @@
+Source: pho
+Section: x11
+Priority: optional
+Maintainer: Akkana Peck <dev@shallowsky.com>
+Build-Depends: debhelper (>> 3.0.0), libgtk1.2-dev (>= 1.2), libgdk-pixbuf-dev (>= 0.14)
+Standards-Version: 3.5.2
+
+Package: pho
+Architecture: any
+Depends: libgtk1.2, libgdk-pixbuf2
+Description: A fast, lightweight image browser.
+ For more information, please see http://www.shallowsky.com/software/pho.html
+
