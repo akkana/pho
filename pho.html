@@ -20,14 +20,21 @@ images after uploading them from a digital camera.
 
 <p><a href="#download">Skip to the download section.</a>
 
-<p>March 2007: a new release is imminent (I really mean it this time).
+<p>March 2007: <b>Pho 0.9.5 is finally released!</b>
 Lots of cool new improvements.
-Works in gtk2 if you have it, but should still build on a gtk1
-system.  New "presentation mode" to do fullscreen (no window
-borders).
-If you want to help test it, grab <a
-href="pho-0.9.5-pre5.tar.gz">pho-0.9.5-pre5.tar.gz</a>.
+Optimized for gtk2, but should still build on a gtk1 system.
+New "presentation mode" does fullscreen (no window borders).
+It also checks your environment for 
+Grab <a
+href="pho-0.9.5.tar.gz">pho-0.9.5.tar.gz</a>.
 Let me know if you have problems.
+<p>
+And there's a <b>Windows binary</b> too!
+<a href="pho-0.9.5-pre5.zip">pho-0.9.5-pre5.zip</a>,
+thanks to Michael Schumacher.
+(This is labelled 0.9.5-pre5, but there have been no changes
+between pre5 and the final 0.9.5.)
+You'll need to install gtk+ if you don't already have it.
 
 <h2>Why another image viewer?  Surely there are plenty of those?</h2>
 
@@ -63,7 +70,7 @@ images.  So I guess I'll keep maintaining pho!
 Pho can read any format supported by gdk-pixbuf.  I haven't found a
 list of those formats anywhere, but it seems to be substantial.
 The only format I've hit so far that it doesn't read is photocd.
-I usually use <i>hpcdtoppm</i> for PhotoCDs.
+You can convert those to other formats using the ImageMagick utility.
 
 <p>
 Pho can delete images on disk, but it can't save rotated
@@ -91,6 +98,8 @@ Then the following keys work:
 <dt>F                       <dd>Toggle in and out of "full size mode"
       (show the image at its native size, even if that's too big
        to fit on screen)
+<dt>p                       <dd>Toggle in and out of Presentation Mode
+      (full screen, no mouse or window borders)
 <td>-, /                    <dd>Zoom out, to half size
 <td>+, =, *                 <dd>Zoom in, to double size
 <dt>q                       <dd>Quit.
@@ -108,52 +117,24 @@ in gimp, and 3 on the photos I want to save as desktop backgrounds.
 <a name="download">
 <h2>Getting pho</h2>
 
-The current development version of pho is <b>0.9.5-pre5</b>.
-I strongly recommend that you use this rather than the "stable"
-version; it will become the stable version very soon.
+The current stable version of pho is <b>0.9.5</b>.
+<p>
+<b>Source tarball: <a href="pho-0.9.5.tar.gz">Pho 0.9.5 source tarball</a>.</b>
+<br />
+<b>Windows binary (requires gtk+): <a href="pho-0.9.5-pre5.zip">pho-0.9.5-pre5.zip</a>.</b>
+
 
 <p>
 <i>Dependencies:</i>
-pho uses the
-<a href="http://developer.gnome.org/doc/API/gdk-pixbuf/index.html">gdk-pixbuf</a>
-library for reading, scaling, and displaying images.
-So you will need gdk-pixbuf installed in order to run pho.
-To compile it, you will also need gdk-pixbuf-devel.
-You may need to edit the Makefile if your system has gdk-pixbuf
+pho uses the gtk+ libraries, including gdk-pixbuf.
+You may need to edit the Makefile if your system has these libraries
 installed in different place from my system (sorry, no autoconf yet).
 Also included is a little xlib program, xpho, which is mostly
 interesting as an example of how to use gdk_pixbuf_xlib.
 
 <p>
-<b><a href="pho-0.9.5-pre5.tar.gz">Pho 0.9.5-pre5 source tarball</a>.</b>
-
-<p>
-Binaries for the older version:
-<ul>
-<li><a href="pho-0.9.2.tar.gz">Pho 0.9.2 source tarball</a>.
-<li><a href="pho_0.9_i386.deb">Debian package (.deb)</a>
-<li><a href="pho-0.9-1.i386.rpm">RPM for Linux/i386</a>
-  (built on Redhat 7.3)
-and a Redhat <a href="pho-0.9-1.src.rpm">Source RPM</a>
-<li><a href="pho-0.9.5-pre4.tar.gz">Pho 0.9.5-pre4 source tarball</a>.
-</ul>
-
-<p>
 Pho does work on Mac OS X, as an X application
 if you have the appropriate gtk/gdk headers and libraries.
-<a href="pho-0.8.ppc">Here's a mac binary</a> (0.8, somewhat out of date).
-It's built on OS X 10.2.2 and requires XFree86, gtk+, and gdk-pixbuf
-(available as <i>fink</i> packages -- <i>fink install gdk-pixbuf</i>
-will get all of it, but it may take a while if you don't already
-have the gnome libraries).
-
-<p>
-I believe there's a gdk-pixbuf for Windows, but lacking a Windows
-development machine I haven't tried it.  I don't think it's available
-for Mac Classic.  (But you're welcome to use the
-skeleton of the program and insert your own platform specific
-image drawing code; if you send it to me I'd love to incorporate
-it into the pho source.)
 
 <p>
 If you like pho, or if you think it's promising but there's some
@@ -161,6 +142,8 @@ feature it really needs ... <a href="../../mailme.html">let me know!</a>
 
 <h2>Changelog</h2>
 <dl>
+<td>3/20/2007, <a href="pho-0.9.5.tar.gz">Pho 0.9.5</a>:
+<dd>No changes except some manual and html page updates.
 <dt>3/5/2007, <a href="pho-0.9.5-pre5.tar.gz">Pho 0.9.5-pre5</a>:
 <dd>Check for a PHO_ARGS environment variable.
     Add a -P argument to force non-presentation mode.

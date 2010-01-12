@@ -43,7 +43,8 @@ Print version and usage info, and exit.
 Force non-presentation mode.
 .TP
 \fB\-n\fR
-Replace each image with a new window (helpful for some broken window managers).
+Replace each image with a new window
+(slower, but helpful for some broken window managers).
 .SH ENVIRONMENT VARIABLES
 .TP
 Pho will check the PHO_ARGS environment variable for default flag
@@ -81,8 +82,8 @@ Show a dialog with information about the image, including EXIF tags.
 Add the image to the appropriate notes list
 .TP
 \fBf\fR
-Toggle in/out of "full screen mode".
-Images will be scaled up to fill the screen in at least one dimension.
+Toggle in/out of "full screen mode" (or "fit to window").
+Images will be scaled up or down to fill the screen in at least one dimension.
 .TP
 \fBF\fR
 Toggle in/out of "full size mode".  Images will be shown at their
@@ -100,6 +101,11 @@ with the image (if smaller) centered.
 .TP
 \fBq\fR
 Quit
+.SH ENVIRONMENT
+Pho checks for the environment variable PHO_ARGS, which can contain flags
+to use as default arguments.
+For example, PHO_ARGS=p will always run pho in presentation mode (unless
+you pass -P to turn off that mode).
 .SH AUTHOR
 Akkana Peck
 .SH COPYRIGHT
@@ -108,4 +114,4 @@ Copyright \(co 2002 - 2007 Akkana Peck
 Pho is free software, licensed under the GNU Public License.
 .SH SEE ALSO
 The most recent version of \fIpho\fR, and more information about it, is at:
-http://www.shallowsky.com/software/pho/
+http://shallowsky.com/software/pho/

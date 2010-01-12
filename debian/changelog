@@ -4,9 +4,11 @@ pho (0.9.5) unstable; urgency=low
   * Port to gtk2, and build under either gtk1 or gtk2.
   * Add new "fullscreen mode" (e.g. for presentations, or for difficult
     window managers).
+  * Add handling of PHO_ARGS environment variable
   * Added a workaround for Metacity's evil window size handling.
+  * Lots of bug fixes.
 
- -- Akkana Peck <akkana@shallowsky.com>  Mon, 11 Oct 2004 13:45:00 -0800
+ -- Akkana Peck <akkana@shallowsky.com>  Mon, 20 Mar 2007 21:25:00 -0800
 
 pho (0.9.2) unstable; urgency=low
 
