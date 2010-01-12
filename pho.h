@@ -7,8 +7,9 @@
 
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
-extern GdkPixbuf* image;
+extern GdkPixbuf* gImage;
 extern int XSize, YSize;
+extern int realXSize, realYSize;
 extern int MonitorWidth, MonitorHeight;
 extern int resized;
 extern int Debug;
@@ -55,5 +56,7 @@ extern void EndSession();
 
 /* dialogs.c */
 extern void ToggleInfo();
-extern void ShowDeleteDialog();
+extern int PromptDialog(char* s, char* yesStr, char* noStr,
+                        char* yesChars, char* noChars);
+
 

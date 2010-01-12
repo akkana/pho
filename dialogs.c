@@ -8,6 +8,7 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "pho.h"
 
@@ -15,6 +16,7 @@ static GtkWidget* InfoDialog = 0;
 static GtkWidget* InfoDEntry = 0;
 static GtkWidget* InfoDImgName = 0;
 static GtkWidget* InfoDImgSize = 0;
+static GtkWidget* InfoDOrigSize = 0;
 static GtkWidget* InfoDImgRotation = 0;
 static GtkWidget* InfoFlag[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
@@ -53,7 +55,9 @@ void UpdateInfoDialog()
     gtk_entry_set_text(GTK_ENTRY(InfoDEntry), s ? s : "");
 
     gtk_label_set_text(GTK_LABEL(InfoDImgName), ArgV[ArgP]);
-    sprintf(buffer, "Size: %d x %d", XSize, YSize);
+    sprintf(buffer, "Actual Size: %d x %d", realXSize, realYSize);
+    gtk_label_set_text(GTK_LABEL(InfoDOrigSize), buffer);
+    sprintf(buffer, "Displayed Size: %d x %d", XSize, YSize);
     gtk_label_set_text(GTK_LABEL(InfoDImgSize), buffer);
     switch (GetRotation(ArgP))
     {
@@ -135,8 +139,12 @@ void ToggleInfo()
     InfoDImgSize = gtk_label_new("imgSize");
     gtk_box_pack_start(GTK_BOX(GTK_DIALOG(InfoDialog)->vbox),
                        InfoDImgSize, TRUE, TRUE, 0);
+    InfoDOrigSize = gtk_label_new("origSize");
+    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(InfoDialog)->vbox),
+                       InfoDOrigSize, TRUE, TRUE, 0);
     gtk_widget_show(InfoDImgName);
     gtk_widget_show(InfoDImgSize);
+    gtk_widget_show(InfoDOrigSize);
 
     box = gtk_hbox_new(FALSE, 0);
     label = gtk_label_new("Rotation:");
@@ -178,79 +186,140 @@ void ToggleInfo()
     gtk_widget_show(InfoDialog);
 }
 
-static GtkWidget* deleteDialog = 0;
+/*
+ * A generic Prompt dialog.
+ */
+
+static GtkWidget* promptDialog = 0;
+static int qYesNo = -1;
+
+static char* defaultYesChars = "yY\n";
+static char* defaultNoChars = "nN";   /* ESC always works to cancel */
+static char* gYesChars = 0;
+static char* gNoChars = 0;
 
 static void
-deleteCB(GtkWidget *widget, gpointer data)
+promptCB(GtkWidget *widget, gpointer data)
 {
-    if (data)
-        ReallyDelete();
-
-    gtk_widget_hide(deleteDialog);
+    qYesNo = (int)data;
 }
 
 static gint
-HandleDeleteKeyPress(GtkWidget* widget, GdkEventKey* event)
+HandlePromptKeyPress(GtkWidget* widget, GdkEventKey* event)
 {
-    switch (event->keyval)
+    char c;
+
+    if (event->keyval == GDK_Escape)
     {
-      case GDK_d:
-      case GDK_Return:
-      case GDK_KP_Enter:
-          deleteCB(widget, (gpointer)1);
-          return TRUE;
-      case GDK_Escape:
-      case GDK_q:
-      case GDK_n:
-          deleteCB(widget, (gpointer)0);
-          return TRUE;
-      default:
-          return FALSE;
+        qYesNo = 0;
+        return TRUE;
     }
+
+    /* For anything else, map it to a printable and search in the strings */
+    if (event->keyval == GDK_Return || event->keyval == GDK_KP_Enter)
+        c = '\n';
+
+    else if (event->keyval == GDK_space)
+        c = ' ';
+
+    else if (event->keyval >= GDK_A && event->keyval <= GDK_Z)
+        c = event->keyval - GDK_A + 'A';
+
+    else if (event->keyval >= GDK_a && event->keyval <= GDK_z)
+        c = event->keyval - GDK_a + 'a';
+
+    else if (event->keyval >= GDK_0 && event->keyval <= GDK_9)
+        c = event->keyval - GDK_0 + '0';
+
+    else {
+        qYesNo = -1;
+        gdk_beep();
+        return FALSE;
+    }
+
+    /* Now we have a c: see if it's in the yes or no char lists */
+    if (strchr(gYesChars, c))
+    {
+        qYesNo = 1;
+        return TRUE;
+    }
+    else if (strchr(gNoChars, c))
+    {
+        qYesNo = 0;
+        return TRUE;
+    }
+
+    qYesNo = -1;
     return FALSE;
 }
 
-void ShowDeleteDialog()
+int PromptDialog(char* msg, char* yesStr, char* noStr,
+                 char* yesChars, char* noChars)
 {
-    GtkWidget* deleteBtn;
-    GtkWidget* cancelBtn;
-    static GtkWidget* label = 0;
-    char buf[512];
+    static GtkWidget* question = 0;
+    static GtkWidget* yesBtn = 0;
+    static GtkWidget* noBtn = 0;
 
-    sprintf(buf, "Okay to delete '%s'?", ArgV[ArgP]);
+    if (!yesStr)
+        yesStr = "Yes";
+    if (!noStr)
+        noStr = "Cancel";
 
-    if (deleteDialog && label)
+    gYesChars = yesChars ? yesChars : defaultYesChars;
+    gNoChars = noChars ? noChars : defaultNoChars;
+
+    if (promptDialog && question && yesBtn && noBtn)
     {
-        gtk_label_set_text(GTK_LABEL(label), buf);
-        gtk_widget_show(deleteDialog);
-        return;
+        gtk_label_set_text(GTK_LABEL(question), msg);
+        gtk_label_set_text(GTK_LABEL(GTK_BIN(yesBtn)->child), yesStr);
+        gtk_label_set_text(GTK_LABEL(GTK_BIN(noBtn)->child), noStr);
+    }
+    else
+    {
+        /* First time through: make the dialog */
+
+        promptDialog = gtk_dialog_new();
+
+        // This is stupid: to make the dialog modal we have to use
+        // new_with_buttons, but that doesn't let us get to to the buttons
+        // to change their labels later!
+        // Figure out how to add modality some other time.
+        //promptDialog = gtk_dialog_new_with_buttons("Prompt", 
+
+        gtk_signal_connect(GTK_OBJECT(promptDialog), "key_press_event",
+                           (GtkSignalFunc)HandlePromptKeyPress, 0);
+
+        // Make the buttons:
+        yesBtn = gtk_button_new_with_label(yesStr);
+        gtk_box_pack_start(GTK_BOX(GTK_DIALOG(promptDialog)->action_area),
+                           yesBtn, TRUE, TRUE, 0);
+        gtk_signal_connect(GTK_OBJECT(yesBtn), "clicked",
+                           (GtkSignalFunc)promptCB, (gpointer)1);
+
+        noBtn = gtk_button_new_with_label(noStr);
+        gtk_box_pack_start(GTK_BOX(GTK_DIALOG(promptDialog)->action_area),
+                           noBtn, TRUE, TRUE, 0);
+        gtk_signal_connect(GTK_OBJECT(noBtn), "clicked",
+                           (GtkSignalFunc)promptCB, (gpointer)0);
+        gtk_widget_show(yesBtn);
+        gtk_widget_show(noBtn);
+
+        // Make the label:
+        question = gtk_label_new(msg);
+        gtk_box_pack_start(GTK_BOX(GTK_DIALOG(promptDialog)->vbox),
+                           question, TRUE, TRUE, 15);
+        gtk_widget_show(question);
     }
 
-    deleteDialog = gtk_dialog_new();
-    gtk_signal_connect(GTK_OBJECT(deleteDialog), "key_press_event",
-                       (GtkSignalFunc)HandleDeleteKeyPress, 0);
+    gtk_widget_show(promptDialog);
 
-    // Make the buttons:
-    deleteBtn = gtk_button_new_with_label("Delete");
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(deleteDialog)->action_area),
-                       deleteBtn, TRUE, TRUE, 0);
-    gtk_signal_connect(GTK_OBJECT(deleteBtn), "clicked",
-                       (GtkSignalFunc)deleteCB, (gpointer)1);
+    qYesNo = -1;
+    while (qYesNo < 0)
+        gtk_main_iteration();
 
-    cancelBtn = gtk_button_new_with_label("Cancel");
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(deleteDialog)->action_area),
-                       cancelBtn, TRUE, TRUE, 0);
-    gtk_signal_connect(GTK_OBJECT(cancelBtn), "clicked",
-                       (GtkSignalFunc)deleteCB, (gpointer)0);
-    gtk_widget_show(deleteBtn);
-    gtk_widget_show(cancelBtn);
-
-    // Make the label:
-    label = gtk_label_new(buf);
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(deleteDialog)->vbox),
-                       label, TRUE, TRUE, 0);
-    gtk_widget_show(label);
-
-    gtk_widget_show(deleteDialog);
+    gtk_widget_hide(promptDialog);
+    return qYesNo;
 }
+
+
 

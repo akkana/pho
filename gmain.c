@@ -19,46 +19,74 @@ extern void UpdateInfoDialog();
 static GtkWidget *win = 0;
 static GtkWidget *drawingArea = 0;
     
-void InitWin();
+static int gFullScreenMode = 0;
 
-/* ShowImage assumes image already contains the right GdkPixbuf.
+/* ShowImage assumes gImage already contains the right GdkPixbuf.
  */
 void ShowImage()
 {
+    char title[160];
+
     if (drawingArea->window == 0)
         return;
-    if (image == 0)
+    if (gImage == 0)
         return;
 
-    XSize = gdk_pixbuf_get_width(image);
-    YSize = gdk_pixbuf_get_height(image);
-
-    // Now scale it if needed.
-    if (XSize > MonitorWidth || YSize > MonitorHeight)
+    // If we're coming back to normal from fullscreen mode,
+    // we need to restore sizes.
+    if (!gFullScreenMode && (XSize > realXSize || YSize > realYSize))
     {
+        GdkPixbuf* newimage;
+        XSize = realXSize;
+        YSize = realYSize;
+        newimage = gdk_pixbuf_scale_simple(gImage, XSize, YSize,
+                                           GDK_INTERP_NEAREST);
+        if (gImage)
+            gdk_pixbuf_unref(gImage);
+        gImage = newimage;
+        resized = 0;
+    }
+
+    // Scale it down if needed.
+    else if (XSize > MonitorWidth || YSize > MonitorHeight
+             || (gFullScreenMode
+                 && XSize < MonitorWidth && YSize < MonitorWidth))
+    {
+        GdkPixbuf* newimage;
         double xratio = (double)XSize / MonitorWidth;
         double yratio = (double)YSize / MonitorHeight;
         double ratio = (xratio > yratio ? xratio : yratio);
-        GdkPixbuf* newimage;
 
         XSize = (double)XSize / ratio;
         YSize = (double)YSize / ratio;
 
-        newimage = gdk_pixbuf_scale_simple(image, XSize, YSize,
+        newimage = gdk_pixbuf_scale_simple(gImage, XSize, YSize,
                                            GDK_INTERP_NEAREST);
-        gdk_pixbuf_unref(image);
-        image = newimage;
+        if (gImage)
+            gdk_pixbuf_unref(gImage);
+        gImage = newimage;
         resized = 1;
     }
 
     gdk_window_resize(win->window, XSize, YSize);
 
-    gdk_pixbuf_render_to_drawable(image, drawingArea->window,
+    gdk_pixbuf_render_to_drawable(gImage, drawingArea->window,
                      drawingArea->style->fg_gc[GTK_WIDGET_STATE(drawingArea)],
                                   0, 0, 0, 0, XSize, YSize,
                                   GDK_RGB_DITHER_NONE, 0, 0);
 
+    // Update the titlebar
+    sprintf(title, "pho%s: %s",
+            gFullScreenMode ? " (fullscreen)" : "", ArgV[ArgP]);
+    gtk_window_set_title(GTK_WINDOW(win), title);
+
     UpdateInfoDialog();
+}
+
+static void ToggleFullScreenMode()
+{
+    gFullScreenMode = !gFullScreenMode;
+    ShowImage();
 }
 
 static gint HandleDelete(GtkWidget* widget, GdkEventKey* event, gpointer data)
@@ -116,15 +144,22 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
           DeleteImage();
           break;
       case GDK_space:
-          if (NextImage() != 0)
-              EndSession();
-          ShowImage();
+          if (NextImage() != 0) {
+              if (PromptDialog("Quit pho?", "Quit", "Continue",
+                               "qx \n", "c ") != 0)
+                  EndSession();
+          }
+          else
+              ShowImage();
           return TRUE;
       case GDK_BackSpace:
       case GDK_minus:
           if (PrevImage() == 0)
               ShowImage();
           return TRUE;
+      case GDK_f:
+          ToggleFullScreenMode();
+          break;
       case GDK_0:
       case GDK_1:
       case GDK_2:
@@ -145,6 +180,8 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
           return TRUE;
       case GDK_T:   // make life easier for xv users
       case GDK_R:
+      case GDK_l:
+      case GDK_L:
       case GDK_Left:
       case GDK_KP_Left:
           RotateImage(-90);

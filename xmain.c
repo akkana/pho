@@ -13,7 +13,7 @@
 #include <stdlib.h>       // for getenv()
 #include <stdio.h>
 
-extern GdkPixbuf* image;
+extern GdkPixbuf* gImage;
 
 static Display *dpy;
 static int screen;
@@ -29,8 +29,8 @@ void ShowImage()
     if (win == 0)
         InitWin();
 
-    XSize = gdk_pixbuf_get_width(image);
-    YSize = gdk_pixbuf_get_height(image);
+    XSize = gdk_pixbuf_get_width(gImage);
+    YSize = gdk_pixbuf_get_height(gImage);
 
     // Now scale it if needed.
     if (XSize > MonitorWidth || YSize > MonitorHeight)
@@ -43,22 +43,26 @@ void ShowImage()
         XSize = (double)XSize / ratio;
         YSize = (double)YSize / ratio;
 
-        newimage = gdk_pixbuf_scale_simple(image, XSize, YSize,
+        newimage = gdk_pixbuf_scale_simple(gImage, XSize, YSize,
                                            GDK_INTERP_NEAREST);
-        gdk_pixbuf_unref(image);
-        image = newimage;
+        gdk_pixbuf_unref(gImage);
+        gImage = newimage;
         resized = 1;
     }
 
     XResizeWindow(dpy, win, XSize, YSize);
-    gdk_pixbuf_xlib_render_to_drawable(image, win, gc,
+    gdk_pixbuf_xlib_render_to_drawable(gImage, win, gc,
                                        0, 0, 0, 0, XSize, YSize,
                                        XLIB_RGB_DITHER_NONE, 0, 0);
     XSync(dpy, 1);
 }
 
 // stub, unused
-void ShowDeleteDialog() { }
+int PromptDialog(char* s, char* yesStr, char* noStr,
+                 char* yesChars, char* noChars)
+{
+    return 1;
+}
 
 void EndSession()
 {

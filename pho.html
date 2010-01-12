@@ -42,8 +42,9 @@ to keep track of them in my head.  That's dumb!  Why not make the
 computer do that work?  So I did.
 
 <p>
-Currently, pho can delete images on disk, but it can't save rotated
-images yet.
+Pho can now delete images on disk, but it can't save rotated
+images yet (I'm working on it; I need to integrate code to read
+and save the EXIF info first.)
 I use my <a href="imagebatch.html">imagebatch</a> scripts for that.
 
 <p>
@@ -58,15 +59,16 @@ Usage: pho *.jpg (or whatever).<br>
 It will show the first image, scaled for your screen if needed.
 Then the following keys work:
 <dl>
-<dt>space             <dd>Go to next image.
-<dt>backspace, -      <dd>Go to previous image.
-<dt>r, t, right-arrow <dd>Rotate right (clockwise). 
-<dt>R, T, left-arrow  <dd>Rotate left (counter-clockwise).
-<dt>up-arrow          <dd>Rotate 180 degrees.
+<dt>space                   <dd>Go to next image.
+<dt>backspace, -            <dd>Go to previous image.
+<dt>r, t, right-arrow       <dd>Rotate right (clockwise). 
+<dt>R, T, l, L, left-arrow  <dd>Rotate left (counter-clockwise).
+<dt>up-arrow                <dd>Rotate 180 degrees.
 <dt>d                 <dd>Bring up a delete dialog (another d deletes the file)
-<dt>i                 <dd>Show information about the image.
-<dt>0-9               <dd>Add this image to the appropriate list.
-<dt>q                 <dd>Quit.
+<dt>i                       <dd>Show information about the image.
+<dt>0-9                     <dd>Add this image to the appropriate list.
+<dt>f                       <dd>Toggle in and out of "full screen mode".
+<dt>q                       <dd>Quit.
 </dl>
 
 pho will remember the correct (last) rotation for each image.
@@ -80,6 +82,10 @@ and list 5 might be the images I want to make into a web page.)
 <a name="download">
 <h2>Getting pho</h2>
 
+The current version of pho is: <b>0.7</b> (updated 8/13/2002).
+
+<p>
+<i>Dependencies:</i>
 pho uses the
 <a href="http://developer.gnome.org/doc/API/gdk-pixbuf/index.html">gdk-pixbuf</a>
 library for reading, scaling, and displaying images.
@@ -91,23 +97,32 @@ Also included is a little xlib program, xpho, which is mostly
 interesting as an example of how to use gdk_pixbuf_xlib.
 
 <p>
-As far as I know, gdk-pixbuf is Unix only, so this program won't
+As far as I know, gdk-pixbuf is Unix only, so pho won't
 work on Windows or Mac machines.  (But you're welcome to use the
 skeleton of the program and insert your own platform specific
 image drawing code.)
 
 <p>
-<a href="pho">pho binary for Linux i386</a> (compiled on Redhat 7.3)
+<a href="pho-0.7.tgz">latest pho source tarball</a> (includes man page)
 <br>
-<a href="pho-0.5.1.tgz">latest pho source tarball</a> (includes man page)
+<a href="pho">pho binary for Linux i386</a> (compiled on Redhat 7.3)
+
+<p>
+I haven't made an RPM or deb for pho yet; if there really is someone
+besides me and close friends using pho, and you'd like to see a
+different format made available, please tell me.
 
 <p>
 If you like pho, or if you think it's promising but there's some
-feature it really needs, or have an idea for a better name for it
-... let me know!  
+feature it really needs ... let me know!  
 
 <h2>Changelog</h2>
 <dl>
+<dt>8/13/2002, <a href="pho-0.7.tgz">Pho 0.7</a>:
+<dd>Put image name in titlebar; prompt after last image before quitting;
+    add fullscreen mode.
+<dt>7/28/2002, <a href="pho-0.6.1.tgz">Pho 0.6.1</a>:
+<dd>Fixed a bug with printing a note set on the last image.
 <dt>7/21/2002, <a href="pho-0.6.tgz">Pho 0.6</a>:
 <dd>Code cleanup, change the handling of the notes structures.
 <dt>7/21/2002, <a href="pho-0.5.1.tgz">Pho 0.5.1</a>:

@@ -2,10 +2,20 @@ Ideas for improving pho (in no particular order).
 If you have more ideas, or want to contribute to the project,
 let me know!
 
+Should be relatively easy:
+
+- Go back to the first image (especially from the last-image dialog).
+
+- In fullscreen mode, show image at full screen (no titlebar or frame).
+
+Slightly harder:
+- Save notes to EXIF, display current exif.
+
 - Save images at the proper rotation.
   (Should preserve EXIF, though!)
 
-- Prompt at end rather than exiting.
+Difficult:
 
-- Save notes to EXIF, display current exif.
+- Left mouse button pans image on screen (if image is larger than screen).
+
 

@@ -1,10 +1,12 @@
 # Makefile for pho
 
-CFLAGS = -g -O2 -Wall -I/usr/include/gdk-pixbuf-1.0 -I/usr/include/gtk-1.2 -I/usr/include/glib-1.2 -I/usr/lib/glib/include -I/usr/X11R6/include
+# Locate the gtk/gdk libraries (thanks to nev for this!)
+CFLAGS = -g -O2 -Wall 
+CFLAGS := $(CFLAGS) $(shell gdk-pixbuf-config --cflags)
 
-XLIBS = -L/usr/X11R6/lib -lgdk_pixbuf -lgdk_pixbuf_xlib -lX11
+XLIBS := $(shell gdk-pixbuf-config --libs) -lgdk_pixbuf_xlib -lX11
 
-GLIBS = -L/usr/X11R6/lib -lgdk_pixbuf -lgtk -lgdk -lX11
+GLIBS := $(shell gdk-pixbuf-config --libs)
 
 INSTALL = /usr/bin/install -D
 

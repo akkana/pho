@@ -14,7 +14,7 @@
 
 #include "pho.h"
 
-GdkPixbuf* image = 0;
+GdkPixbuf* gImage = 0;
 
 int resized = 0;
 int Debug = 0;
@@ -24,6 +24,7 @@ char** ArgV;
 
 int XSize = 500;
 int YSize = 300;
+int realXSize, realYSize;
 
 int MonitorWidth = 1600;
 int MonitorHeight = 1200;
@@ -37,14 +38,19 @@ static int LoadImageFromFile(int index)
 
     curNote = FindImgNote(index);
 
-    if (image)
-        gdk_pixbuf_unref(image);
-    image = gdk_pixbuf_new_from_file(ArgV[index]);
-    if (!image)
+    if (gImage)
+        gdk_pixbuf_unref(gImage);
+    gImage = gdk_pixbuf_new_from_file(ArgV[index]);
+    if (!gImage)
     {
         fprintf(stderr, "Can't open %s\n", ArgV[index]);
         return -1;
     }
+
+    XSize = realXSize = gdk_pixbuf_get_width(gImage);
+    YSize = realYSize = gdk_pixbuf_get_height(gImage);
+
+    resized = 0;
 
     // Rotate if necessary:
     if (curNote && curNote->rotation != 0)
@@ -84,13 +90,6 @@ void FreePixels(guchar* pixels, gpointer data)
     free(pixels);
 }
 
-void DeleteImage()
-{
-    struct ImgNotes_s* curNote = FindImgNote(ArgP);
-    if (!curNote) return;
-    ShowDeleteDialog();
-}
-
 void ReallyDelete()
 {
     if (unlink(ArgV[ArgP]) < 0)
@@ -105,11 +104,21 @@ void ReallyDelete()
     ShowImage();
 }
 
+void DeleteImage()
+{
+    struct ImgNotes_s* curNote = FindImgNote(ArgP);
+    char buf[512];
+
+    if (!curNote) return;
+    sprintf(buf, "Delete file %s?", ArgV[ArgP]);
+    if (PromptDialog(buf, "Delete", 0, "dD\n", "nN") > 0)
+        ReallyDelete();
+}
+
 int RotateImage(int degrees)
 {
     guchar *oldpixels, *newpixels;
     int x, y;
-    int temp;
     int oldrowstride, newrowstride, nchannels, bitsper, alpha;
 
     // If we ever rotate it, we'll definitely need notes on this image:
@@ -119,16 +128,17 @@ int RotateImage(int degrees)
     // rotating it we'd be able to show it bigger than current size,
     // then read in the original first before rotating.
     if (resized && degrees != 180
-        && YSize < MonitorWidth && XSize < MonitorHeight)
+        && (YSize < MonitorWidth || XSize < MonitorHeight))
     {
-        if (image)
-            gdk_pixbuf_unref(image);
-        image = gdk_pixbuf_new_from_file(ArgV[ArgP]);
-        if (!image) return 1;
-        XSize = gdk_pixbuf_get_width(image);
-        YSize = gdk_pixbuf_get_height(image);
+        if (gImage)
+            gdk_pixbuf_unref(gImage);
+        gImage = gdk_pixbuf_new_from_file(ArgV[ArgP]);
+        if (!gImage) return 1;
+        XSize = realXSize = gdk_pixbuf_get_width(gImage);
+        YSize = realYSize = gdk_pixbuf_get_height(gImage);
         degrees = (degrees + curNote->rotation) % 360;
         curNote->rotation = 0;
+        resized = 0;
     }
 
     // degrees might be zero now, since we might have just
@@ -139,16 +149,16 @@ int RotateImage(int degrees)
         return 0;
     }
 
-    oldrowstride = gdk_pixbuf_get_rowstride(image);
-    bitsper = gdk_pixbuf_get_bits_per_sample(image);
-    nchannels = gdk_pixbuf_get_n_channels(image);
-    alpha = gdk_pixbuf_get_has_alpha(image);
+    oldrowstride = gdk_pixbuf_get_rowstride(gImage);
+    bitsper = gdk_pixbuf_get_bits_per_sample(gImage);
+    nchannels = gdk_pixbuf_get_n_channels(gImage);
+    alpha = gdk_pixbuf_get_has_alpha(gImage);
     if (degrees == 90 || degrees == -90 || degrees == 270)
         newrowstride = oldrowstride * YSize / XSize;
     else
         newrowstride = oldrowstride;
 
-    oldpixels = gdk_pixbuf_get_pixels(image);
+    oldpixels = gdk_pixbuf_get_pixels(gImage);
     // XXX This should only need XSize*YSize*nchannels, but for some reason 
     // that crashed  after trashing the stack when I was assuming nchannels=3.
     newpixels = malloc(XSize * YSize * (nchannels+1));
@@ -179,27 +189,35 @@ int RotateImage(int degrees)
                 return 1;
             }
             for (i=0; i<nchannels; ++i)
+            {
+                //printf("(%d, %d) -> (%d, %d) # %d\n", x, y, newx, newy, i);
                 newpixels[newy*newrowstride + newx*nchannels + i]
                     = oldpixels[y*oldrowstride + x*nchannels + i];
+            }
         }
     }
 
+    // Swap X and Y if appropriate.
     if (degrees == 90 || degrees == -90 || degrees == 270)
     {
-          temp = XSize;
-          XSize = YSize;
-          YSize = temp;
+        int temp;
+        temp = XSize;
+        XSize = YSize;
+        YSize = temp;
+        temp = realXSize;
+        realXSize = realYSize;
+        realYSize = temp;
     }
 
     curNote->rotation = (curNote->rotation + degrees + 360) % 360;
 
-    if (image)
-        gdk_pixbuf_unref(image);
-    image = gdk_pixbuf_new_from_data(newpixels,
+    if (gImage)
+        gdk_pixbuf_unref(gImage);
+    gImage = gdk_pixbuf_new_from_data(newpixels,
                                      GDK_COLORSPACE_RGB, alpha, bitsper,
                                      XSize, YSize, newrowstride,
                                      FreePixels, newpixels);
-    if (!image) return 1;
+    if (!gImage) return 1;
 
     ShowImage();
     return 0;
@@ -207,8 +225,8 @@ int RotateImage(int degrees)
 
 void Usage()
 {
-    printf("pho version 0.6.1.  Copyright 2002 Akkana Peck.\n");
-    printf("Usage: pho [-d] image [image ...]\n");
+    printf("pho version 0.7.  Copyright 2002 Akkana Peck.\n");
+    printf("Usage: pho image [image ...]\n");
     exit(1);
 }
 
