@@ -128,7 +128,7 @@ void SetNoteFlag(int index, int note)
     else
         curNote->noteFlags |= mask;    // set
 
-    printf("Set note %d for %d to 0x%x\n", note, index, curNote->noteFlags);
+    //printf("Set note %d for %d to 0x%x\n", note, index, curNote->noteFlags);
 }
 
 static char *flags[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -154,7 +154,7 @@ void PrintNotes()
     int i;
     char *rot90=0, *rot180=0, *rot270=0;
 
-    for (i=1; i<numImages; ++i)
+    for (i=1; i<=numImages; ++i)
     {
         if (!NotesList[i] || IsDeleted(i))
             continue;

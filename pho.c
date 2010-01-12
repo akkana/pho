@@ -207,7 +207,7 @@ int RotateImage(int degrees)
 
 void Usage()
 {
-    printf("pho version 0.6.  Copyright 2002 Akkana Peck.\n");
+    printf("pho version 0.6.1.  Copyright 2002 Akkana Peck.\n");
     printf("Usage: pho [-d] image [image ...]\n");
     exit(1);
 }
