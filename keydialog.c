@@ -234,7 +234,10 @@ static void MakeNewKeywordsDialog()
 /* Make sure the dialog is showing */
 void ShowKeywordsDialog()
 {
-    if (! KeywordsDialog)
+    if (!gWin)
+        return;
+
+    if (!KeywordsDialog)
         MakeNewKeywordsDialog();
 
     else if (!IsVisible(KeywordsDialog))
@@ -253,7 +256,6 @@ void HideKeywordsDialog()
     RememberKeywords();
     if (IsVisible(KeywordsDialog))
         gtk_widget_hide(KeywordsDialog);
-    /*gDisplayMode = PHO_DISPLAY_NORMAL;*/
     sLastImage = 0;
 }
 

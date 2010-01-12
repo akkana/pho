@@ -68,6 +68,7 @@ install: pho
 
 clean:
 	rm -f *.[oas] *.ld core* pho xpho pho-*.tar.gz *.rpm
+	rm -f build-stamp configure-stamp
 	rm -rf debian/pho
 	cd exif; make clean
 

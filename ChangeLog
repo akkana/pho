@@ -1,3 +1,36 @@
+/2009, Pho 0.9.7-xxx:
+    Add ToggleBetween to better manage transitions between various modes
+    and make sure proper scaling and redraw happens.
+
+12/15/2009, Pho 0.9.7-pre3:
+    More cleanup of rotation/scaling, and transitions from one mode
+    to the next.
+
+9/26/2009, Pho 0.9.7-pre2:
+    Add ability to add new image files or change the list without restarting.
+    Total cleanup/rewrite of rotate/scale logic.
+    Remove old gtk1 code.
+
+N/N/2009, Pho 0.9.7-pre1:
+    List images with incorrect exif rotation;
+    smarter PHO_REMOTE (can do other things, not just GIMP);
+    don't go fullscreen from Ctrl-F in the keywords dialog.
+    fix a minor Mac build issue.
+
+11/9/2008, Pho 0.9.6:
+    RELEASE! The only difference from 0.9.6-pre3 is to change
+    the default PHO_REMOTE command from gimp-remote to gimp,
+    since gimp-remote is obsolete and no longer provided in Linux
+    distros (and never was, on Mac or Win).
+
+10/2/2008, Pho 0.9.6-pre3:
+    Change the list next/prev code to fix (I hope) a bug where pho
+    would get confused and cycle from the last image back to the first.
+
+8/13/2008, Pho 0.9.6-pre2:
+    Simplify exif/Makefile so it'll work on FreeBSD and other
+    systems where make is non-GNU make
+
 N/N/2007, Pho 0.9.6-pre1:
     Add new Keywords mode and keywords dialog.
     Add stay-on-top code for prompt and keywords dialogs.

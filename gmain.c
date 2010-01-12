@@ -18,6 +18,11 @@
 #include <string.h>
 #include <ctype.h>
 
+/* Toggle a variable between two modes, preferring the first.
+ * If it's anything but mode1 it will end up as mode1.
+ */
+#define ToggleBetween(val,mode1,mode2) (val != mode1 ? mode1 : mode2)
+
 /* If we're switching into scaling mode because the user pressed - or +/=,
  * which scaling mode should we switch into?
  */
@@ -147,26 +152,21 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           if (event->state & GDK_CONTROL_MASK )
               return FALSE;
           SetViewModes(gDisplayMode,
-                       (gScaleMode != PHO_SCALE_FULLSIZE)
-                       ? PHO_SCALE_FULLSIZE
-                       : PHO_SCALE_NORMAL,
+                       ToggleBetween(gScaleMode,
+                                     PHO_SCALE_FULLSIZE, PHO_SCALE_NORMAL),
                        1.);
-          ShowImage();
           return TRUE;
       case GDK_F:   /* Full screen mode: as big as possible on screen */
           SetViewModes(gDisplayMode,
-                       (gScaleMode != PHO_SCALE_FULLSCREEN)
-                        ? PHO_SCALE_FULLSCREEN
-                        : PHO_SCALE_NORMAL,
+                       ToggleBetween(gScaleMode,
+                                     PHO_SCALE_FULLSCREEN, PHO_SCALE_NORMAL),
                        1.);
-          ShowImage();
           return TRUE;
       case GDK_p:
           SetViewModes((gDisplayMode == PHO_DISPLAY_PRESENTATION)
                        ? PHO_DISPLAY_NORMAL
                        : PHO_DISPLAY_PRESENTATION,
                        gScaleMode, gScaleRatio);
-          ShowImage();
           return TRUE;
       case GDK_0:
       case GDK_1:
@@ -185,7 +185,6 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
       case GDK_Right:
       case GDK_KP_Right:
           ScaleAndRotate(gCurImage, 90);
-          DrawImage();
           return TRUE;
       case GDK_T:   /* make life easier for xv users */
       case GDK_R:
@@ -194,12 +193,10 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
       case GDK_Left:
       case GDK_KP_Left:
           ScaleAndRotate(gCurImage, 270);
-          DrawImage();
           return TRUE;
       case GDK_Up:
       case GDK_Down:
           ScaleAndRotate(gCurImage, 180);
-          DrawImage();
           return TRUE;
       case GDK_plus:
       case GDK_KP_Add:
@@ -207,7 +204,6 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           SetViewModes(gDisplayMode, ModeForScaling(gScaleMode),
                        gScaleRatio * 2.);
           ScaleAndRotate(gCurImage, 0);
-          DrawImage();
           return TRUE;
       case GDK_minus:
       case GDK_slash:
@@ -215,7 +211,6 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           SetViewModes(gDisplayMode, ModeForScaling(gScaleMode),
                        gScaleRatio / 2.);
           ScaleAndRotate(gCurImage, 0);
-          DrawImage();
           return TRUE;
       case GDK_g:  /* start gimp, or some other app */
           RunPhoCommand();
@@ -290,9 +285,11 @@ static void CheckArg(char* arg)
             gDisplayMode = PHO_DISPLAY_PRESENTATION;
         else if (*arg == 'P')
             gDisplayMode = PHO_DISPLAY_NORMAL;
-        else if (*arg == 'k')
+        else if (*arg == 'k') {
             gDisplayMode = PHO_DISPLAY_KEYWORDS;
-        else if (*arg == 's') {
+            gScaleMode = PHO_SCALE_SCREEN_RATIO;
+            gScaleRatio = .5;
+        } else if (*arg == 's') {
             /* find the slideshow delay time, from e.g. pho -s2 */
             if (isdigit(arg[1]))
                 gDelaySeconds = atoi(arg+1);

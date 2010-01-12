@@ -203,7 +203,8 @@ static void ScaleToFit(int *new_width, int *new_height,
 #define SWAP(a, b) { int temp = a; a = b; b = temp; }
 /*#define SWAP(a, b)  {a ^= b; b ^= a; a ^= b;}*/
 
-/* Rotate the image according to the current scale mode, scaling as needed.
+/* Rotate the image according to the current scale mode, scaling as needed,
+ * then redisplay.
  * 
  * This will read the image from disk if necessary,
  * and it will rotate the image at the appropriate time
@@ -245,8 +246,9 @@ void ScaleAndRotate(PhoImage* img, int degrees)
      * even if it's too big to fit on the screen.
      */
     if (gScaleMode == PHO_SCALE_FULLSIZE) {
-        new_width = true_width;
-        new_height = true_height;
+        new_width = true_width * gScaleRatio;
+        new_height = true_height * gScaleRatio;
+        if (gDebug) printf("Now fullsize, %dx%d\n", new_width, new_height);
     }
 
     /* Normal: display at full size unless it won't fit the screen,
@@ -257,7 +259,7 @@ void ScaleAndRotate(PhoImage* img, int degrees)
              || gScaleMode == PHO_SCALE_SCREEN_RATIO) {
         int max_width, max_height;
         int aspect_changing;    /* Is the aspect ratio changing? */
-        
+
         new_width = true_width;
         new_height = true_height;
 
