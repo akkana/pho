@@ -2,11 +2,10 @@ Ideas for improving pho (in no particular order).
 If you have more ideas, or want to contribute to the project,
 let me know!
 
-- Really delete files on disk.
-
 - Save images at the proper rotation.
+  (Should preserve EXIF, though!)
 
 - Prompt at end rather than exiting.
 
-- (way future) Save notes to EXIF, display current exif.
+- Save notes to EXIF, display current exif.
 

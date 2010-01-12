@@ -17,6 +17,7 @@ extern char** ArgV;
 
 /* pho.c */
 extern void DeleteImage();
+extern void ReallyDelete();
 extern int LoadImageFromFile();
 extern int RotateImage(int degrees);
 extern void Usage();
@@ -55,5 +56,6 @@ extern void SetDeleted(int index, unsigned int deleted);
 
 /* dialogs.c */
 extern void ToggleInfo();
+extern void ShowDeleteDialog();
 
 #define DELETED_INDEX 0

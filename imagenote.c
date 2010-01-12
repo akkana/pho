@@ -217,8 +217,10 @@ void PrintNotes()
 
     // Now we've looped over all the structs, so we can print out
     // the tables of rotation and notes.
+#ifdef NOT_REALLY_DELETED
     if (deleted)
         printf("Deleted: %s\n", deleted);
+#endif
     if (rot90)
         printf("Rotate 90 (CW): %s\n", rot90);
     if (rot270)

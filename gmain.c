@@ -27,6 +27,8 @@ void ShowImage()
 {
     if (drawingArea->window == 0)
         return;
+    if (image == 0)
+        return;
 
     XSize = gdk_pixbuf_get_width(image);
     YSize = gdk_pixbuf_get_height(image);
@@ -112,7 +114,7 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
     {
       case GDK_d:
           DeleteImage();
-          // Fall through: go to next image.
+          break;
       case GDK_space:
           if (NextImage() != 0)
               EndSession();

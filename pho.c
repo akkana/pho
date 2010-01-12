@@ -10,6 +10,7 @@
 #include <stdlib.h>       // for free()
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>       // for unlink()
 
 #include "pho.h"
 
@@ -36,7 +37,7 @@ int LoadImageFromFile()
     image = gdk_pixbuf_new_from_file(ArgV[ArgP]);
     if (!image)
     {
-        perror(ArgV[ArgP]);
+        fprintf(stderr, "Can't open %s\n", ArgV[ArgP]);
         return 1;
     }
 
@@ -83,6 +84,14 @@ void DeleteImage()
     FindImgNote(ArgP);
     if (!curNote) return;
     curNote->deleted = 1;
+    ShowDeleteDialog();
+}
+
+void ReallyDelete()
+{
+    unlink(ArgV[ArgP]);
+    NextImage();
+    ShowImage();
 }
 
 int RotateImage(int degrees)
@@ -133,7 +142,7 @@ int RotateImage(int degrees)
     oldpixels = gdk_pixbuf_get_pixels(image);
     // XXX This should only need XSize*YSize*nchannels, but for some reason 
     // that crashed  after trashing the stack when I was assuming nchannels=3.
-    newpixels = malloc(XSize * YSize * 6);
+    newpixels = malloc(XSize * YSize * (nchannels+1));
 
     for (x = 0; x < XSize; ++x)
     {
@@ -189,7 +198,7 @@ int RotateImage(int degrees)
 
 void Usage()
 {
-    printf("pho version 0.4, Copyright 2002 Akkana Peck.\n");
+    printf("pho version 0.5.  Copyright 2002 Akkana Peck.\n");
     printf("Usage: pho [-d] image [image ...]\n");
     exit(1);
 }

@@ -57,6 +57,9 @@ void ShowImage()
     XSync(dpy, 1);
 }
 
+// stub, unused
+void ShowDeleteDialog() { }
+
 static void EndSession()
 {
     PrintNotes();

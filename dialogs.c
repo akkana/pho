@@ -186,3 +186,80 @@ void ToggleInfo()
 
     gtk_widget_show(InfoDialog);
 }
+
+static GtkWidget* deleteDialog = 0;
+
+static void
+deleteCB(GtkWidget *widget, gpointer data)
+{
+    if (data)
+        ReallyDelete();
+
+    gtk_widget_hide(deleteDialog);
+}
+
+static gint
+HandleDeleteKeyPress(GtkWidget* widget, GdkEventKey* event)
+{
+    switch (event->keyval)
+    {
+      case GDK_d:
+      case GDK_Return:
+      case GDK_KP_Enter:
+          deleteCB(widget, (gpointer)1);
+          return TRUE;
+      case GDK_Escape:
+      case GDK_q:
+      case GDK_n:
+          deleteCB(widget, (gpointer)0);
+          return TRUE;
+      default:
+          return FALSE;
+    }
+    return FALSE;
+}
+
+void ShowDeleteDialog()
+{
+    GtkWidget* deleteBtn;
+    GtkWidget* cancelBtn;
+    static GtkWidget* label = 0;
+    char buf[512];
+
+    sprintf(buf, "Okay to delete '%s'?", ArgV[ArgP]);
+
+    if (deleteDialog && label)
+    {
+        gtk_label_set_text(GTK_LABEL(label), buf);
+        gtk_widget_show(deleteDialog);
+        return;
+    }
+
+    deleteDialog = gtk_dialog_new();
+    gtk_signal_connect(GTK_OBJECT(deleteDialog), "key_press_event",
+                       (GtkSignalFunc)HandleDeleteKeyPress, 0);
+
+    // Make the buttons:
+    deleteBtn = gtk_button_new_with_label("Delete");
+    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(deleteDialog)->action_area),
+                       deleteBtn, TRUE, TRUE, 0);
+    gtk_signal_connect(GTK_OBJECT(deleteBtn), "clicked",
+                       (GtkSignalFunc)deleteCB, (gpointer)1);
+
+    cancelBtn = gtk_button_new_with_label("Cancel");
+    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(deleteDialog)->action_area),
+                       cancelBtn, TRUE, TRUE, 0);
+    gtk_signal_connect(GTK_OBJECT(cancelBtn), "clicked",
+                       (GtkSignalFunc)deleteCB, (gpointer)0);
+    gtk_widget_show(deleteBtn);
+    gtk_widget_show(cancelBtn);
+
+    // Make the label:
+    label = gtk_label_new(buf);
+    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(deleteDialog)->vbox),
+                       label, TRUE, TRUE, 0);
+    gtk_widget_show(label);
+
+    gtk_widget_show(deleteDialog);
+}
+
