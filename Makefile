@@ -1,16 +1,16 @@
 # Makefile for pho
 
-VERSION = 0.9.5.1
+VERSION = 0.9.6-pre1
 
 # Locate the gtk/gdk libraries (thanks to nev for this!)
-CFLAGS = -g -O -Wall -DVERSION='"$(VERSION)"'
+CFLAGS = -g -Wall -DVERSION='"$(VERSION)"'
 G1FLAGS := $(shell gdk-pixbuf-config --cflags 2> /dev/null)
-G2FLAGS := $(shell pkg-config --cflags gdk-pixbuf-2.0 gtk+-2.0 gdk-2.0 2> /dev/null)
+G2FLAGS := $(shell pkg-config --cflags gtk+-2.0 gdk-2.0 2> /dev/null)
 CFLAGS := $(CFLAGS) $(shell if test -n "${G2FLAGS}"; then echo "${G2FLAGS}"; else echo "${G1FLAGS}"; fi)
 
-XLIBS := $(shell pkg-config --libs gdk-pixbuf-xlib-2.0 2> /dev/null)
+XLIBS := $(shell pkg-config --libs gtk+-2.0 > /dev/null)
 # GLIBS := $(shell gdk-pixbuf-config --libs)
-GLIBS := $(shell if test "${G2FLAGS}"; then pkg-config --libs gdk-pixbuf-2.0 gtk+-2.0 gdk-2.0; else gdk-pixbuf-config --libs; fi)
+GLIBS := $(shell if test "${G2FLAGS}"; then pkg-config --libs gtk+-2.0 gdk-2.0; else gdk-pixbuf-config --libs; fi)
 
 CWD = $(shell pwd)
 CWDBASE = $(shell basename `pwd`)
@@ -23,7 +23,7 @@ TARFILE = pho-$(VERSION).tar.gz
 
 EXIFLIB = exif/libphoexif.a
 
-SRCS = pho.c gmain.c imagenote.c gdialogs.c
+SRCS = pho.c gmain.c imagenote.c gdialogs.c keydialog.c
 
 OBJS = $(subst .c,.o,$(SRCS))
 

@@ -18,23 +18,51 @@ and making notes about what to do with each image --
 for instance, for going through hundreds of
 images after uploading them from a digital camera.
 
+<p><b>Pho 0.9.6 is nigh! Please test 0.9.6-pre1!</b>
+
 <p><a href="#download">Skip to the download section.</a>
 
-<p>August 2007: <b>Pho 0.9.5.1</b><br>.
-Lots of cool new improvements.
-Optimized for gtk2, but should still build on a gtk1 system.
-New "presentation mode" does fullscreen (no window borders).
-It also checks your environment for 
-Grab <a
-href="pho-0.9.5.1.tar.gz">pho-0.9.5.tar.gz</a>.
-Let me know if you have problems.
 <p>
-And there's a <b>Windows binary</b> too!
-<a href="pho-0.9.5-pre5.zip">pho-0.9.5-pre5.zip</a>,
-thanks to Michael Schumacher.
-(This is labelled 0.9.5-pre5, but there have been no changes
-between pre5 and the final 0.9.5.)
-You'll need to install gtk+ if you don't already have it.
+The big change here is Keywords mode. It uses the same note flags
+that Pho has always had, but Keywords mode gives you an easy way to
+annotate a directory of images with strings. You can type in phrases
+for each note, and you can have up to 31 notes now, not just 10.
+If you use Pho to categorize your photos, you'll like Keywords mode.
+
+<p>
+There's also a new slideshow mode, where you specify the interval in seconds
+(e.g. pho -p -s5 for a 5-second delay between images).
+You can use this for a screensaver, or just to go through slides
+automatically. Hitting the spacebar cancels slideshow mode.
+
+<p>
+You can now customize the command called up with the 'g' key:
+it still defaults to gimp-remote, but you can call a different
+program, e.g. view the current image in firefox with
+<code>export PHO_CMD="firefox %s"</code> --
+don't forget the %s for the filename!
+
+<p>
+Other changes include major work on scaling modes. Double and half size
+mode now behave differently depending on whether you're in normal or
+full size mode, and the scaling factor (e.g. half size) is remembered
+as you go from image to image.
+
+<p>
+<b>Warning: I've swapped the meanings of f and F. I found that I
+use full size mode all the time, whereas I seldom use full screen,
+and when I do, I use it once at the beginning of a session (e.g.
+to view a bunch of cartoons scaled up). So it makes more sense
+to have full size on f (easier to type).</b>
+
+<p>
+I've also done quite a bit of performance work, to reduce the number
+of redraws, speed up rotates, and reduce the number of times Pho has to
+re-read the file on disk.
+
+<p>
+To get it, <a href="#download">Skip to the download section</a>.
+
 
 <h2>Why another image viewer?  Surely there are plenty of those?</h2>
 
@@ -93,15 +121,17 @@ Then the following keys work:
 <dt>i                       <dd>Show information about the image
                                 (includes EXIF info and JPEG comment, if any).
 <dt>0-9                     <dd>Add this image to the appropriate list.
-<dt>f                       <dd>Toggle in and out of "full screen mode"
-      (make the image as big as it can be and still fit on the screen).
-<dt>F                       <dd>Toggle in and out of "full size mode"
+<dt>f                       <dd>Toggle in and out of "full size mode"
       (show the image at its native size, even if that's too big
        to fit on screen)
+<dt>F                       <dd>Toggle in and out of "full screen mode"
+      (make the image as big as it can be and still fit on the screen).
 <dt>p                       <dd>Toggle in and out of Presentation Mode
       (full screen, no mouse or window borders)
-<td>-, /                    <dd>Zoom out, to half size
-<td>+, =, *                 <dd>Zoom in, to double size
+<dt>-, /                    <dd>Zoom out, to half size
+<dt>+, =, *                 <dd>Zoom in, to double size
+<dt>g                       <dd>Run gimp-remote on this image
+    (or set PHO_REMOTE to an alternate command).
 <dt>q                       <dd>Quit.
 </dl>
 
@@ -116,13 +146,25 @@ in gimp, and 3 on the photos I want to save as desktop backgrounds.
 
 <a name="download">
 <h2>Getting pho</h2>
-
-The current stable version of pho is <b>0.9.5</b>.
 <p>
-<b>Source tarball: <a href="pho-0.9.5.tar.gz">Pho 0.9.5 source tarball</a>.</b>
+<p>
+Try the new pho 0.9.6 pre1! I expect to release Pho 0.9.6 very soon.
+Source tarball only: <a href="pho-0.9.6.tar.gz">pho-0.9.6-pre1.tar.gz</a>.
+<p>
+If that doesn't work,
+The last stable version of pho is <b>0.9.5.1</b>.
+<p>
+<b>Source tarball: <a href="pho-0.9.5.1.tar.gz">Pho 0.9.5.1 source tarball</a>.</b>
 <br />
-<b>Windows binary (requires gtk+): <a href="pho-0.9.5-pre5.zip">pho-0.9.5-pre5.zip</a>.</b>
-
+<b>Ubuntu (Feisty) package: <a href="pho_0.9.5.1_i386_feisty.deb">pho_0.9.5.1_i386_feisty.deb</a></b>
+<br />
+<b>Debian (Etch) package: <a href="pho_0.9.5.1_i386_etch.deb">pho_0.9.5.1_i386_etch.deb</a></b>
+<br />
+<b>Debian (Sarge) package: <a href="pho_0.9.5.1_i386_sarge.deb">pho_0.9.5.1_i386_sarge.deb</a></b>
+<br />
+<b>Windows binary (requires gtk+): <a href="pho-0.9.5-pre5.zip">pho-0.9.5-pre5.zip</a>.</b> Thanks to Michael Schumacher.
+(This is labelled 0.9.5-pre5, but there have been no changes
+between pre5 and the final 0.9.5. No 0.9.5.1 yet.)
 
 <p>
 <i>Dependencies:</i>
@@ -131,6 +173,13 @@ You may need to edit the Makefile if your system has these libraries
 installed in different place from my system (sorry, no autoconf yet).
 Also included is a little xlib program, xpho, which is mostly
 interesting as an example of how to use gdk_pixbuf_xlib.
+<p>
+To compile pho, you'll need a compiler, GTK, and all the libraries
+it depends on. For example, on Ubuntu Feisty, this command should get you
+what you need:
+<pre>
+aptitude install build-essential libgtk2.0-dev
+</pre>
 
 <p>
 Pho does work on Mac OS X, as an X application
@@ -142,10 +191,14 @@ feature it really needs ... <a href="../../mailme.html">let me know!</a>
 
 <h2>Changelog</h2>
 <dl>
-<td>8/6/2007, <a href="pho-0.9.5.1.tar.gz">Pho 0.9.5.1</a>:
+<dt>8/11/2008, <a href="pho-0.9.6-pre1.tar.gz">Pho 0.9.6-pre1</a>:
+<dd>Add Keyword mode. Add slideshow mode.
+    Add PHO_REMOTE environment variable.
+    Lots of performance and stability work.
+<dt>8/6/2007, <a href="pho-0.9.5.1.tar.gz">Pho 0.9.5.1</a>:
 <dd>Fix a buffer overflow bug on the 'g' key,
     which runs gimp-remote on the current file.
-<td>3/20/2007, <a href="pho-0.9.5.tar.gz">Pho 0.9.5</a>:
+<dt>3/20/2007, <a href="pho-0.9.5.tar.gz">Pho 0.9.5</a>:
 <dd>No changes except some manual and html page updates.
 <dt>3/5/2007, <a href="pho-0.9.5-pre5.tar.gz">Pho 0.9.5-pre5</a>:
 <dd>Check for a PHO_ARGS environment variable.

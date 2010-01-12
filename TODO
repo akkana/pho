@@ -2,8 +2,64 @@ Ideas for improving pho (in no particular order).
 If you have more ideas, or want to contribute to the project,
 let me know!
 
-Coming in the next release:
-- "Keywords mode", assigning keywords to notes fields (for categorizing photos)
+QUICK FIXES before releasing 0.9.6-pre1:
+- One d toggles Deleted flag, prints at end
+- Event handler for info dialog (so you can ctrl-space, etc.) DONE
+- Comments field more greppable when printing at end. DONE
+- exif fields in info dialog not editable DONE
+
+CURRENT SUSPECTED CRITICAL BUGS:
+- Non-presentation mode: rotate horizontal to vertical.
+  Displays in left half of window but doesn't resize window.
+  (CAN'T REPRO)
+
+- Random gtk error messages on stdout (CAN'T REPRO)
+
+- keyword mode, then f, then f, then /, then rotate:
+  doesn't resize window. (CAN'T REPRO)
+
+BUGS WITH KEYWORD MODE:
+
+- shifted (capital) letters are treated like ctrl-
+  actually looks like only F and D
+  (Should be fixed now)
+
+- Show cursor in text fields in keywords dialog (gtk bug, can't fix)
+
+Regression tests:
+- make sure keywords on current image get saved when you quit.
+
+- Info dialog still doesn't init first time (maybe fixed? but find out why)
+
+- with exif rotation, ScaleImage in pho.c is passed inverted monitor sizes
+  (width passed as height and vice versa)
+  so the keywords mode check doesn't work right. Ick!
+  Wouldn't it be better to rotate the image first? Oh, but it's better
+  to scale down before rotating (for performance).
+  (I think I fixed this.)
+
+HIGH PRIORITY:
+
+- Investigate possible memory leak of PhoImage.filename.
+  Check comment (probably not a leak) at the same time.
+
+- On Mac: if the image size isn't changing, and we're not in presentation
+  mode, going to the next img doesn't actually draw the next image.
+  But only if the image size is bigger than the screen; in /2 mode
+  it works fine.
+
+- Finish Keywords mode (see bugs above)
+
+FUTURE FEATURE WORK:
+
+- Parse and write Keywords file
+
+- Change set of working images
+  - Question: what does pho print out at the end?
+    Everything from the session, probably;
+    but with full pathnames, or directory separators then single filenames?
+
+Other ideas for possible future work:
 
 Should be relatively easy:
 
@@ -15,11 +71,8 @@ Slightly harder:
 
 - Save notes to EXIF.
 
-- Save images at the proper rotation.
-  (Should preserve EXIF, though!)
+- Save images at the proper rotation, preserving EXIF.
 
-Difficult:
-
-- Left mouse button pans image on screen (if image is larger than screen).
+- Use libexif
 
 

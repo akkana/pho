@@ -29,32 +29,47 @@ images you want to save to the web, which images contain images
 of your dog, etc.
 .SH COMMAND-LINE OPTIONS
 .TP
-\fB\-d\fR
-Debug mode: may print a few debugging messages to standard output.
-.TP
-\fB\-v, -h\fR
-Print version and usage info, and exit.
-.TP
 \fB\-p\fR
 "Presentation mode": display in full screen mode with a black background
 (if the window manager allows it).
 .TP
 \fB\-P\fR
-Force non-presentation mode.
+Force non-presentation mode (e.g. if you set PHO_ARGS=-p).
 .TP
 \fB\-n\fR
 Replace each image with a new window
 (slower, but helpful for some broken window managers).
+.TP
+\fB\-k\fR
+Keywords mode: display images scaled down, and show a Keywords dialog
+for classifying images. (Keywords mode will cancel Presentation mode.)
+.TP
+\fB\-sN\fR
+Automatic Slideshow mode, where N is the delay in seconds.
+For example, -s5 will show pause 5 seconds between images.
+-s0 means no delay.
+.TP
+\fB\-d\fR
+Debug mode: may print a few debugging messages to standard output.
+.TP
+\fB\-h\fR
+Help: print a usage statement.
+\fB\-v\fR
+Verbose help: print a summary of key bindings.
 .SH ENVIRONMENT VARIABLES
 .TP
-Pho will check the PHO_ARGS environment variable for default flag
-settings (e.g. set it to p to use presentation mode by default).
+PHO_ARGS: default flag settings
+(e.g. set it to -p to use presentation mode by default).
 Any flags given on the command line will override these settings.
+.TP
+PHO_REMOTE: the command to call when you press the 'g' key.
+Include a %s to represent the filename of the current image.
+(Defaults to gimp-remote %s).
 .SH KEY BINDINGS
 When pho is running, it obeys the following keys:
 .TP
 \fB[space]\fR
-Go to next image
+Go to next image. Or cancel slideshow mode, if active.
 .TP
 \fB[backspace]\fR
 Go to previous image
@@ -82,13 +97,13 @@ Show a dialog with information about the image, including EXIF tags.
 Add the image to the appropriate notes list
 .TP
 \fBf\fR
-Toggle in/out of "full screen mode" (or "fit to window").
-Images will be scaled up or down to fill the screen in at least one dimension.
-.TP
-\fBF\fR
 Toggle in/out of "full size mode".  Images will be shown at their
 native size, even if it's bigger than the screen size.
 (Hint: Many window managers let you move oversized windows with alt-drag.)
+.TP
+\fBF\fR
+Toggle in/out of "full screen mode" (or "fit to window").
+Images will be scaled up or down to fill the screen in at least one dimension.
 .TP
 \fBp\fR
 Toggle in/out of "presentation mode".

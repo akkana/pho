@@ -6,9 +6,9 @@
  */
 
 #include "pho.h"
+#include "dialogs.h"
 #include "exif/phoexif.h"
 
-#include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 #include <stdio.h>
 #include <string.h>
@@ -23,6 +23,24 @@ static GtkWidget* InfoDImgRotation = 0;
 static GtkWidget* InfoFlag[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 static GtkWidget* InfoExifContainer;
 static GtkWidget* InfoExifEntries[NUM_EXIF_FIELDS];
+static PhoImage* sCurInfoImage = 0;
+
+/* It turns out that trying to have two dialogs both transient
+ * to the same main window causes bad things to happen.
+ * So guard against that.
+ */
+void KeepOnTop(GtkWidget* dialog)
+{
+    static GtkWidget* sCurTransientDlg = 0;
+    static GtkWidget* sCurTransientOwner = 0;
+
+    if (sCurTransientDlg != dialog && sCurTransientOwner != gWin)
+    {
+        gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(gWin));
+        sCurTransientDlg = dialog;
+        sCurTransientOwner = gWin;
+    }
+}
 
 static void AddComment(PhoImage* img, char* txt)
 {
@@ -31,13 +49,23 @@ static void AddComment(PhoImage* img, char* txt)
     img->comment = strdup(txt);
 }
 
-void UpdateAndPopDown()
+/* Update the image according to whatever has changed in the dialog.
+ * Call this before popping down or quitting,
+ * and before going to next or prev image.
+ */
+static void UpdateImage()
 {
-    int i, mask, flags;
-    char* text = (char*)gtk_entry_get_text((GtkEntry*)InfoDEntry);
-    gtk_widget_hide(InfoDialog);
+    int i;
+    unsigned mask, flags;
+    char* text;
+
+    if (!InfoDialog || !InfoDialog->window || !IsVisible(InfoDialog)
+        || !sCurInfoImage)
+        return;
+
+    text = (char*)gtk_entry_get_text((GtkEntry*)InfoDEntry);
     if (text && *text)
-        AddComment(gCurImage, text);
+        AddComment(sCurInfoImage, text);
             
     flags = 0;
     for (i=0, mask=1; i<10; ++i, mask <<= 1)
@@ -45,36 +73,70 @@ void UpdateAndPopDown()
         if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(InfoFlag[i])))
             flags |= mask;
     }
-    gCurImage->noteFlags = flags;
+    sCurInfoImage->noteFlags = flags;
 }
 
-static void PopdownInfoDialog(GtkWidget* widget, gpointer data)
+static void PopdownInfoDialog()
 {
-    UpdateAndPopDown();
+    UpdateImage();
+    if (IsVisible(InfoDialog))
+        gtk_widget_hide(InfoDialog);
 }
 
-void UpdateInfoDialog(PhoImage* img)
+void SetInfoDialogToggle(int which, int newval)
+{
+    if (InfoFlag[which])
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(InfoFlag[which]),
+                                     newval ? TRUE : FALSE);
+}
+
+void UpdateInfoDialog()
 {
     char buffer[256];
     char* s;
     int i, mask, flags;
 
-    if (!InfoDialog || !InfoDialog->window)
-        /*|| !(GTK_WIDGET_FLAGS(InfoDialog) & GTK_VISIBLE)*/
+    if (!gCurImage || !InfoDialog || !InfoDialog->window)
+        /* Don't need to check whether it's visible -- if we're not
+         * about to show the dialog we shouldn't be calling this anyway.
+         */
+        return;
+    if (gDebug)
+        printf("UpdateInfoDialog() for %s\n", gCurImage->filename);
+
+    /* Update the last image according to the current dialog */
+    if (gCurImage == sCurInfoImage) {
+        if (gDebug) printf("Already up-to-date\n");
+        return;
+    }
+    if (sCurInfoImage) {
+        if (gDebug) printf("Calling UpdateImage\n");
+        UpdateImage();
+    }
+
+    if (gCurImage == 0)
         return;
 
-    sprintf(buffer, "pho: %s info", img->filename);
+    /* Now update the dialog for the new image */
+    sCurInfoImage = gCurImage;
+
+    /* In case the image's window has changed, make sure we're
+     * staying on top of the right window:
+     */
+    KeepOnTop(InfoDialog);
+
+    sprintf(buffer, "pho: %s info", gCurImage->filename);
     gtk_window_set_title(GTK_WINDOW(InfoDialog), buffer);
 
-    s = img->comment;
+    s = gCurImage->comment;
     gtk_entry_set_text(GTK_ENTRY(InfoDEntry), s ? s : "");
 
-    gtk_label_set_text(GTK_LABEL(InfoDImgName), img->filename);
-    sprintf(buffer, "%d x %d", img->trueWidth, img->trueHeight);
+    gtk_label_set_text(GTK_LABEL(InfoDImgName), gCurImage->filename);
+    sprintf(buffer, "%d x %d", gCurImage->trueWidth, gCurImage->trueHeight);
     gtk_label_set_text(GTK_LABEL(InfoDOrigSize), buffer);
-    sprintf(buffer, "%d x %d", img->curWidth, img->curHeight);
+    sprintf(buffer, "%d x %d", gCurImage->curWidth, gCurImage->curHeight);
     gtk_label_set_text(GTK_LABEL(InfoDImgSize), buffer);
-    switch (img->rotation)
+    switch (gCurImage->curRot)
     {
       case 90:
           gtk_label_set_text(GTK_LABEL(InfoDImgRotation), " 90 ");
@@ -92,15 +154,14 @@ void UpdateInfoDialog(PhoImage* img)
     }
 
     /* Update the flags buttons */
-    flags = img->noteFlags;
+    flags = gCurImage->noteFlags;
     for (i=0, mask=1; i<10; ++i, mask <<= 1)
-        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(InfoFlag[i]),
-                                     (flags & mask) ? TRUE : FALSE);
+        SetInfoDialogToggle(i, (flags & mask) != 0);
 
     /* Loop over the various EXIF elements.
      * Expect we already called ExifReadInfo, back in LoadImageFromFile.
      */
-    if (HasExif(img))
+    if (HasExif(gCurImage))
         gtk_widget_set_sensitive(InfoExifContainer, TRUE);
     else
         gtk_widget_set_sensitive(InfoExifContainer, FALSE);
@@ -109,7 +170,7 @@ void UpdateInfoDialog(PhoImage* img)
         if (HasExif()) {
             gtk_entry_set_text(GTK_ENTRY(InfoExifEntries[i]),
                                ExifGetString(i));
-            //gtk_entry_set_editable(GTK_ENTRY(InfoExifEntries[i]), TRUE);
+            gtk_entry_set_editable(GTK_ENTRY(InfoExifEntries[i]), FALSE);
         }
         else {
             gtk_entry_set_text(GTK_ENTRY(InfoExifEntries[i]), " ");
@@ -120,16 +181,18 @@ void UpdateInfoDialog(PhoImage* img)
 
 static gint InfoDialogExpose(GtkWidget* widget, GdkEventKey* event)
 {
-    printf("InfoDialogExpose\n");
     gtk_signal_handler_block_by_func(GTK_OBJECT(InfoDialog),
                                      (GtkSignalFunc)InfoDialogExpose, 0);
     gtk_widget_grab_focus(InfoDEntry);
-    printf("Calling UpdateInfoDialog\n");
+    if (gDebug)
+        printf("InfoDialogExpose\n");
     UpdateInfoDialog(gCurImage);
-    printf("Called UpdateInfoDialog\n");
-    gtk_signal_handler_unblock_by_func(GTK_OBJECT(InfoDialog),
-                                       (GtkSignalFunc)InfoDialogExpose, 0);
-    return TRUE;
+//    gtk_signal_handler_unblock_by_func(GTK_OBJECT(InfoDialog),
+//                                       (GtkSignalFunc)InfoDialogExpose, 0);
+    /* Return FALSE so that the regular dialog expose handler will
+     * draw the dialog properly the first time.
+     */
+    return FALSE;
 }
 
 static gint HandleInfoKeyPress(GtkWidget* widget, GdkEventKey* event)
@@ -139,12 +202,15 @@ static gint HandleInfoKeyPress(GtkWidget* widget, GdkEventKey* event)
       case GDK_Escape:
       case GDK_Return:
       case GDK_KP_Enter:
-          UpdateAndPopDown();
+          PopdownInfoDialog();
           return TRUE;
-      default:
-          return FALSE;
     }
-    return FALSE;
+
+    /* handle other events iff Shift is pressed */
+    if (! event->state & GDK_SHIFT_MASK)
+        return FALSE;
+
+    return HandleGlobalKeys(widget, event);
 }
 
 /* Show a dialog with info about the current image.
@@ -154,6 +220,8 @@ void ToggleInfo()
     GtkWidget *ok;
     GtkWidget *label, *vbox, *box, *scroller;
     int i;
+
+    if (gDebug) printf("ToggleInfo\n");
 
     if (InfoDialog && InfoDialog->window)
     {
@@ -165,6 +233,8 @@ void ToggleInfo()
         }
         return;
     }
+
+    /* Else it's the first time, and we need to create the dialog */
 
     InfoDialog = gtk_dialog_new();
     gtk_signal_connect(GTK_OBJECT(InfoDialog), "key_press_event",
@@ -293,10 +363,12 @@ void ToggleInfo()
     }
     gtk_widget_show(InfoExifContainer);
 
-//    gtk_signal_connect(GTK_OBJECT(InfoDialog), "expose_event",
-//                       (GtkSignalFunc)InfoDialogExpose, 0);
+    gtk_signal_connect(GTK_OBJECT(InfoDialog), "expose_event",
+                       (GtkSignalFunc)InfoDialogExpose, 0);
 
     gtk_widget_show(InfoDialog);
+    // Don't call UpdateInfoDialog: it won't actually update
+    // everything it needs until after the first expose.
     UpdateInfoDialog(gCurImage);
 }
 
@@ -305,18 +377,12 @@ void ToggleInfo()
  */
 
 static GtkWidget* promptDialog = 0;
-static int qYesNo = -1;
+//static int qYesNo = -1;
 
 static char* defaultYesChars = "yY\n";
 static char* defaultNoChars = "nN";   /* ESC always works to cancel */
 static char* gYesChars = 0;
 static char* gNoChars = 0;
-
-static void
-promptCB(GtkWidget *widget, gpointer data)
-{
-    qYesNo = (int)data;
-}
 
 static gint
 HandlePromptKeyPress(GtkWidget* widget, GdkEventKey* event)
@@ -325,15 +391,11 @@ HandlePromptKeyPress(GtkWidget* widget, GdkEventKey* event)
 
     if (event->keyval == GDK_Escape)
     {
-        qYesNo = 0;
+        gtk_dialog_response(GTK_DIALOG(promptDialog), 0);
         return TRUE;
     }
 
-    /* For anything else, map it to a printable and search in the strings */
-    if (event->keyval == GDK_Return || event->keyval == GDK_KP_Enter)
-        c = '\n';
-
-    else if (event->keyval == GDK_space)
+    if (event->keyval == GDK_space)
         c = ' ';
 
     else if (event->keyval >= GDK_A && event->keyval <= GDK_Z)
@@ -346,7 +408,6 @@ HandlePromptKeyPress(GtkWidget* widget, GdkEventKey* event)
         c = event->keyval - GDK_0 + '0';
 
     else {
-        qYesNo = -1;
         gdk_beep();
         return FALSE;
     }
@@ -354,16 +415,16 @@ HandlePromptKeyPress(GtkWidget* widget, GdkEventKey* event)
     /* Now we have a c: see if it's in the yes or no char lists */
     if (strchr(gYesChars, c))
     {
-        qYesNo = 1;
+        gtk_dialog_response(GTK_DIALOG(promptDialog), 1);
         return TRUE;
     }
     else if (strchr(gNoChars, c))
     {
-        qYesNo = 0;
+        gtk_dialog_response(GTK_DIALOG(promptDialog), 0);
         return TRUE;
     }
 
-    qYesNo = -1;
+    gdk_beep();
     return FALSE;
 }
 
@@ -372,6 +433,7 @@ int Prompt(char* msg, char* yesStr, char* noStr, char* yesChars, char* noChars)
     static GtkWidget* question = 0;
     static GtkWidget* yesBtn = 0;
     static GtkWidget* noBtn = 0;
+    int qYesNo;
 
     if (!yesStr)
         yesStr = "Yes";
@@ -390,30 +452,20 @@ int Prompt(char* msg, char* yesStr, char* noStr, char* yesChars, char* noChars)
     else
     {
         /* First time through: make the dialog */
-        promptDialog = gtk_dialog_new();
-        /* This is stupid: to make the dialog modal we have to use
-         * new_with_buttons, but that doesn't let us get to to the buttons
-         * to change their labels later!
-         * Figure out how to add modality some other time.
-	 */
+        promptDialog = gtk_dialog_new_with_buttons("Question",
+                                                   GTK_WINDOW(gWin),
+                                                   GTK_DIALOG_MODAL,
+                                                   yesStr, 1,
+                                                   noStr, 0,
+                                                   0);
+        KeepOnTop(promptDialog);
+
+        /* Make sure Enter will activate OK, not Cancel */
+        //gtk_dialog_set_default_response(GTK_DIALOG(promptDialog),
+        //                                GTK_RESPONSE_OK);
 
         gtk_signal_connect(GTK_OBJECT(promptDialog), "key_press_event",
                            (GtkSignalFunc)HandlePromptKeyPress, 0);
-
-        /* Make the buttons: */
-        yesBtn = gtk_button_new_with_label(yesStr);
-        gtk_box_pack_start(GTK_BOX(GTK_DIALOG(promptDialog)->action_area),
-                           yesBtn, TRUE, TRUE, 0);
-        gtk_signal_connect(GTK_OBJECT(yesBtn), "clicked",
-                           (GtkSignalFunc)promptCB, (gpointer)1);
-
-        noBtn = gtk_button_new_with_label(noStr);
-        gtk_box_pack_start(GTK_BOX(GTK_DIALOG(promptDialog)->action_area),
-                           noBtn, TRUE, TRUE, 0);
-        gtk_signal_connect(GTK_OBJECT(noBtn), "clicked",
-                           (GtkSignalFunc)promptCB, (gpointer)0);
-        gtk_widget_show(yesBtn);
-        gtk_widget_show(noBtn);
 
         /* Make the label: */
         question = gtk_label_new(msg);
@@ -424,9 +476,7 @@ int Prompt(char* msg, char* yesStr, char* noStr, char* yesChars, char* noChars)
 
     gtk_widget_show(promptDialog);
 
-    qYesNo = -1;
-    while (qYesNo < 0)
-        gtk_main_iteration();
+    qYesNo = gtk_dialog_run(GTK_DIALOG(promptDialog));
 
     gtk_widget_hide(promptDialog);
     return qYesNo;

@@ -13,33 +13,13 @@
 #include <glib.h>
 #include <ctype.h>
 
-static char *sFlagStrings[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+static char *sFlagFileList[NUM_NOTES];
 
-char* GetFlagString(PhoImage* img)
+void InitNotes()
 {
-    static char buf[35];
-    static char* spaces= "                                  ";
-    int i, mask;
-    int foundone = 0;
-
-    if (img->noteFlags == 0) return spaces;
-    mask = 1;
-    for (i=0; i<10; ++i, mask <<= 1)
-    {
-        if (img->noteFlags & mask)
-        {
-            int len;
-            if (!foundone)
-                strcpy(buf, "Flags: ");
-            len = strlen(buf);
-            if (foundone)
-                buf[len++] = ' ';
-            buf[len++] = i + '0';
-            buf[len] = '\0';
-            foundone = 1;
-        }
-    }
-    return buf;
+    int i;
+    for (i=0; i<NUM_NOTES; ++i)
+        sFlagFileList[i] = 0;
 }
 
 void ToggleNoteFlag(PhoImage* img, int note)
@@ -49,6 +29,10 @@ void ToggleNoteFlag(PhoImage* img, int note)
         img->noteFlags &= ~bit;
     else
         img->noteFlags |= bit;
+
+    /* Update any dialogs which might be showing toggles */
+    SetInfoDialogToggle(note, (img->noteFlags & bit) != 0);
+    SetKeywordsDialogToggle(note, (img->noteFlags & bit) != 0);
 }
 
 /* Guard against filenames which contain odd characters, like
@@ -59,7 +43,7 @@ char *QuoteString(char *str)
     int i;
     char *newstr;
 
-    /*look for a space or quote in str */
+    /* look for a space or quote in str */
     for (i = 0; str[i] != '\0'; i++)
         if (isspace(str[i]) || (str[i] == '\"') || (str[i] == '\'')) {
             GString *gstr = g_string_new("\"");
@@ -109,7 +93,7 @@ void PrintNotes()
     char *rot90=0, *rot180=0, *rot270=0;
     PhoImage* img;
 
-    /* Should free up memory here, e.g. for sFlagStrings,
+    /* Should free up memory here, e.g. for sFlagFileList,
      * but since this is only called right before exit,
      * it's never been allocated so it doesn't matter.
      * If PrintNotes ever gets called except at exit,
@@ -120,16 +104,16 @@ void PrintNotes()
     while (img)
     {
         if (img->comment)
-            printf("%s: %s\n", img->filename, img->comment);
+            printf("Comment %s: %s\n", img->filename, img->comment);
         if (img->noteFlags)
         {
             int flag, j;
-            for (j=0, flag=1; j<10; ++j, flag <<= 1)
+            for (j=0, flag=1; j<NUM_NOTES; ++j, flag <<= 1)
                 if (img->noteFlags & flag)
-                    AddImgToList(sFlagStrings+j, img->filename);
+                    AddImgToList(sFlagFileList+j, img->filename);
         }
 
-        switch (img->rotation)
+        switch (img->curRot)
         {
           case 90:
               AddImgToList(&rot90, img->filename);
@@ -159,8 +143,15 @@ void PrintNotes()
         printf("\nRotate -90 (CCW): %s\n", rot270);
     if (rot180)
         printf("\nRotate 180: %s\n", rot180);
-    for (i=0; i<10; ++i)
-        if (sFlagStrings[i])
-            printf("\nNote %d: %s\n", i, sFlagStrings[i]);
+    for (i=0; i < NUM_NOTES; ++i)
+        if (sFlagFileList[i])
+        {
+            char* keyword = KeywordString(i);
+            if (keyword && *keyword)
+                printf("\n%s: ", keyword);
+            else
+                printf("\nNote %d: ", i);
+            printf("%s\n", sFlagFileList[i]);
+        }
 }
 

@@ -1,1 +1,1 @@
-shlibs:Depends=libatk1.0-0 (>= 1.13.1), libc6 (>= 2.5-0ubuntu1), libcairo2 (>= 1.4.2), libfontconfig1 (>= 2.4.0), libglib2.0-0 (>= 2.12.9), libgtk2.0-0 (>= 2.10.3), libpango1.0-0 (>= 1.16.2), libx11-6, libxcursor1 (>> 1.1.2), libxext6, libxfixes3 (>= 1:4.0.1), libxi6, libxinerama1, libxrandr2 (>= 2:1.2.0), libxrender1
+shlibs:Depends=libatk1.0-0 (>= 1.6.0), libc6 (>= 2.3.2.ds1-4), libglib2.0-0 (>= 2.4.6), libgtk2.0-0 (>= 2.4.4), libpango1.0-0 (>= 1.4.1)

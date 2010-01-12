@@ -28,14 +28,41 @@ GdkPixbuf* gImage = 0;
 int gDebug = 0;    /* debugging messages */
 
 int gScaleMode = PHO_SCALE_NORMAL;
+double gScaleRatio = 1.0;
 
-int gPresentationMode = 0;
+int gDisplayMode = PHO_DISPLAY_NORMAL;
 
-//static void ScaleImage(PhoImage* img);  /* forward */
+/* Slideshow delay is zero by default -- no slideshow. */
+int gDelaySeconds = 0;
+int gPendingTimeout = 0;
+
+static int RotateImage(PhoImage* img, int degrees);    /* forward */
+
+static gint DelayTimer(gpointer data)
+{
+    if (gDelaySeconds == 0)    /* slideshow mode was cancelled */
+        return FALSE;
+
+    if (gDebug) printf("-- Timer fired\n");
+    gPendingTimeout = 0;
+
+    NextImage();
+    return FALSE;       /* cancel the timer */
+}
 
 int ShowImage()
 {
+    ScaleAndRotate(gCurImage, 0);
     PrepareWindow();
+    /* Keywords dialog will be updated if necessary from DrawImage */
+    //UpdateKeywordsDialog();
+
+    if (gDelaySeconds > 0 && gPendingTimeout == 0
+        && (gCurImage->next != 0 || gCurImage->next != gFirstImage)) {
+        if (gDebug) printf("Adding timeout for %d msec\n", gDelaySeconds*1000);
+        gPendingTimeout = g_timeout_add (gDelaySeconds * 1000, DelayTimer, 0);
+    }
+
     return 0;
 }
 
@@ -48,6 +75,9 @@ static int LoadImageFromFile(PhoImage* img)
 
     if (img == 0)
         return -1;
+
+    if (gDebug)
+        printf("LoadImageFromFile(%s)\n", img->filename);
 
     /* Free the current image */
     if (gImage) {
@@ -73,27 +103,19 @@ static int LoadImageFromFile(PhoImage* img)
 
     img->curWidth = img->trueWidth = gdk_pixbuf_get_width(gImage);
     img->curHeight = img->trueHeight = gdk_pixbuf_get_height(gImage);
+    img->curRot = 0;
 
-    /* do any necessary rotation */
+    /* Read the EXIF rotation if we haven't already rotated this image */
     ExifReadInfo(img->filename);
-    if (img->rotation != 0) {
-        rot = img->rotation;
-        img->rotation = 0;
-        RotateImage(gCurImage, rot);
+    if (HasExif() && (rot = ExifGetInt(ExifOrientation)) != 0) {
+        img->desiredRot = rot;
     }
-    else if (HasExif() && (rot = ExifGetInt(ExifOrientation)) != 0) {
-        RotateImage(gCurImage, rot);
-    }
-    /* RotateImage will scale, but if we don't call it, then scale it here. */
-    else ScaleImage(gCurImage);
 
     return 0;
 }
 
 int ThisImage()
 {
-    if (gScaleMode == PHO_SCALE_ABSSIZE)
-        gScaleMode = PHO_SCALE_NORMAL;
     if (LoadImageFromFile(gCurImage) != 0)
         return NextImage();
     ShowImage();
@@ -102,12 +124,12 @@ int ThisImage()
 
 int NextImage()
 {
-    if (gScaleMode == PHO_SCALE_ABSSIZE)
-        gScaleMode = PHO_SCALE_NORMAL;
+    if (gDebug)
+        printf("\n================= NextImage ====================\n");
     do {
         if (gCurImage == 0)   /* no image loaded yet, first call */
             gCurImage = gFirstImage;
-        else if (gCurImage->next == 0 || gCurImage->next == gFirstImage)
+        else if ((gCurImage->next == 0) || (gCurImage->next == gFirstImage))
             return -1;  /* end of list, can't go farther */
         else
             gCurImage = gCurImage->next;
@@ -118,8 +140,6 @@ int NextImage()
 
 int PrevImage()
 {
-    if (gScaleMode == PHO_SCALE_ABSSIZE)
-        gScaleMode = PHO_SCALE_NORMAL;
     do {
         if (gCurImage == 0) {  /* no image loaded yet, first call */
             gCurImage = gFirstImage;
@@ -136,107 +156,260 @@ int PrevImage()
     return 0;
 }
 
-/* Scale the image according to the current scale mode.
- * Any rotation has already happened before calling Scale.
+/* Limit new_width and new_height so that they're no bigger than
+ * max_width and max_height.
  */
-void ScaleImage(PhoImage* img)
+static void ScaleToFit(int *new_width, int *new_height,
+                       int max_width, int max_height)
 {
-    /* Absolute Size: size has already been set, just follow it.
-     */
-    if (gScaleMode == PHO_SCALE_ABSSIZE) {
-#define ABS_SCALE_SLOP 5
-        int curW = gdk_pixbuf_get_width(gImage);
-        int curH = gdk_pixbuf_get_height(gImage);
-        GdkPixbuf* newimage;
+    double ratio = 1.;
+    /* scale so that the biggest ratio just barely fits on screen. */
+    double xratio = (double)max_width / *new_width;
+    double yratio = (double)max_height / *new_height;
+    if (xratio > yratio) ratio = yratio;
+    else ratio = xratio;
 
-        if (img->curWidth > curW + ABS_SCALE_SLOP
-            || img->curHeight > curH + ABS_SCALE_SLOP) {
-            /* It's getting bigger, so re-read from the file before scaling  */
-            int w = img->curWidth;
-            int h = img->curHeight;
-            LoadImageFromFile(img);
-            img->curWidth = w;
-            img->curHeight = h;
-        }
-        newimage = gdk_pixbuf_scale_simple(gImage,
-                                           img->curWidth, img->curHeight,
-                                           GDK_INTERP_NEAREST);
-        if (gImage)
-            gdk_pixbuf_unref(gImage);
-        gImage = newimage;
-        return;
+    *new_width = ratio * *new_width;
+    *new_height = ratio * *new_height;
+}
+
+#define SWAP(a, b) { int temp = a; a = b; b = temp; }
+//#define SWAP(a, b)  {a ^= b; b ^= a; a ^= b;}
+
+/* Scale the image according to the current scale mode.
+ * 
+ * This will read the image from disk if necessary,
+ * and it will rotate the image at the appropriate time
+ * (when the image is at its smallest).
+ *
+ * This is the routine that should be called by external callers:
+ * callers should never need to call RotateImage or LoadImageFromFile.
+ *
+ * degrees is the amount of rotation *in addition to* img->desiredRot.
+ */
+void ScaleAndRotate(PhoImage* img, int degrees)
+{
+    int true_width = img->trueWidth;
+    int true_height = img->trueHeight;
+    int cur_width = img->curWidth;
+    int cur_height = img->curHeight;
+    int new_width;
+    int new_height;
+    int aspect_changing;
+
+    if (gDebug)
+        printf("ScaleAndRotate(%d)\n", degrees);
+
+    degrees += img->desiredRot - img->curRot;
+
+    /* Make sure degrees is between 0 and 360 */
+    degrees = (degrees + 360) % 360;
+    aspect_changing = ((degrees % 180) != 0);
+
+    /* First, load the image if we haven't already */
+    if (true_width == 0 || true_height == 0) {
+        LoadImageFromFile(img);
+        degrees = degrees + img->desiredRot;
+    }
+
+    /* Adjust aspect ratio of true width and height for rotation */
+    if (aspect_changing) {
+        SWAP(true_width, true_height);
+        SWAP(cur_width, cur_height);
     }
 
     /* Fullsize: display always at real resolution,
      * even if it's too big to fit on the screen.
      */
     if (gScaleMode == PHO_SCALE_FULLSIZE) {
-        if (img->curWidth == img->trueWidth &&
-            img->curHeight == img->trueHeight)
-            return;
-        LoadImageFromFile(img);
-        return;
+        new_width = true_width;
+        new_height = true_height;
     }
 
     /* Normal: display at full size unless it won't fit the screen,
      * in which case scale it down.
      */
 #define NORMAL_SCALE_SLOP 5
-    if (gScaleMode == PHO_SCALE_NORMAL) {
-        int w = img->trueWidth;
-        int h = img->trueHeight;
+    else if (gScaleMode == PHO_SCALE_NORMAL
+             || gScaleMode == PHO_SCALE_SCREEN_RATIO) {
+        int max_width = gMonitorWidth;
+        int max_height = gMonitorHeight;
         int diff;
-        GdkPixbuf* newimage;
-        if (w > gMonitorWidth || h > gMonitorHeight) {
-            double xratio = (double)gMonitorWidth / img->trueWidth;
-            double yratio = (double)gMonitorHeight / img->trueHeight;
-            /* Use xratio for the most extreme */
-            if (xratio > yratio) xratio = yratio;
-            w = xratio * img->trueWidth;
-            h = xratio * img->trueHeight;
+        if (gScaleMode == PHO_SCALE_SCREEN_RATIO) {
+            max_width *= gScaleRatio;
+            max_height *= gScaleRatio;
+            /* If we're scaled up or down, then keep the image's maximum
+             * size the same whether we're horizontal or vertical; no need
+             * to limit the vertical's size.
+             */
+            if (gScaleRatio != 1.)
+                max_width = max_height = MAX(max_width, max_height);
         }
-        /* Now w and h hold the desired sizes.  See if we're close */
-        diff = abs(img->curWidth - w) + abs(img->curHeight - h);
-        if (diff < NORMAL_SCALE_SLOP)
-            return;
 
-        /* We have to rescale */
-        newimage = gdk_pixbuf_scale_simple(gImage, w, h, GDK_INTERP_NEAREST);
-        if (gImage)
-            gdk_pixbuf_unref(gImage);
-        gImage = newimage;
-        img->curWidth = w;
-        img->curHeight = h;
-        return;
+        new_width = true_width;
+        new_height = true_height;
+
+        /* In screen scale mode, if scale ratio is greater than 1,
+         * scale the image up by that ratio if we can do that without
+         * exceeding the maximum size.
+         */
+        if (gScaleMode == PHO_SCALE_SCREEN_RATIO && gScaleRatio > 1) {
+            new_width *= gScaleRatio;
+            new_height *= gScaleRatio;
+        }
+
+        if (new_width > max_width || new_height > max_height) {
+            ScaleToFit(&new_width, &new_height, max_width, max_height);
+        }
+
+        /* Now w and h hold the desired sizes.  See if we're close already. */
+        diff = abs(cur_width - new_width)
+            + abs(cur_height - new_height);
+        if (diff < NORMAL_SCALE_SLOP) {
+            new_width = cur_width;
+            new_height = cur_height;
+        }
+    }
+
+    else if (gScaleMode == PHO_SCALE_IMG_RATIO) {
+        new_width = true_width * gScaleRatio;
+        new_height = true_height * gScaleRatio;
+
+        /* See if we're close */
+        int diff = abs(cur_width - new_width)
+            + abs(cur_height - new_height);
+        if (diff < NORMAL_SCALE_SLOP) {
+            new_width = cur_width;
+            new_height = cur_height;
+        }
     }
         
     /* Fullscreen: Scale either up or down if necessary to make
      * the largest dimension match the screen size.
      */
 #define FULLSCREEN_SCALE_SLOP 20
-    if (gScaleMode == PHO_SCALE_FULLSCREEN) {
-        int diffx = abs(gCurImage->curWidth - gMonitorWidth);
-        int diffy = abs(gCurImage->curHeight - gMonitorHeight);
+    else if (gScaleMode == PHO_SCALE_FULLSCREEN) {
+        /* If we're in presentation mode, then we need to scale
+         * to the current size of the window, not the monitor,
+         * because in xinerama gdk_window_fullscreen() will fullscreen
+         * onto only one monitor, but gdk_screen_width() gives the
+         * width of the full xinerama setup.
+         */
+        int diffx = abs(cur_width - gMonitorWidth);
+        int diffy = abs(cur_height - gMonitorHeight);
         double xratio, yratio;
-        GdkPixbuf* newimage;
+        gint screenwidth, screenheight;
 
-        if (diffx < FULLSCREEN_SCALE_SLOP || diffy < FULLSCREEN_SCALE_SLOP)
-            return;
-        xratio = (double)gMonitorWidth / img->trueWidth;
-        yratio = (double)gMonitorHeight / img->trueHeight;
+        if (gDisplayMode == PHO_DISPLAY_PRESENTATION)
+            gtk_window_get_size(GTK_WINDOW(gWin), &screenwidth, &screenheight);
+        else {
+            screenwidth = gMonitorWidth;
+            screenheight = gMonitorHeight;
+        }
+
+        if (diffx < FULLSCREEN_SCALE_SLOP || diffy < FULLSCREEN_SCALE_SLOP) {
+            /* XXX these get overwritten in a few lines! */
+            new_width = cur_width;
+            new_height = cur_height;
+        }
+
+        xratio = (double)screenwidth / true_width;
+        yratio = (double)screenheight / true_height;
 
         /* Use xratio for the more extreme of the two */
         if (xratio > yratio) xratio = yratio;
-        gCurImage->curWidth = xratio * img->trueWidth;
-        gCurImage->curHeight = xratio * img->trueHeight;
-        newimage = gdk_pixbuf_scale_simple(gImage,
-                                           gCurImage->curWidth,
-                                           gCurImage->curHeight,
-                                           GDK_INTERP_NEAREST);
+        new_width = xratio * true_width;
+        new_height = xratio * true_height;
+    }
+    else {
+        /* Shouldn't ever happen, means gScaleMode is bogus */
+        printf("Internal error: Unknown scale mode %d\n", gScaleMode);
+        new_width = cur_width;
+        new_height = cur_height;
+    }
+    /* Finally, we're done with the scaling modes.
+     * Time to do the scaling and rotation,
+     * reloading the image if needed.
+     */
+
+    /* First figure out if we're getting bigger and hence need to reload. */
+    if ((new_width > cur_width || new_height > cur_height)
+        && (cur_width < true_width && cur_height < true_height)) {
+        /* image->curRot is going to be set back to zero
+         * (or to the exif rotation setting)
+         * so adjust current planned rotation accordingly.
+         */
+        degrees = (degrees + img->curRot + 360) % 360;
+            /* Now it's the absolute end rot desired */
+        aspect_changing = (((degrees + 360) % 180) != 0);
+
+        LoadImageFromFile(img);
+        //degrees += img->desiredRot;
+        cur_width = true_width = gdk_pixbuf_get_width(gImage);
+        cur_height = true_height = gdk_pixbuf_get_height(gImage);
+
+        if (aspect_changing) {
+            SWAP(true_width, true_height);
+            SWAP(cur_width, cur_height);
+        }
+    }
+
+    /* new_* are the sizes we want after rotation. But we need
+     * to compare them now to the sizes before rotation. So we
+     * need to compensate for rotation:
+     */
+    int unrot_new_height, unrot_new_width;
+
+    /* If we're going to scale up, then do the rotation first,
+     * before scaling. Otherwise, scale down first then rotate.
+     */
+    if (degrees != 0 && (new_width > cur_width || new_height > cur_height)) {
+        RotateImage(img, degrees);
+        degrees = 0;    /* finished with rotation */
+        unrot_new_width = new_width;
+        unrot_new_height = new_height;
+    }
+    else if (aspect_changing) {
+        unrot_new_height = new_width;
+        unrot_new_width = new_height;
+    } else {
+        unrot_new_width = new_width;
+        unrot_new_height = new_height;
+    }
+
+    /* Do the scaling (thought we'd never get there!) */
+    if (unrot_new_width != img->curWidth || unrot_new_height != img->curHeight)
+    {
+        GdkPixbuf* newimage = gdk_pixbuf_scale_simple(gImage,
+                                                      unrot_new_width,
+                                                      unrot_new_height,
+                                                      GDK_INTERP_NEAREST);
+        /* scale_simple apparently has no error return; if it fails,
+         * it still returns a pixbuf but width and height are -1.
+         * Hope this undocumented behavior doesn't change!
+         */
+        if (!newimage || gdk_pixbuf_get_width(newimage) < 1) {
+            printf("\007Error scaling up to %d x %d: probably out of memory\n",
+                   unrot_new_width, unrot_new_height);
+            if (newimage)
+                gdk_pixbuf_unref(newimage);
+            Prompt("Couldn't scale up: probably out of memory", "Bummer", 0,
+                   "\n ", "");
+            return;
+        }
         if (gImage)
             gdk_pixbuf_unref(gImage);
         gImage = newimage;
+        img->curWidth = gdk_pixbuf_get_width(gImage);
+        img->curHeight = gdk_pixbuf_get_height(gImage);
     }
+
+    /* If we didn't rotate before, do it now. */
+    if (degrees != 0)
+        RotateImage(img, degrees);
+
+    /* We'd better have current=desired rotation by now */
+    img->desiredRot = img->curRot;
 }
 
 PhoImage* NewPhoImage(char* fnam)
@@ -246,6 +419,27 @@ PhoImage* NewPhoImage(char* fnam)
     newimg->filename = fnam;  /* no copy, we don't own the memory */
 
     return newimg;
+}
+
+/* This routine exists to keep track of any allocated memory
+ * existing in the PhoImage structure.
+ */
+static void FreePhoImage(PhoImage* img)
+{
+    if (img->comment) free(img->comment);
+    free(img);
+}
+
+/* Remove all images from the image list, to start fresh. */
+void ClearImageList()
+{
+    PhoImage* img = gFirstImage;
+    while (img) {
+        PhoImage* del = img;
+        img = img->next;
+        FreePhoImage(del);
+    }
+    gCurImage = gFirstImage = 0;
 }
 
 void ReallyDelete(PhoImage* img)
@@ -282,8 +476,7 @@ void ReallyDelete(PhoImage* img)
     }
 
     /* It's disconnected.  Free all the memory */
-    if (img->comment) free(img->comment);
-    free(img);
+    FreePhoImage(img);
 
     ThisImage();
 }
@@ -298,11 +491,11 @@ void DeleteImage(PhoImage* img)
         ReallyDelete(img);
 }
 
-/* RotateImage is responsible for calling ScaleImage():
- * because only RotateImage knows whether the aspect ratio is changing,
- * and hence, whether scaling should happen early or late.
+/* RotateImage just rotates; it no longer calls ScaleImage.
+ * It's typically called from ScaleAndRotate either just
+ * before or just after scaling.
  */
-int RotateImage(PhoImage* img, int degrees)
+static int RotateImage(PhoImage* img, int degrees)
 {
     guchar *oldpixels, *newpixels;
     int x, y;
@@ -315,32 +508,12 @@ int RotateImage(PhoImage* img, int degrees)
     /* Make sure degrees is between 0 and 360 even if it's -90 */
     degrees = (degrees + 360) % 360;
 
-    /* Decide whether to scale the image. */
-    if (degrees == 90 || degrees == 270) {
-        /* We're changing aspect ratio, so temporarily swap
-         * screen width and height before rescaling:
-         */
-        int temp = gMonitorHeight;
-        gMonitorHeight = gMonitorWidth;
-        gMonitorWidth = temp;
-        ScaleImage(img);
-        temp = gMonitorHeight;
-        gMonitorHeight = gMonitorWidth;
-        gMonitorWidth = temp;
-    }
-    else
-        ScaleImage(img);
-
-    /* degrees might be zero now, since we might have just
-     * read from disk and might now be rotating back to zero.
-     */
-    if (degrees == 0)
-    {
-        ShowImage();
+    /* degrees might be zero now, since we might be rotating back to zero. */
+    if (degrees == 0) {
         return 0;
     }
 
-    /* Swap X and Y if appropriate. */
+    /* Swap X and Y if appropriate */
     if (degrees == 90 || degrees == 270)
     {
         newWidth = img->curHeight;
@@ -421,21 +594,22 @@ int RotateImage(PhoImage* img, int degrees)
     img->trueWidth = newTrueWidth;
     img->trueHeight = newTrueHeight;
 
-    img->rotation = (img->rotation + degrees + 360) % 360;
+    img->curRot = img->desiredRot = (img->curRot + degrees + 360) % 360;
 
     gdk_pixbuf_unref(gImage);
     gImage = newImage;
 
-    ShowImage();
     return 0;
 }
 
 void Usage()
 {
-    printf("pho version %s.  Copyright 2002,2003,2004 Akkana Peck akkana@shallowsky.com.\n", VERSION);
+    printf("pho version %s.  Copyright 2002,2003,2004,2007 Akkana Peck akkana@shallowsky.com.\n", VERSION);
     printf("Usage: pho [-dhnp] image [image ...]\n");
     printf("\t-p: Presentation mode (full screen)\n");
+    printf("\t-k: Keywords mode (show a Keywords dialog for each image)\n");
     printf("\t-n: Replace each image window with a new window (helpful for some window managers)\n");
+    printf("\t-sN: Slideshow mode, where N is the timeout in seconds\n");
     printf("\t-d: Debug messages\n");
     printf("\t-h: Help: Print this summary\n");
     printf("\t-v: Verbose help: Print a summary of key bindings\n");
@@ -444,16 +618,17 @@ void Usage()
 
 void VerboseHelp()
 {
-    printf("pho version %s.  Copyright 2002,2003,2004 Akkana Peck akkana@shallowsky.com.\n", VERSION);
+    printf("pho version %s.  Copyright 2002,2003,2004,2007 Akkana Peck akkana@shallowsky.com.\n", VERSION);
     printf("Type pho -h for commandline arguments.\n");
     printf("\npho Key Bindings:\n\n");
-    printf("<space>\tNext image\n");
+    printf("<space>\tNext image (or cancel slideshow mode)\n");
     printf("-\tPrevious image\n");
     printf("<backspace>\tPrevious image\n");
     printf("<home>\tFirst image\n");
-    printf("F\tFull-size mode (even if bigger than screen)\n");
-    printf("f\tFullscreen mode (scale even small images up to fullscreen)\n");
-    printf("p\tPresentation mode (take up the whole screen, centering the image)\n");
+    printf("f\tToggle fullscreen mode (scale even small images up to fullscreen)\n");
+    printf("F\tToggle full-size mode (even if bigger than screen)\n");
+    printf("k\tTurn on keywords mode: show the keywords dialog\n");
+    printf("p\tToggle presentation mode (take up the whole screen, centering the image)\n");
     printf("d\tDelete current image (from disk, after confirming with another d)\n");
     printf("0-9\tRemember image in note list 0 through 9 (to be printed at exit)\n");
     printf("t\tRotate right 90 degrees\n");

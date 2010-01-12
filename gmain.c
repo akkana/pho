@@ -13,6 +13,8 @@
 #include <stdlib.h>       /* for getenv() */
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
+#include <unistd.h>
 
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
@@ -35,7 +37,7 @@ gint sPhysMonitorHeight = 0;
 static GdkColor sBlack;
 
 /* gtk/X related window attributes */
-static GtkWidget *sWin = 0;
+GtkWidget *gWin = 0;
 static GtkWidget *sDrawingArea = 0;
 
 static void NewWindow(); /* forward */
@@ -71,7 +73,7 @@ static void show_cursor(GtkWidget* w)
 
 static void AdjustScreenSize()
 {
-    if (gPresentationMode) {
+    if (gDisplayMode == PHO_DISPLAY_PRESENTATION) {
         gMonitorWidth = sPhysMonitorWidth;
         gMonitorHeight = sPhysMonitorHeight;
     }
@@ -79,6 +81,40 @@ static void AdjustScreenSize()
         gMonitorWidth = sPhysMonitorWidth - sFrameWidth;
         gMonitorHeight = sPhysMonitorHeight - sFrameHeight;
     }
+}
+
+void SetDisplayMode(int newmode)
+{
+    if (newmode == gDisplayMode)
+        return;
+    if (gWin && sDrawingArea) {
+        if (newmode == PHO_DISPLAY_PRESENTATION) {
+            hide_cursor(sDrawingArea);
+
+#if GTK_MAJOR_VERSION == 2
+            gtk_window_fullscreen(GTK_WINDOW(gWin));
+            gtk_window_move(GTK_WINDOW(gWin), 0, 0);
+#endif
+        }
+        else {
+            show_cursor(sDrawingArea);
+
+#if GTK_MAJOR_VERSION == 2
+            gtk_window_unfullscreen(GTK_WINDOW(gWin));
+#endif
+        }
+    }
+    if (newmode == PHO_DISPLAY_KEYWORDS) {
+        if (gWin)
+            ShowKeywordsDialog();
+        gScaleMode = PHO_SCALE_SCREEN_RATIO;
+        gScaleRatio = .5;
+    }
+    else {
+        if (gWin)
+            HideKeywordsDialog();
+    }
+    gDisplayMode = newmode;
 }
 
 /* DrawImage is called from the expose callback.
@@ -90,17 +126,61 @@ void DrawImage()
     char title[BUFSIZ];
 #   define TITLELEN ((sizeof title) / (sizeof *title))
 
-    if (gImage == 0 || sWin == 0 || sDrawingArea == 0) return;
-
-    if (gPresentationMode) {
-        hide_cursor(sDrawingArea);
-
-        /* Center the image */
-        dstX = (sPhysMonitorWidth - gCurImage->curWidth) / 2;
-        dstY = (sPhysMonitorHeight - gCurImage->curHeight) / 2;
+    if (gDebug) {
+        printf("DrawImage %s, %dx%d\n", gCurImage->filename,
+               gCurImage->curWidth, gCurImage->curHeight);
     }
-    else
-        show_cursor(sDrawingArea);
+    if (gImage == 0 || gWin == 0 || sDrawingArea == 0) return;
+
+    if (gDisplayMode == PHO_DISPLAY_PRESENTATION) {
+        gint width, height;
+        gdk_window_clear(sDrawingArea->window);
+
+        /* Center the image. This has to be done according to
+         * the current window size, not the phys monitor size,
+         * because in the xinerama case, gtk_window_fullscreen()
+         * only fullscreens the current monitor, not all of them.
+         */
+        gtk_window_get_size(GTK_WINDOW(gWin), &width, &height);
+        dstX = (width - gCurImage->curWidth) / 2;
+        dstY = (height - gCurImage->curHeight) / 2;
+    }
+    else {
+        /* Update the titlebar */
+        sprintf(title, "pho: %s (%d x %d)", gCurImage->filename,
+                gCurImage->trueWidth, gCurImage->trueHeight);
+        if (HasExif())
+        {
+            const char* date = ExifGetString(ExifDate);
+            if (date && date[0]) {
+                /* Make sure there's room */
+                if (strlen(title) + strlen(date) + 3 < TITLELEN)
+                    strcat(title, " (");
+                strcat(title, date);
+                strcat(title, ")");
+            }
+        }
+        if (gScaleMode == PHO_SCALE_FULLSIZE)
+            strcat(title, " (fullsize)");
+        else if (gScaleMode == PHO_SCALE_FULLSCREEN)
+            strcat(title, " (fullscreen)");
+        else if (gScaleMode == PHO_SCALE_IMG_RATIO ||
+                 gScaleMode == PHO_SCALE_SCREEN_RATIO) {
+            char* titleEnd = title + strlen(title);
+            if (gScaleRatio < 1)
+                sprintf(titleEnd, " [%s/ %d]",
+                        (gScaleMode == PHO_SCALE_IMG_RATIO ? "fullsize " : ""),
+                        (int)(1. / gScaleRatio));
+            else
+                sprintf(titleEnd, " [%s* %d]",
+                        (gScaleMode == PHO_SCALE_IMG_RATIO ? "fullsize " : ""),
+                        (int)gScaleRatio);
+        }
+        gtk_window_set_title(GTK_WINDOW(gWin), title);
+
+        if (gDisplayMode == PHO_DISPLAY_KEYWORDS)
+            ShowKeywordsDialog(gCurImage);
+    }
 
     gdk_pixbuf_render_to_drawable(gImage, sDrawingArea->window,
                    sDrawingArea->style->fg_gc[GTK_WIDGET_STATE(sDrawingArea)],
@@ -108,34 +188,115 @@ void DrawImage()
                                   gCurImage->curWidth, gCurImage->curHeight,
                                   GDK_RGB_DITHER_NONE, 0, 0);
 
-    /* Update the titlebar */
-    sprintf(title, "pho: %s (%d x %d)", gCurImage->filename,
-            gCurImage->trueWidth, gCurImage->trueHeight);
-    if (HasExif())
-    {
-        const char* date = ExifGetString(ExifDate);
-        if (date && date[0]) {
-            /* Make sure there's room */
-            if (strlen(title) + strlen(date) + 3 < TITLELEN)
-            strcat(title, " (");
-            strcat(title, date);
-            strcat(title, ")");
-        }
-    }
-    if (gScaleMode == PHO_SCALE_FULLSIZE)
-        strcat(title, " (fullsize)");
-    else if (gScaleMode == PHO_SCALE_FULLSCREEN)
-        strcat(title, " (fullscreen)");
-    gtk_window_set_title(GTK_WINDOW(sWin), title);
-
     UpdateInfoDialog(gCurImage);
 }
 
+static PhoImage* AddImage(char* filename)
+{
+    PhoImage* img = NewPhoImage(filename);
+    if (gDebug)
+        printf("Adding image %s\n", filename);
+    PhoImage* lastImg;
+    if (!img) {
+        fprintf(stderr, "Out of memory!\n");
+        exit(1);
+    }
+    /* Make img the new last image in the list */
+    if (gFirstImage == 0)
+        gFirstImage = img;
+    else {
+        lastImg = gFirstImage->prev;
+        if (lastImg == 0) {
+            gFirstImage->next = img;
+            img->prev = gFirstImage;
+        }
+        else {
+            lastImg->next = img;
+            img->prev = lastImg;
+        }
+        gFirstImage->prev = img;
+        img->next = 0;
+    }
+    return img;
+}
+
+static void SetNewFiles(GtkWidget *dialog, gint res)
+{
+	GSList *files, *cur;
+    gboolean overwrite;
+
+    if (res == GTK_RESPONSE_ACCEPT)
+        overwrite = FALSE;
+    else if (res == GTK_RESPONSE_OK)
+        overwrite = TRUE;
+    else {
+        gtk_widget_destroy (dialog);
+        return;
+    }
+
+    files = cur = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
+
+    if (overwrite)
+        ClearImageList();
+
+    gCurImage = 0;
+
+    while (cur)
+    {
+        PhoImage* img = AddImage((char*)(cur->data));
+        if (!gCurImage)
+            gCurImage = img;
+
+        cur = cur->next;
+    }
+    if (files)
+        g_slist_free (files);
+
+    gtk_widget_destroy (dialog);
+
+    ThisImage();
+}
+
+static void ChangeWorkingFileSet()
+{
+    GtkWidget* fsd = gtk_file_chooser_dialog_new("Change file set", NULL,
+                                         GTK_FILE_CHOOSER_ACTION_OPEN,
+                                         GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+                                         GTK_STOCK_ADD, GTK_RESPONSE_ACCEPT,
+                                         GTK_STOCK_NEW, GTK_RESPONSE_OK,
+                                         NULL);
+    gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(fsd), TRUE);
+
+    if (gCurImage && gCurImage->filename && gCurImage->filename[0] == '/')
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(fsd),
+                                            g_dirname(gCurImage->filename));
+    else {
+        char buf[BUFSIZ];
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(fsd),
+                                            getcwd(buf, BUFSIZ));
+    }
+
+	g_signal_connect(G_OBJECT(fsd), "response", G_CALLBACK(SetNewFiles), 0);
+	gtk_widget_show(fsd);
+}
+
+/* An expose event has a  GdkRectangle area and a GdkRegion *region
+ * as well as gint count of subsequent expose events.
+ * Unfortunately count is always 0.
+ */
 static gint HandleExpose(GtkWidget* widget, GdkEventExpose* event)
 {
-    /* If we're in presentation mode, clear the screen first: */
-    if (gPresentationMode) {
-        gdk_window_clear(sDrawingArea->window);
+    gint width, height;
+    gdk_drawable_get_size(widget->window, &width, &height);
+    if (gDebug) {
+        printf("HandleExpose: area %dx%d +%d+%d in window %dx%d\n",
+               event->area.width, event->area.height,
+               event->area.x, event->area.y,
+               width, height);
+        if (event->area.width != gCurImage->curWidth ||
+            event->area.height != gCurImage->curHeight)
+            printf("*** Expose different from actual image size of %dx%d!\n",
+                   gCurImage->curWidth, gCurImage->curHeight);
     }
 
     DrawImage();
@@ -143,8 +304,8 @@ static gint HandleExpose(GtkWidget* widget, GdkEventExpose* event)
     /* Get the frame offset if we don't already have it */
     if (sFrameWidth < 0 || sFrameHeight < 0) {
         gint win_x, win_y, contents_x, contents_y;
-        gdk_window_get_root_origin(sWin->window, &win_x, &win_y);
-        gdk_window_get_position(sWin->window, &contents_x, &contents_y);
+        gdk_window_get_root_origin(gWin->window, &win_x, &win_y);
+        gdk_window_get_position(gWin->window, &contents_x, &contents_y);
         sFrameWidth = contents_x - win_x;
         if (sFrameWidth < 0) sFrameWidth = 0;
         sFrameHeight = contents_y - win_y;
@@ -158,7 +319,7 @@ static gint HandleExpose(GtkWidget* widget, GdkEventExpose* event)
     /* Make sure the window can resize smaller, later */
 #if GTK_MAJOR_VERSION == 2
     if (!gMakeNewWindows)
-        gtk_widget_set_size_request(GTK_WIDGET(sWin), 1, 1);
+        gtk_widget_set_size_request(GTK_WIDGET(gWin), 1, 1);
 #endif
 
     return TRUE;
@@ -166,6 +327,11 @@ static gint HandleExpose(GtkWidget* widget, GdkEventExpose* event)
 
 void EndSession()
 {
+    gCurImage = 0;
+    UpdateInfoDialog();
+    if (gDisplayMode == PHO_DISPLAY_KEYWORDS)
+        ShowKeywordsDialog();
+
     PrintNotes();
     gtk_main_quit();
     /* This doesn't always quit!  So make sure: */
@@ -183,7 +349,7 @@ static gint HandleDelete(GtkWidget* widget, GdkEventKey* event, gpointer data)
     return TRUE;
 }
 
-static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
+gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
 {
     switch (event->keyval)
     {
@@ -191,8 +357,12 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
           DeleteImage(gCurImage);
           break;
       case GDK_space:
-          if (NextImage() != 0) {
-              if (Prompt("Quit pho?", "Quit", "Continue", "qx\n", "cn") != 0)
+          /* If we're in slideshow mode, cancel the slideshow */
+          if (gDelaySeconds > 0) {
+              gDelaySeconds = 0;
+          }
+          else if (NextImage() != 0) {
+              if (Prompt("Quit pho?", "Quit", "Continue", "qx \n", "cn") != 0)
                   EndSession();
           }
           return TRUE;
@@ -205,32 +375,34 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
           return TRUE;
       case GDK_n:   /* Get out of any weird display modes */
           gScaleMode = PHO_SCALE_NORMAL;
+          gScaleRatio = 1.;
           AdjustScreenSize();
-          ScaleImage(gCurImage);
           ShowImage();
           return TRUE;
-      case GDK_F:   /* Full size mode: show image bit-for-bit */
+      case GDK_f:   /* Full size mode: show image bit-for-bit */
           if (gScaleMode != PHO_SCALE_FULLSIZE)
               gScaleMode = PHO_SCALE_FULLSIZE;
           else
               gScaleMode = PHO_SCALE_NORMAL;
+          gScaleRatio = 1.;
           AdjustScreenSize();
-          ScaleImage(gCurImage);
           ShowImage();
           return TRUE;
-      case GDK_f:   /* Full screen mode: as big as possible on screen */
+      case GDK_F:   /* Full screen mode: as big as possible on screen */
           if (gScaleMode != PHO_SCALE_FULLSCREEN)
               gScaleMode = PHO_SCALE_FULLSCREEN;
           else
               gScaleMode = PHO_SCALE_NORMAL;
+          gScaleRatio = 1.;
           AdjustScreenSize();
-          ScaleImage(gCurImage);
           ShowImage();
           return TRUE;
       case GDK_p:
           AdjustScreenSize();
-          gPresentationMode = !gPresentationMode;
-          PrepareWindow();
+          SetDisplayMode((gDisplayMode == PHO_DISPLAY_PRESENTATION)
+                         ? PHO_DISPLAY_NORMAL
+                         : PHO_DISPLAY_PRESENTATION);
+          ShowImage();
           return TRUE;
       case GDK_0:
       case GDK_1:
@@ -248,7 +420,9 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
       case GDK_r:
       case GDK_Right:
       case GDK_KP_Right:
-          RotateImage(gCurImage, 90);
+          ScaleAndRotate(gCurImage, 90);
+          PrepareWindow();
+          DrawImage();
           return TRUE;
       case GDK_T:   /* make life easier for xv users */
       case GDK_R:
@@ -256,46 +430,64 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
       case GDK_L:
       case GDK_Left:
       case GDK_KP_Left:
-          RotateImage(gCurImage, -90);
+          ScaleAndRotate(gCurImage, -90);
+          PrepareWindow();
+          DrawImage();
           return TRUE;
       case GDK_Up:
       case GDK_Down:
-          RotateImage(gCurImage, 180);
+          ScaleAndRotate(gCurImage, 180);
+          DrawImage();
           return TRUE;
       case GDK_plus:
       case GDK_KP_Add:
       case GDK_equal:
-          gScaleMode = PHO_SCALE_ABSSIZE;
-          gCurImage->curWidth *= 2;
-          gCurImage->curHeight *= 2;
-          ScaleImage(gCurImage);
-          ShowImage();
+          if (gScaleMode == PHO_SCALE_FULLSIZE)
+              gScaleMode = PHO_SCALE_IMG_RATIO;
+          else if (gScaleMode != PHO_SCALE_IMG_RATIO)
+              gScaleMode = PHO_SCALE_SCREEN_RATIO;
+          gScaleRatio *= 2.;
+          ScaleAndRotate(gCurImage, 0);
+          PrepareWindow();
+          DrawImage();
           return TRUE;
       case GDK_minus:
       case GDK_slash:
       case GDK_KP_Subtract:
-          gScaleMode = PHO_SCALE_ABSSIZE;
-          if (gCurImage->curWidth <= 2 || gCurImage->curHeight <= 2)
-              return TRUE;
-          gCurImage->curWidth /= 2;
-          gCurImage->curHeight /= 2;
-          ScaleImage(gCurImage);
-          ShowImage();
+          if (gScaleMode == PHO_SCALE_FULLSIZE)
+              gScaleMode = PHO_SCALE_IMG_RATIO;
+          else if (gScaleMode != PHO_SCALE_IMG_RATIO)
+              gScaleMode = PHO_SCALE_SCREEN_RATIO;
+          gScaleRatio /= 2.;
+          ScaleAndRotate(gCurImage, 0);
+          PrepareWindow();
+          DrawImage();
           return TRUE;
-      case GDK_g:  /* start gimp */
-      {
-          char buf[BUFSIZ];
-          if (strlen(gCurImage->filename) > BUFSIZ - 15) {
-              printf("Overly long filename! Can't gimp '%s'\n",
-                     gCurImage->filename);
-              break;
+      case GDK_g:  /* start gimp, or some other app */
+          {
+              char buf[BUFSIZ];
+              char* cmd = getenv("PHO_REMOTE");
+              if (cmd == 0) cmd = "gimp-remote %s";
+              else if (gDebug)
+                  printf("Calling PHO_REMOTE %s\n", cmd);
+
+              if (strlen(gCurImage->filename) + strlen(cmd) + 2 > BUFSIZ) {
+                  printf("Filename '%s' or command '%s' too long!\n",
+                         gCurImage->filename, cmd);
+                  break;
+              }
+              sprintf(buf, cmd, gCurImage->filename);
+              system(buf);
           }
-          sprintf(buf, "gimp-remote %s", gCurImage->filename);
-          system(buf);
           break;
-      }
       case GDK_i:
           ToggleInfo();
+          return TRUE;
+      case GDK_k:
+          SetDisplayMode(PHO_DISPLAY_KEYWORDS);
+          return TRUE;
+      case GDK_o:
+          ChangeWorkingFileSet();
           return TRUE;
       case GDK_Escape:
       case GDK_q:
@@ -311,90 +503,50 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
 }
 
 /* If we  resized, see if we might move off the screen.
- * If we're not over the mouse pointer, then we may lose focus
- * and so should move over the mouse pointer.
- * (It would be nice if window managers let us keep focus,
- * but many of them don't.)
- * But don't move if we're already bigger than the screen.
+ * Make sure we don't do that, assuming the image is still
+ * small enough to fit. Then request focus from the window manager.
+ * Try to move the window as little as possible.
  */
 static void MaybeMove()
 {
-/* Some functions, like gdk_get_default_root_window, don't exist in
- * gtk1, so this function would need to be backported.
- */
-#if GTK_MAJOR_VERSION == 2
-    gint x, y, nx, ny, w, h;
-    gint mousex, mousey;
-    GdkModifierType mask;
+    gint x, y, w, h, nx, ny;
 
     if (gCurImage->curWidth > sPhysMonitorWidth
         || gCurImage->curHeight > sPhysMonitorHeight)
         return;
 
     /* If we don't have a window yet, don't move it */
-    if (!sWin)
+    if (!gWin)
         return;
 
-#if GTK_MAJOR_VERSION == 2
-    gtk_window_get_position(GTK_WINDOW(sWin), &x, &y);
-    gtk_window_get_size(GTK_WINDOW(sWin), &w, &h);
-#else
-    gdk_window_get_position(sWin->window, &x, &y);
-    gdk_window_get_size(sWin->window, &w, &h);
-#endif
+    /* If we're in presentation mode, never move the window */
+    if (gDisplayMode == PHO_DISPLAY_PRESENTATION
+        || gDisplayMode == PHO_DISPLAY_KEYWORDS)
+        return;
+
+    gtk_window_get_position(GTK_WINDOW(gWin), &x, &y);
+    nx = x;  ny = y;
+    gtk_window_get_size(GTK_WINDOW(gWin), &w, &h);
     /* printf("Currently (%d, %d) %d x %d\n", x, y, w, h); */
 
-    /* XXX If the window size hasn't changed, should probably return. */
-
-    /* Try to center around the old center.
-    nx = x + (w - gCurImage->curWidth) / 2;
-    ny = y + (h - gCurImage->curHeight) / 2;
-     */
-
-    /* Get the mouse position */
-    gdk_window_get_pointer(gdk_get_default_root_window(),
-                           &mousex, &mousey, &mask);
-
-    /* Start with the current position: don't move if we don't have to. */
-    if (x > 0 && y > 0) {
-        nx = x;
-        ny = y;
-    }
-    /* If we don't have a current pos, start by centering over the mouse. */
-    else {
-        nx = mousex - w / 2;
-        ny = mousey - h / 2;
-    }
-
-    /* Make sure it wonn't overflow off the screen */
-    if (nx + gCurImage->curWidth > gMonitorWidth)
+    /* See if it would overflow off the screen */
+    if (x + gCurImage->curWidth > gMonitorWidth)
         nx = gMonitorWidth - gCurImage->curWidth;
     if (nx < 0)
         nx = 0;
-    if (ny + gCurImage->curHeight > gMonitorHeight)
+    if (y + gCurImage->curHeight > gMonitorHeight)
         ny = gMonitorHeight - gCurImage->curHeight;
     if (ny < 0)
         ny = 0;
 
-    /* Make sure we still cover the mouse cursor (for focus). */
-    /*
-    printf("Mouse @ (%d, %d), our window will go from (%d, %d) - (%d, %d)\n",
-           mousex, mousey, nx, ny,
-           nx+gCurImage->curWidth, ny+gCurImage->curHeight);
-     */
-    if (mousex < nx)
-        nx = mousex - 1;
-    else if (mousex > nx+gCurImage->curWidth)
-        nx = mousex - gCurImage->curWidth;
-    if (mousey < ny)
-        ny = mousey - 1;
-    else if (mousey > ny+gCurImage->curHeight)
-        ny = mousey - gCurImage->curHeight;
-    /* printf("After mouse corrections, move to (%d, %d)\n", nx, ny); */
     if (x != nx || y != ny) {
-        gtk_window_move(GTK_WINDOW(sWin), nx, ny);
+        gtk_window_move(GTK_WINDOW(gWin), nx, ny);
     }
-#endif /* GTK_MAJOR_VERSION == 2 */
+
+    /* Request focus from the window manager.
+     * This is pretty much a no-op, but what the heck:
+     */
+    gtk_window_present(GTK_WINDOW(gWin));
 }
 
 /* Make a new window, destroying the old one. */
@@ -402,37 +554,33 @@ static void NewWindow()
 {
     gint root_x = -1;
     gint root_y = -1;
-    if (sWin) {
-#if FOO_GTK_MAJOR_VERSION == 2
-        gtk_window_get_position(GTK_WINDOW(sWin), &root_x, &root_y);
-#else
-        gdk_window_get_position(sWin->window, &root_x, &root_y);
-#endif
-        gtk_object_destroy(GTK_OBJECT(sWin));
+    if (gWin) {
+        gdk_window_get_position(gWin->window, &root_x, &root_y);
+        gtk_object_destroy(GTK_OBJECT(gWin));
     }
 
-    sWin = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gWin = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
-    gtk_window_set_wmclass(GTK_WINDOW(sWin), "pho", "Pho");
+    gtk_window_set_wmclass(GTK_WINDOW(gWin), "pho", "Pho");
 
     /* Window manager delete */
-    gtk_signal_connect(GTK_OBJECT(sWin), "delete_event",
+    gtk_signal_connect(GTK_OBJECT(gWin), "delete_event",
                        (GtkSignalFunc)HandleDelete, 0);
 
     /* This event occurs when we call gtk_widget_destroy() on the window,
      * or if we return FALSE in the "delete_event" callback.
-    gtk_signal_connect(GTK_OBJECT(sWin), "destroy",
+    gtk_signal_connect(GTK_OBJECT(gWin), "destroy",
                        (GtkSignalFunc)HandleDestroy, 0);
      */
 
     /* KeyPress events on the drawing area don't come through --
      * they have to be on the window.
      */
-    gtk_signal_connect(GTK_OBJECT(sWin), "key_press_event",
-                       (GtkSignalFunc)HandleKeyPress, 0);
+    gtk_signal_connect(GTK_OBJECT(gWin), "key_press_event",
+                       (GtkSignalFunc)HandleGlobalKeys, 0);
 
     sDrawingArea = gtk_drawing_area_new();
-    gtk_container_add(GTK_CONTAINER(sWin), sDrawingArea);
+    gtk_container_add(GTK_CONTAINER(gWin), sDrawingArea);
     gtk_widget_show(sDrawingArea);
 #if GTK_MAJOR_VERSION == 2
     /* This can't be done in expose: it causes one of those extra
@@ -441,18 +589,18 @@ static void NewWindow()
     gtk_widget_modify_bg(sDrawingArea, GTK_STATE_NORMAL, &sBlack);
 #endif
 
-    if (gPresentationMode) {
+    if (gDisplayMode == PHO_DISPLAY_PRESENTATION) {
         gtk_drawing_area_size(GTK_DRAWING_AREA(sDrawingArea),
                               sPhysMonitorWidth, sPhysMonitorHeight);
 #if GTK_MAJOR_VERSION == 2
-        gtk_window_fullscreen(GTK_WINDOW(sWin));
+        gtk_window_fullscreen(GTK_WINDOW(gWin));
 #endif
     }
     else {
         gtk_drawing_area_size(GTK_DRAWING_AREA(sDrawingArea),
                               gCurImage->curWidth, gCurImage->curHeight);
 #if GTK_MAJOR_VERSION == 2
-        gtk_window_unfullscreen(GTK_WINDOW(sWin));
+        gtk_window_unfullscreen(GTK_WINDOW(gWin));
 #endif
     }
 
@@ -471,21 +619,11 @@ static void NewWindow()
      * and the position of the previous window.
      */
     MaybeMove();
-#if 0
-    if (root_x >= 0 && root_y >= 0) {
-        if (root_x + gCurImage->curWidth > gMonitorWidth
-            && gCurImage->curWidth <= gMonitorWidth)
-            root_x = gMonitorWidth - gCurImage->curWidth;
-        if (root_y + gCurImage->curHeight > gMonitorHeight
-            && gCurImage->curHeight <= gMonitorHeight)
-            root_y = gMonitorHeight - gCurImage->curHeight;
 
-        gtk_window_move(GTK_WINDOW(sWin->window), root_x, root_y);
-        //gtk_window_set_position(GTK_WINDOW(sWin), GTK_WIN_POS_MOUSE);
-    }
-#endif
+    gtk_widget_show(gWin);
 
-    gtk_widget_show(sWin);
+    if (gDisplayMode == PHO_DISPLAY_PRESENTATION)
+        hide_cursor(sDrawingArea);
 }
 
 /**
@@ -568,23 +706,27 @@ pho_window_focus (GdkWindow *window,
  */
 void PrepareWindow()
 {
-    if (gMakeNewWindows || sWin == 0) {
+    if (gMakeNewWindows || gWin == 0) {
         NewWindow();
         return;
     }
 
     /* Otherwise, resize and reposition the current window. */
 
-    if (gPresentationMode) {
+    if (gDisplayMode == PHO_DISPLAY_PRESENTATION) {
         /* XXX shouldn't have to do this every time */
         gtk_drawing_area_size(GTK_DRAWING_AREA(sDrawingArea),
                               sPhysMonitorWidth, sPhysMonitorHeight);
 #if GTK_MAJOR_VERSION == 2
-        gtk_window_fullscreen(GTK_WINDOW(sWin));
+        //gtk_window_fullscreen(GTK_WINDOW(gWin));
 #endif
     }
     else {
 #if GTK_MAJOR_VERSION == 2
+        gint winwidth, winheight;
+
+        gdk_drawable_get_size(sDrawingArea->window, &winwidth, &winheight);
+
         /* We need to size the actual window, not just the drawing area.
          * Resizing the drawing area will resize the window for many
          * window managers, but not for metacity.
@@ -598,22 +740,54 @@ void PrepareWindow()
          * So force non-maximal mode.  (Users who want a maximized
          * window will probably prefer fullscreen mode anyway.)
          */
-        gtk_window_unfullscreen(GTK_WINDOW(sWin));
-        gtk_window_unmaximize(GTK_WINDOW(sWin));
-        gtk_window_resize(GTK_WINDOW(sWin),
-                          gCurImage->curWidth, gCurImage->curHeight);
+        gtk_window_unfullscreen(GTK_WINDOW(gWin));
+        gtk_window_unmaximize(GTK_WINDOW(gWin));
+
+        /* XXX Without the next line, we may get no expose events!
+         * Likewise, if the next line doesn't actually resize anything
+         * we may not get an expose event.
+         */
+        if (gCurImage->curWidth != winwidth
+            || gCurImage->curHeight != winheight) {
+            gtk_window_resize(GTK_WINDOW(gWin),
+                              gCurImage->curWidth, gCurImage->curHeight);
+            /* Unfortunately, on OS X this resize may not work,
+             * if it puts part ofthe window off-screen; in which case
+             * we won't get an Expose event. So if that happened,
+             * force a redraw:
+             */
+            gdk_drawable_get_size(sDrawingArea->window, &winwidth, &winheight);
+            if (gCurImage->curWidth != winwidth
+                || gCurImage->curHeight != winheight) {
+                if (gDebug)
+                    printf("Resize didn't work! Forcing redraw\n");
+                DrawImage();
+            }
+        }
+
+        /* If we didn't resize the window, then we won't get an expose
+         * event, and hence DrawImage won't be called. So call it explicitly:
+         */
+        else
+            DrawImage();
 #else
         /* In gtk1 we're happy, resizing the drawing area "just works",
          * even in metacity.  Ah, the good old days!
          * Wrongo -- doesn't work any more. :-(
          *
-        gdk_window_resize(sWin->window,
+        gdk_window_resize(gWin->window,
                           gCurImage->curWidth, gCurImage->curHeight);
-	 */
+         */
         gtk_drawing_area_size(GTK_DRAWING_AREA(sDrawingArea),
                               gCurImage->curWidth, gCurImage->curHeight);
 #endif
 
+        /* Try to ensure that the window will be over the cursor
+         * (so it will still have focus -- some window managers will
+         * lose focus otherwise). But not in Keywords mode, where the
+         * mouse should be over the Keywords dialog, not necessarily
+         * the image window.
+         */
         MaybeMove();
     }
 
@@ -622,48 +796,70 @@ void PrepareWindow()
      */
 #if GTK_MAJOR_VERSION == 2
 #ifdef TEST_FOCUS
-    pho_window_focus(sWin->window, GDK_CURRENT_TIME);
+    pho_window_focus(gWin->window, GDK_CURRENT_TIME);
 
     /* None of these actually work!  Is there any way to get keyboard
      * focus into a window?
      */
-    gtk_window_activate_focus(GTK_WINDOW(sWin));
-    gtk_window_present(GTK_WINDOW(sWin));
+    gtk_window_activate_focus(GTK_WINDOW(gWin));
+    gtk_window_present(GTK_WINDOW(gWin));
 
     GdkGrabStatus grabstat;
     printf("Trying desperately to grab focus!\n");
-    gtk_window_present(GTK_WINDOW(sWin));
-    gtk_widget_grab_focus(sWin);
-    //gdk_x11_display_grab(gdk_drawable_get_display(sWin->window));
-    grabstat = gdk_keyboard_grab(sWin->window, FALSE, GDK_CURRENT_TIME);
+    gtk_window_present(GTK_WINDOW(gWin));
+    gtk_widget_grab_focus(gWin);
+    //gdk_x11_display_grab(gdk_drawable_get_display(gWin->window));
+    grabstat = gdk_keyboard_grab(gWin->window, FALSE, GDK_CURRENT_TIME);
     printf("Grab status: %d\n", grabstat);
-    gdk_window_lower(sWin->window);
-    //gdk_window_raise(sWin->window);
-    _gdk_x11_set_input_focus_safe(gdk_drawable_get_display(sWin->window),
-                                  GDK_WINDOW_XID(sWin->window),
+    gdk_window_lower(gWin->window);
+    //gdk_window_raise(gWin->window);
+    _gdk_x11_set_input_focus_safe(gdk_drawable_get_display(gWin->window),
+                                  GDK_WINDOW_XID(gWin->window),
                                   TRUE,
                                   GDK_CURRENT_TIME);
 #endif /* TEST_FOCUS */
 #endif
 
+    /* This will be redundant IF we get an expose event for the window;
+     * but if we don't, then we need it here. How do we ensure that
+     * we get exactly one expose event?
+     * Though in practice, we always get at least one expose event,
+     * and sometimes (if the window was resized) several.
+     * So this call is probably never needed:
     DrawImage();
+     */
 }
 
-void CheckArg(char arg)
+/* CheckArg takes a string, like -Pvg, and sets all the relevant flags. */
+static void CheckArg(char* arg)
 {
-    if (arg == 'd')
-        gDebug = 1;
-    else if (arg == 'h')
-        Usage();
-    else if (arg == 'v')
-        VerboseHelp();
-    else if (arg == 'n')
-        gMakeNewWindows = 1;
-    else if (arg == 'p')
-        gPresentationMode = 1;
-    else if (arg == 'P')
-        gPresentationMode = 0;
-    else Usage();
+    for ( ; *arg != 0; ++arg)
+    {
+        if (*arg == '-')
+            ;
+        else if (*arg == 'd')
+            gDebug = 1;
+        else if (*arg == 'h')
+            Usage();
+        else if (*arg == 'v')
+            VerboseHelp();
+        else if (*arg == 'n')
+            gMakeNewWindows = 1;
+        else if (*arg == 'p')
+            SetDisplayMode(PHO_DISPLAY_PRESENTATION);
+        else if (*arg == 'P')
+            SetDisplayMode(PHO_DISPLAY_NORMAL);
+        else if (*arg == 'k')
+            SetDisplayMode(PHO_DISPLAY_KEYWORDS);
+        else if (*arg == 's') {
+            /* find the slideshow delay time, from e.g. pho -s2 */
+            if (isdigit(arg[1]))
+                gDelaySeconds = atoi(arg+1);
+            else Usage();
+            if (gDebug)
+                printf("Slideshow delay %d seconds\n", gDelaySeconds);
+        }
+    }
 }
 
 int main(int argc, char** argv)
@@ -672,41 +868,15 @@ int main(int argc, char** argv)
      * before reading cmdline args.
      */
     char* env = getenv("PHO_ARGS");
-    while (env && *env)
-    {
-        if (*env != '-')
-            CheckArg(*env);
-        ++env;
-    }
+    if (env && *env)
+        CheckArg(env);
 
     while (argc > 1)
     {
-        if (argv[1][0] == '-') {
-            CheckArg(argv[1][1]);
-        }
+        if (argv[1][0] == '-')
+            CheckArg(argv[1]);
         else {
-            PhoImage* img = NewPhoImage(argv[1]);
-            PhoImage* lastImg;
-            if (!img) {
-                fprintf(stderr, "Out of memory!\n");
-                exit(1);
-            }
-            /* Make img the new last image in the list */
-            if (gFirstImage == 0)
-                gFirstImage = img;
-            else {
-                lastImg = gFirstImage->prev;
-                if (lastImg == 0) {
-                    gFirstImage->next = img;
-                    img->prev = gFirstImage;
-                }
-                else {
-                    lastImg->next = img;
-                    img->prev = lastImg;
-                }
-                gFirstImage->prev = img;
-                img->next = 0;
-            }
+            AddImage(argv[1]);
         }
         --argc;
         ++argv;
@@ -714,6 +884,9 @@ int main(int argc, char** argv)
 
     if (gFirstImage == 0)
         Usage();
+
+    /* Initialize some variables associated with the notes flags */
+    InitNotes();
 
     /* See http://www.gtk.org/tutorial */
     gtk_init(&argc, &argv);
