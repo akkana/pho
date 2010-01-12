@@ -225,10 +225,10 @@ void ScaleImage(PhoImage* img)
         xratio = (double)gMonitorWidth / img->trueWidth;
         yratio = (double)gMonitorHeight / img->trueHeight;
 
-        /* Use xratio for the most extreme */
+        /* Use xratio for the more extreme of the two */
         if (xratio > yratio) xratio = yratio;
         gCurImage->curWidth = xratio * img->trueWidth;
-        gCurImage->curHeight = yratio * img->trueHeight;
+        gCurImage->curHeight = xratio * img->trueHeight;
         newimage = gdk_pixbuf_scale_simple(gImage,
                                            gCurImage->curWidth,
                                            gCurImage->curHeight,

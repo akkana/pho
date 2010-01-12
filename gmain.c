@@ -185,7 +185,6 @@ static gint HandleDelete(GtkWidget* widget, GdkEventKey* event, gpointer data)
 
 static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
 {
-    static double scale = 1.;
     switch (event->keyval)
     {
       case GDK_d:
@@ -198,14 +197,19 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
           }
           return TRUE;
       case GDK_BackSpace:
-      case GDK_minus:
           PrevImage();
           return TRUE;
       case GDK_Home:
           gCurImage = 0;
           NextImage();
           return TRUE;
-      case GDK_F:
+      case GDK_n:   /* Get out of any weird display modes */
+          gScaleMode = PHO_SCALE_NORMAL;
+          AdjustScreenSize();
+          ScaleImage(gCurImage);
+          ShowImage();
+          return TRUE;
+      case GDK_F:   /* Full size mode: show image bit-for-bit */
           if (gScaleMode != PHO_SCALE_FULLSIZE)
               gScaleMode = PHO_SCALE_FULLSIZE;
           else
@@ -214,7 +218,7 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
           ScaleImage(gCurImage);
           ShowImage();
           return TRUE;
-      case GDK_f:
+      case GDK_f:   /* Full screen mode: as big as possible on screen */
           if (gScaleMode != PHO_SCALE_FULLSCREEN)
               gScaleMode = PHO_SCALE_FULLSCREEN;
           else
@@ -261,23 +265,20 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
       case GDK_plus:
       case GDK_KP_Add:
       case GDK_equal:
-          if (gScaleMode != PHO_SCALE_ABSSIZE) scale = 1.;
           gScaleMode = PHO_SCALE_ABSSIZE;
-          scale *= 2;
-          gCurImage->curWidth = gCurImage->trueWidth * scale;
-          gCurImage->curHeight = gCurImage->trueHeight * scale;
+          gCurImage->curWidth *= 2;
+          gCurImage->curHeight *= 2;
           ScaleImage(gCurImage);
           ShowImage();
           return TRUE;
+      case GDK_minus:
       case GDK_slash:
       case GDK_KP_Subtract:
-          if (gScaleMode != PHO_SCALE_ABSSIZE) scale = 1.;
           gScaleMode = PHO_SCALE_ABSSIZE;
-          scale /= 2;
-          gCurImage->curWidth = gCurImage->trueWidth * scale;
-          gCurImage->curHeight = gCurImage->trueHeight * scale;
-          if (gCurImage->curWidth < 1) gCurImage->curWidth = 1;
-          if (gCurImage->curHeight < 1) gCurImage->curHeight = 1;
+          if (gCurImage->curWidth <= 2 || gCurImage->curHeight <= 2)
+              return TRUE;
+          gCurImage->curWidth /= 2;
+          gCurImage->curHeight /= 2;
           ScaleImage(gCurImage);
           ShowImage();
           return TRUE;
@@ -407,7 +408,9 @@ static void NewWindow()
     }
 
     sWin = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    
+
+    gtk_window_set_wmclass(GTK_WINDOW(sWin), "pho", "Pho");
+
     /* Window manager delete */
     gtk_signal_connect(GTK_OBJECT(sWin), "delete_event",
                        (GtkSignalFunc)HandleDelete, 0);
@@ -597,7 +600,8 @@ void PrepareWindow()
                           gCurImage->curWidth, gCurImage->curHeight);
 #else
         /* In gtk1 we're happy, resizing the drawing area "just works",
-	 * even in metacity.  Ah, the good old days!
+         * even in metacity.  Ah, the good old days!
+         * Wrongo -- doesn't work any more. :-(
          *
         gdk_window_resize(sWin->window,
                           gCurImage->curWidth, gCurImage->curHeight);
@@ -641,22 +645,40 @@ void PrepareWindow()
     DrawImage();
 }
 
+void CheckArg(char arg)
+{
+    if (arg == 'd')
+        gDebug = 1;
+    else if (arg == 'h')
+        Usage();
+    else if (arg == 'v')
+        VerboseHelp();
+    else if (arg == 'n')
+        gMakeNewWindows = 1;
+    else if (arg == 'p')
+        gPresentationMode = 1;
+    else if (arg == 'P')
+        gPresentationMode = 0;
+    else Usage();
+}
+
 int main(int argc, char** argv)
 {
+    /* Initialize some defaults from environment variables,
+     * before reading cmdline args.
+     */
+    char* env = getenv("PHO_ARGS");
+    while (env && *env)
+    {
+        if (*env != '-')
+            CheckArg(*env);
+        ++env;
+    }
+
     while (argc > 1)
     {
         if (argv[1][0] == '-') {
-            if (argv[1][1] == 'd')
-                gDebug = 1;
-            else if (argv[1][1] == 'h')
-                Usage();
-            else if (argv[1][1] == 'v')
-                VerboseHelp();
-            else if (argv[1][1] == 'n')
-                gMakeNewWindows = 1;
-            else if (argv[1][1] == 'p')
-                gPresentationMode = 1;
-            else Usage();
+            CheckArg(argv[1][1]);
         }
         else {
             PhoImage* img = NewPhoImage(argv[1]);

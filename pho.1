@@ -1,4 +1,4 @@
-.TH PHO l "June 28 2002" "PHO"
+.TH PHO l "March 5 2007" "PHO"
 .SH NAME
 \fBpho\fP \- View and annotate multiple images
 .SH SYNTAX
@@ -23,9 +23,10 @@ each image will be remembered and printed when the program exits
 .PP
 .I pho
 can also remember up to ten lists of images (numbered 0-9) which can
-correspond to anything the user wishes, plus a list of images to be
-deleted.
-\fIpho\fR currently does not actually change any files on disk.
+correspond to anything the user wishes. The image lists will be printed
+to standard output when pho exits. Use this to keep notes on which
+images you want to save to the web, which images contain images
+of your dog, etc.
 .SH COMMAND-LINE OPTIONS
 .TP
 \fB\-d\fR
@@ -33,13 +34,28 @@ Debug mode: may print a few debugging messages to standard output.
 .TP
 \fB\-v, -h\fR
 Print version and usage info, and exit.
+.TP
+\fB\-p\fR
+"Presentation mode": display in full screen mode with a black background
+(if the window manager allows it).
+.TP
+\fB\-P\fR
+Force non-presentation mode.
+.TP
+\fB\-n\fR
+Replace each image with a new window (helpful for some broken window managers).
+.SH ENVIRONMENT VARIABLES
+.TP
+Pho will check the PHO_ARGS environment variable for default flag
+settings (e.g. set it to p to use presentation mode by default).
+Any flags given on the command line will override these settings.
 .SH KEY BINDINGS
 When pho is running, it obeys the following keys:
 .TP
 \fB[space]\fR
 Go to next image
 .TP
-\fB[backspace]\fR, \fB-\fR
+\fB[backspace]\fR
 Go to previous image
 .TP
 \fBr\fR, \fBt\fR, \fB[right-arrow]\fR
@@ -48,7 +64,7 @@ Rotate right (clockwise)
 \fBR\fR, \fBT\fR, \fBl\fR, \fBL\fR, \fB[left-arrow]\fR
 Rotate left (counter-clockwise)
 .TP
-\fB[up-arrow]\fR
+\fB[up-arrow]\fR, \fB[down-arrow]\fR
 Rotate 180 degrees.
 .TP
 \fBHome\fR
@@ -59,7 +75,7 @@ Delete (will bring up a confirmation dialog; clicking OK or
 typing another d deletes the file).
 .TP
 \fBi\fR
-Bring up an information dialog.
+Show a dialog with information about the image, including EXIF tags.
 .TP
 \fB0\fR through \fB9\fR
 Add the image to the appropriate notes list
@@ -68,28 +84,28 @@ Add the image to the appropriate notes list
 Toggle in/out of "full screen mode".
 Images will be scaled up to fill the screen in at least one dimension.
 .TP
-\fBp\fR
-Toggle in/out of "presentation mode".
-If the window manager permits, pho will take up the full screen
-with the image (if smaller) centered.
-.TP
 \fBF\fR
 Toggle in/out of "full size mode".  Images will be shown at their
 native size, even if it's bigger than the screen size.
 (Hint: Many window managers let you move oversized windows with alt-drag.)
 .TP
+\fBp\fR
+Toggle in/out of "presentation mode".
+If the window manager permits, pho will take up the full screen
+with the image (if smaller) centered.
+.TP
 \fB+\fR, \fB=\fR Magnify: show the image at twice the current size.
 .TP
-\fB/\fR, \fB<keypad>-\fR Unmagnify: show the image at half the current size.
+\fB/\fR, \fB-\fR Unmagnify: show the image at half the current size.
 .TP
 \fBq\fR
 Quit
 .SH AUTHOR
 Akkana Peck
 .SH COPYRIGHT
-Copyright \(co 2002, 2003, 2004 Akkana Peck
+Copyright \(co 2002 - 2007 Akkana Peck
 .br
 Pho is free software, licensed under the GNU Public License.
 .SH SEE ALSO
 The most recent version of \fIpho\fR, and more information about it, is at:
-http://www.shallowsky.com/software/pho.html
+http://www.shallowsky.com/software/pho/

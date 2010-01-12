@@ -149,6 +149,11 @@ int ExifGetInt(ExifFields_e field)
           return ImageInfo.CompressionLevel;
       case ExifThumbnailSize:
           return ImageInfo.ThumbnailSize;
+      case ExifCameraMake:
+      case ExifCameraModel:
+      case ExifDate:
+      case ExifComments:
+          return 0;
     }
     return 0;
 }
@@ -192,6 +197,11 @@ float ExifGetFloat(ExifFields_e field)
           return (float)ImageInfo.CompressionLevel;
       case ExifThumbnailSize:
           return (float)ImageInfo.ThumbnailSize;
+      case ExifCameraMake:
+      case ExifCameraModel:
+      case ExifDate:
+      case ExifComments:
+          return 0;
     }
     return 0;
 }

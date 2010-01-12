@@ -53,6 +53,11 @@ typedef enum
 extern void ExifReadInfo(char* filename);
 
 /*
+ * Do selected operations to one file at a time.
+*/
+extern void ProcessFile(const char * FileName);
+
+/*
  * This tells us whether we have good EXIF data
  * on the current image.
  */

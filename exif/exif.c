@@ -41,26 +41,6 @@ typedef struct {
 
 
 //--------------------------------------------------------------------------
-// Table of Jpeg encoding process names
-static TagTable_t ProcessTable[] = {
-    { M_SOF0,   "Baseline"},
-    { M_SOF1,   "Extended sequential"},
-    { M_SOF2,   "Progressive"},
-    { M_SOF3,   "Lossless"},
-    { M_SOF5,   "Differential sequential"},
-    { M_SOF6,   "Differential progressive"},
-    { M_SOF7,   "Differential lossless"},
-    { M_SOF9,   "Extended sequential, arithmetic coding"},
-    { M_SOF10,  "Progressive, arithmetic coding"},
-    { M_SOF11,  "Lossless, arithmetic coding"},
-    { M_SOF13,  "Differential sequential, arithmetic coding"},
-    { M_SOF14,  "Differential progressive, arithmetic coding"},
-    { M_SOF15,  "Differential lossless, arithmetic coding"},
-    { 0,        "Unknown"}
-};
-
-
-//--------------------------------------------------------------------------
 // Describes format descriptor
 static int BytesPerFormat[] = {0,1,1,2,4,8,1,1,2,4,8,4,8};
 #define NUM_FORMATS 12
@@ -359,7 +339,7 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
         unsigned char * ValuePtr;
         int ByteCount;
         char * DirEntry;
-        DirEntry = DIR_ENTRY_ADDR(DirStart, de);
+        DirEntry = DIR_ENTRY_ADDR((char*)DirStart, de);
 
         Tag = Get16u(DirEntry);
         Format = Get16u(DirEntry+2);
@@ -385,7 +365,7 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
             ValuePtr = OffsetBase+OffsetVal;
         }else{
             // 4 bytes or less and value is in the dir entry itself
-            ValuePtr = DirEntry+8;
+            ValuePtr = (unsigned char*)DirEntry+8;
         }
 
         if (LastExifRefd < ValuePtr+ByteCount){
@@ -446,16 +426,16 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
         switch(Tag){
 
             case TAG_MAKE:
-                strncpy(ImageInfo.CameraMake, ValuePtr, 31);
+                strncpy(ImageInfo.CameraMake, (char*)ValuePtr, 31);
                 break;
 
             case TAG_MODEL:
-                strncpy(ImageInfo.CameraModel, ValuePtr, 39);
+                strncpy(ImageInfo.CameraModel, (char*)ValuePtr, 39);
                 break;
 
             case TAG_DATETIME_ORIGINAL:
-                strncpy(ImageInfo.DateTime, ValuePtr, 19);
-                ImageInfo.DatePointer = ValuePtr;
+                strncpy(ImageInfo.DateTime, (char*)ValuePtr, 19);
+                ImageInfo.DatePointer = (char*)ValuePtr;
                 break;
 
             case TAG_USERCOMMENT:
@@ -476,13 +456,13 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
                         int c;
                         c = (ValuePtr)[a];
                         if (c != '\0' && c != ' '){
-                            strncpy(ImageInfo.Comments, a+ValuePtr, 199);
+                            strncpy(ImageInfo.Comments, a+(char*)ValuePtr, 199);
                             break;
                         }
                     }
                     
                 }else{
-                    strncpy(ImageInfo.Comments, ValuePtr, 199);
+                    strncpy(ImageInfo.Comments, (char*)ValuePtr, 199);
                 }
                 break;
 
@@ -752,7 +732,7 @@ int RemoveThumbnail(unsigned char * ExifSection, unsigned int Length)
         for (de=0;de<NumDirEntries;de++){
             int Tag;
             char * DirEntry;
-            DirEntry = DIR_ENTRY_ADDR(DirWithThumbnailPtrs, de);
+            DirEntry = DIR_ENTRY_ADDR((char*)DirWithThumbnailPtrs, de);
             Tag = Get16u(DirEntry);
             if (Tag == TAG_THUMBNAIL_OFFSET || Tag == TAG_THUMBNAIL_LENGTH){
                 // We remove data out of the exif directory by doing a memmove on the rest

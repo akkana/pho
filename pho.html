@@ -20,12 +20,13 @@ images after uploading them from a digital camera.
 
 <p><a href="#download">Skip to the download section.</a>
 
-<p>January 2005: a new release is imminent.  Lots of cool new improvements.
+<p>March 2007: a new release is imminent (I really mean it this time).
+Lots of cool new improvements.
 Works in gtk2 if you have it, but should still build on a gtk1
 system.  New "presentation mode" to do fullscreen (no window
 borders).
 If you want to help test it, grab <a
-href="pho-0.9.5-pre4.tar.gz">pho-0.9.5-pre4.tar.gz</a>.
+href="pho-0.9.5-pre5.tar.gz">pho-0.9.5-pre5.tar.gz</a>.
 Let me know if you have problems.
 
 <h2>Why another image viewer?  Surely there are plenty of those?</h2>
@@ -84,8 +85,14 @@ Then the following keys work:
 <dt>d                 <dd>Bring up a delete dialog (another d deletes the file)
 <dt>i                       <dd>Show information about the image
                                 (includes EXIF info and JPEG comment, if any).
-<dt>1-9                     <dd>Add this image to the appropriate list.
-<dt>f                       <dd>Toggle in and out of "full screen mode".
+<dt>0-9                     <dd>Add this image to the appropriate list.
+<dt>f                       <dd>Toggle in and out of "full screen mode"
+      (make the image as big as it can be and still fit on the screen).
+<dt>F                       <dd>Toggle in and out of "full size mode"
+      (show the image at its native size, even if that's too big
+       to fit on screen)
+<td>-, /                    <dd>Zoom out, to half size
+<td>+, =, *                 <dd>Zoom in, to double size
 <dt>q                       <dd>Quit.
 </dl>
 
@@ -101,9 +108,9 @@ in gimp, and 3 on the photos I want to save as desktop backgrounds.
 <a name="download">
 <h2>Getting pho</h2>
 
-The current released version of pho is: <b>0.9.2</b> (updated 9/30/2003).
-The binary packages are lagging slightly; stay tuned.
-The current development version of pho is <b>0.9.5-pre4</b>.
+The current development version of pho is <b>0.9.5-pre5</b>.
+I strongly recommend that you use this rather than the "stable"
+version; it will become the stable version very soon.
 
 <p>
 <i>Dependencies:</i>
@@ -117,6 +124,11 @@ installed in different place from my system (sorry, no autoconf yet).
 Also included is a little xlib program, xpho, which is mostly
 interesting as an example of how to use gdk_pixbuf_xlib.
 
+<p>
+<b><a href="pho-0.9.5-pre5.tar.gz">Pho 0.9.5-pre5 source tarball</a>.</b>
+
+<p>
+Binaries for the older version:
 <ul>
 <li><a href="pho-0.9.2.tar.gz">Pho 0.9.2 source tarball</a>.
 <li><a href="pho_0.9_i386.deb">Debian package (.deb)</a>
@@ -149,6 +161,11 @@ feature it really needs ... <a href="../../mailme.html">let me know!</a>
 
 <h2>Changelog</h2>
 <dl>
+<dt>3/5/2007, <a href="pho-0.9.5-pre5.tar.gz">Pho 0.9.5-pre5</a>:
+<dd>Check for a PHO_ARGS environment variable.
+    Add a -P argument to force non-presentation mode.
+    Fix a few bugs with double/half size and with scaling.<br>
+    Make note 0 work properly.
 <dt>7/24/2005, <a href="pho-0.9.5-pre4.tar.gz">Pho 0.9.5-pre4</a>:
 <dd>Double and half size weren't working properly;
     <br>couldn't use arrow and spacebar to get out of the final Quit

@@ -1,6 +1,6 @@
 # Makefile for pho
 
-VERSION = 0.9.5-pre4
+VERSION = 0.9.5-pre5
 
 # Locate the gtk/gdk libraries (thanks to nev for this!)
 CFLAGS = -g -O -Wall -DVERSION='"$(VERSION)"'

@@ -2,7 +2,7 @@
 
 EXIFLIB = libphoexif.a
 
-CFLAGS += -g -O2 -I../include
+CFLAGS += -Wall -g -O2 -I../include
 
 SRCS = jhead.c jpgfile.c exif.c phoexif.c
 

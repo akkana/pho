@@ -48,33 +48,17 @@ static int FilesMatched;
 
 static const char * CurrentFile;
 
-static const char * progname;   // program name for error messages
-
 //--------------------------------------------------------------------------
 // Command line options flags
-static int TrimExif = FALSE;        // Cut off exif beyond interesting data.
-static int RenameToDate = FALSE;
-static char * strftime_args = NULL; // Format for new file name.
-static int Exif2FileTime  = FALSE;
 static int DoModify     = FALSE;
-static int DoReadAction = FALSE;
        int ShowTags     = FALSE;    // Do not show raw by default.
-static int ShowConcise  = FALSE;
 static char * ApplyCommand = NULL;  // Apply this command to all images.
 static char * FilterModel = NULL;
 static int    ExifOnly    = FALSE;
-static time_t ExifTimeAdjust = 0;   // Timezone adjust
-static time_t ExifTimeSet = 0;      // Set exif time to a value.
-
-static int DeleteComments = FALSE;
-static int DeleteExif = FALSE;
-static char * ThumbnailName = NULL; // If not NULL, use this string to make up
-                                    // the filename to store the thumbnail to.
 
 static char * ExifXferScrFile = NULL;// Extract Exif header from this file, and
                                     // put it into the jpegs processed.
 
-static int EditComment = FALSE;     // Invoke an editor for editing the comment
 static int SupressNonFatalErrors = TRUE; // Wether or not to pint warnings on recoverable errors
 
 
@@ -111,193 +95,6 @@ void ErrNonfatal(char * msg, int a1, int a2)
     fprintf(stderr, msg, a1, a2);
     fprintf(stderr, "\n");
 } 
-
-
-//--------------------------------------------------------------------------
-// Invoke an editor for editing a sting.
-//--------------------------------------------------------------------------
-static int FileEditComment(char * TempFileName, char * Comment, int CommentSize)
-{
-    FILE * file;
-    int a;
-    char QuotedPath[300];
-
-    file = fopen(TempFileName, "w");
-    if (file == NULL){
-        fprintf(stderr, "Can't create file '%s'\n",TempFileName);
-        ErrFatal("could not create temporary file");
-    }
-    fwrite(Comment, CommentSize, 1, file);
-
-    fclose(file);
-
-    fflush(stdout); // So logs are contiguous.
-
-    {
-	char * Editor;
-	Editor = getenv("EDITOR");
-	if (Editor == NULL){
-	    #ifdef _WIN32
-		Editor = "notepad";
-	    #else
-		Editor = "vi";
-	    #endif
-	}
-
-        sprintf(QuotedPath, "%s \"%s\"",Editor, TempFileName);
-        a = system(QuotedPath);
-    }
-    
-    if (a != 0){
-        perror("Editor failed to launch");
-        exit(-1);
-    }
-
-    file = fopen(TempFileName, "r");
-    if (file == NULL){
-        ErrFatal("could not open temp file for read");
-    }
-
-    // Read the file back in.
-    CommentSize = fread(Comment, 1, 999, file);
-
-    fclose(file);
-
-    unlink(TempFileName);
-
-    return CommentSize;
-}
-
-#ifdef MATTHIAS
-//--------------------------------------------------------------------------
-// Modify one of the lines in the comment field.
-// This very specific to the photo album program stuff.
-//--------------------------------------------------------------------------
-static char KnownTags[][10] = {"descript","date", "orig_path", "desc","scan_date","author",
-                               "mwnum", "crop", "rotate", "subpic", 
-                               "related", "infopic", "keyword","videograb",
-                               "show_raw","panorama",""};
-
-static int ModifyDescriptComment(char * OutComment, char * SrcComment)
-{
-    char Line[500];
-    int Len;
-    int a,i;
-    unsigned l;
-    int DescriptFormat;
-    int HasScandate = FALSE;
-    int TagExists = FALSE;
-    int Modified = FALSE;
-    DescriptFormat = FALSE;
-    Len = 0;
-
-    OutComment[0] = 0;
-
-    strcat(OutComment, "descript\n");
-
-    for (i=0;;i++){
-        if (SrcComment[i] == '\r' || SrcComment[i] == '\n' || SrcComment[i] == 0 || Len >= 199){
-            // Process the line.
-            if (Len > 0){
-                Line[Len] = 0;
-                //printf("Line: '%s'\n",Line);
-                if (!strcmp(Line, "descript")){
-                    DescriptFormat = TRUE;
-                }else{
-                    if (DescriptFormat){
-                        for (a=0;;a++){
-                            l = strlen(KnownTags[a]);
-                            if (!l){
-                                // Unknown tag.  Discard it.
-                                printf("Error: Unknown tag '%s'\n", Line); // Deletes the tag.
-                                Modified = TRUE;
-				break;
-                            }
-                            if (memcmp(Line, KnownTags[a], l) == 0){
-                                if (Line[l] == ' ' || Line[l] == '=' || Line[l] == 0){
-                                    // Its a good tag.
-                                    if (Line[l] == ' ') Line[l] = '='; // Use equal sign for clarity.
-                                    if (a == 2) break; // Delete 'orig_path' tag.
-                                    if (a == 4) HasScandate = TRUE;
-                                    if (RemComment){
-                                        if (strlen(RemComment) == l){
-                                            if (!memcmp(Line, RemComment, l)){
-                                                Modified = TRUE;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    if (AddComment){
-                                        // Overwrite old comment of same tag with new one.
-                                        if (!memcmp(Line, AddComment, l+1)){
-                                            TagExists = TRUE;
-                                            strcpy(Line, AddComment);
-                                            Modified = TRUE;
-                                        }
-                                    }
-                                    strcat(OutComment, Line);
-                                    strcat(OutComment, "\n");
-                                    break;
-                                }
-                            }
-                        }
-                    }else{
-                        printf("Junk tag: %s\n",Line);
-			Modified = TRUE;
-                    }
-                }
-            }
-            Line[Len = 0] = 0;
-            if (SrcComment[i] == 0) break;
-        }else{
-            Line[Len++] = SrcComment[i];
-        }
-    }
-
-    if (AddComment && TagExists == FALSE){
-        strcat(OutComment, AddComment);
-        strcat(OutComment, "\n");
-        Modified = TRUE;
-    }
-
-    if (!HasScandate && !ImageInfo.DateTime[0]){
-        // Scan date is not in the file yet, and it doesn't have one built in.  Add it.
-        char Temp[30];
-        sprintf(Temp, "scan_date=%s", ctime(&ImageInfo.FileDateTime));
-        strcat(OutComment, Temp);
-        Modified = TRUE;
-    }
-    return Modified;
-}
-//--------------------------------------------------------------------------
-// Automatic make smaller command stuff
-//--------------------------------------------------------------------------
-static int AutoResizeCmdStuff(void)
-{
-    static char CommandString[500];
-    double scale;
-
-    ApplyCommand = CommandString;
-
-    if (ImageInfo.Height < 640 && ImageInfo.Width < 640){
-        printf("not redizing %dx%x '%s'\n",ImageInfo.Height, ImageInfo.Width, ImageInfo.FileName);
-        return FALSE;
-    }
-
-    scale = 640.0 / ImageInfo.Height;
-    if (640.0 / ImageInfo.Width < scale) scale = 640.0 / ImageInfo.Width;
-
-    if (scale < 0.5) scale = 0.5; // Don't scale down by more than a factor of two.
-
-    if (scale > 0.9) return FALSE; // Don't rescale by really small amounts (not worth it!)
-
-    sprintf(CommandString, "mogrify -geometry %dx%d &i",(int)(ImageInfo.Width*scale), (int)(ImageInfo.Height*scale));
-    return TRUE;
-}
-
-
-#endif // MATTHIAS
-
 
 //--------------------------------------------------------------------------
 // Apply the specified command to the jpeg file.
@@ -421,7 +218,6 @@ void ProcessFile(const char * FileName)
 {
     int Modified = FALSE;
     ReadMode_t ReadMode = READ_EXIF;
-    int a;
 
     CurrentFile = FileName;
 
@@ -790,96 +586,4 @@ void ProcessFile(const char * FileName)
     DiscardData();
 #endif /* VERBOSE */
 }
-
-//--------------------------------------------------------------------------
-// complain about bad state of the command line.
-//--------------------------------------------------------------------------
-static void Usage (void)
-{
-    printf("Program for extracting Digicam setting information from Exif Jpeg headers\n"
-           "used by most Digital Cameras.  v"JHEAD_VERSION" Matthias Wandel, May 11 2002.\n"
-           "http://www.sentex.net/~mwandel/jhead  mwandel@sentex.net\n"
-           "\n");
-
-    printf("Usage: %s [options] files\n", progname);
-    printf("Where:\n"
-           "[otpions] are:\n"
-           "  -dc   -->  Delete comment field (as left by progs like Photoshop & Compupic)\n"
-           "  -ce   -->  Edit comment field.  Uses environment variable 'editor' to\n"
-	   "             determine which editor to use.  If editor not set, uses VI\n"
-	   "             under Unix and notepad with windows\n"
-           "  -de   -->  Strip Exif section (smaller jpeg file, but loose digicam info)\n"
-#ifdef MATTHIAS
-           "  -cl   -->  \"commets..\" Insert literal comment\n"
-           "  -cr   -->  Remove comment tag (my way)\n"
-           "  -ca   -->  Add comment tag (my way)\n"
-           "  -ar   -->  Auto resize to fit in 640x640, but never less than half\n"
-#endif //MATTHIAS
-           "  -st <name> Save Exif thumbnail, if there is one, in file <name>\n"
-           "             If output file name contains the substring \"&i\" then the\n"
-           "             image file name is subsitute for the &i.  Note that quotes around\n"
-           "             the argument are required for the '&' to be passed to the program.\n"
-#ifndef _WIN32
-           "             An output name of '-' causes thumbnail to be written to stdout\n"
-#endif
-           "  -te <name> Transfer exif header from another image file <name>\n"
-           "             Uses same name mangling as '-st' option\n"
-           "  -dt   -->  Remove exif integral thumbnails and other non camera setting\n"
-           "             parts of exif header.  Typically trims 10k\n"
-           "  -h    -->  help (this text)\n"
-           "  -v    -->  even more verbose output\n"
-           "  -se   -->  Supress error messages relating to corrupt exif header structure\n"
-           "  -c    -->  concise output\n"
-           "  -model model\n"
-           "        -->  Only process files from digicam containing model substring in\n"
-           "             camera model description\n"
-           "  -exonly    Skip all files that don't have an exif header (skip all jpegs that\n"
-           "             were not created by digicam)\n"
-           "  -ft   -->  Set file modification time to Exif time.\n"
-           "  -n[format-string]\n"
-           "        -->  Rename files according to date.  If the optional format-string is\n"
-           "             not supplied, the format is mmdd-hhmmss.  If a format-string is\n"
-           "             given, it is passed to the 'strftime' function for formatting\n"
-           "             This feature is useful for ordering files from multipe digicams to\n"
-           "             sequence of taking.  Only renames files whose names are mostly\n"
-           "             numerical (as assigned by digicam)\n"
-           "             The '.jpg' is automatically added to the end of the name.  If the\n"
-           "             destination name already exists, a letter or digit is added to \n"
-           "             the end of the name to make it uniqe.\n"
-           "  -nf[format-string]\n"
-           "        -->  Same as -n, but rename regardless of original name\n"
-           "  -ta<+|->h[:mm]\n"
-           "        -->  Adjust time by h:mm backwards of forwards.  Useful when having\n"
-           "             taken pictures with the wrong time set on the camera, such as when\n"
-           "             travelling across time zones or DST changes.\n"
-	   "  -ts<time>  Set the Exif internal time to <time>.  <time> is in the format\n"
-	   "               yyyy:mm:dd-hh:mm:ss\n"
-           "  -cmd command\n"
-           "        -->  Apply 'command' to every file, then re-insert exif and command\n"
-           "             sections into the image. &i will be substituted for the input file\n"
-           "             name, and &o (if &o is used). Use quotes around the command string\n"
-           "             This is most useful in conjunction with the free ImageMagic tool. \n"
-           "             For example, with My Cannon S100, which suboptimally compresses\n"
-           "             jpegs I can specify\n"
-           "                jhead -cmd \"mogrify -quality 80 &i\" *.jpg\n"
-           "             to re-compress a lot of images using ImageMagic to half the size,\n" 
-           "             and no visible loss of quality while keeping the exif header\n"
-           "             Another invocation I like to use is jpegtran (hard to find for\n"
-           "             windows).  I type:\n"
-           "                jhead -cmd \"jpegtran -progressive &i &o\" *.jpg\n"
-           "             to convert jpegs to progressive jpegs (Unix jpegtran syntax\n"
-           "             differs slightly)\n"
-#ifdef _WIN32
-           "  -r    -->  No longer supported.  Use the ** wildcard to recurse directories\n"
-           "             with instead.\n"
-           "             examples:\n"
-           "                 jhead **/*.jpg\n"
-           "                 jhead \"c:\\my photos\\**\\*.jpg\"\n"
-#endif
-           " files  -->  path/filenames with or without wildcards\n"
-           );
-
-    exit(EXIT_FAILURE);
-}
-
 

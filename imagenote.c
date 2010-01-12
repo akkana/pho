@@ -1,7 +1,7 @@
 /*
- * imagenote.c: save info about images, for pho, an image viewer.
+ * imagenote.c: save info about images. For pho, an image viewer.
  *
- * Copyright 2002 by Akkana Peck.
+ * Copyright 2002,2007 by Akkana Peck.
  * You are free to use or modify this code under the Gnu Public License.
  */
 
@@ -51,38 +51,41 @@ void ToggleNoteFlag(PhoImage* img, int note)
         img->noteFlags |= bit;
 }
 
+/* Guard against filenames which contain odd characters, like
+ * spaces or quotes. Returns allocated memory.
+ */
 char *QuoteString(char *str)
 {
-  int i;
-  char *newstr;
+    int i;
+    char *newstr;
 
-  /*look for a space or quote in str */
-  for (i = 0; str[i] != '\0'; i++)
-    if (isspace(str[i]) || (str[i] == '\"') || (str[i] == '\'')) {
-      GString *gstr = g_string_new("\"");
-      for (i = 0; str[i] != '\0'; i++) {
-	if (str[i] == '\"')
-	  g_string_append(gstr, (gchar *)"\\\"");
-	/*else if (str[i] == '\'')
-	  g_string_append(gstr, (gchar *)"\\\'");*/
-	else
-	  g_string_append_c(gstr, (gchar)str[i]);
-      }
+    /*look for a space or quote in str */
+    for (i = 0; str[i] != '\0'; i++)
+        if (isspace(str[i]) || (str[i] == '\"') || (str[i] == '\'')) {
+            GString *gstr = g_string_new("\"");
+            for (i = 0; str[i] != '\0'; i++) {
+                if (str[i] == '\"')
+                    g_string_append(gstr, (gchar *)"\\\"");
+                /*else if (str[i] == '\'')
+                  g_string_append(gstr, (gchar *)"\\\'");*/
+                else
+                    g_string_append_c(gstr, (gchar)str[i]);
+            }
 
-      g_string_append_c(gstr, '\"');
+            g_string_append_c(gstr, '\"');
 
-      newstr = gstr->str;
-      g_string_free(gstr, FALSE);
-      return newstr;
-    }
+            newstr = gstr->str;
+            g_string_free(gstr, FALSE);
+            return newstr;
+        }
 
-  /*if there are no spaces or quotes in str, return a copy of str*/
-  return (char *)g_strdup((gchar *)str);
+    /*if there are no spaces or quotes in str, return a copy of str*/
+    return (char *)g_strdup((gchar *)str);
 }
 
 void AddImgToList(char** strp, char* str)
 {
-  str = QuoteString(str);
+    str = QuoteString(str);
 
     if (*strp)
     {
@@ -121,12 +124,9 @@ void PrintNotes()
         if (img->noteFlags)
         {
             int flag, j;
-            for (j=1, flag=1; j<=10; ++j)
-            {
-                flag <<= 1;
+            for (j=0, flag=1; j<10; ++j, flag <<= 1)
                 if (img->noteFlags & flag)
                     AddImgToList(sFlagStrings+j, img->filename);
-            }
         }
 
         switch (img->rotation)
