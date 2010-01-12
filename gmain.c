@@ -27,11 +27,15 @@ static int gFullScreenMode = 0;
  */
 void ShowImage()
 {
+    static int oldXsize = -1;
+    static int oldYsize = -1;
     char title[BUFSIZ];
 #define TITLELEN ((sizeof title) / (sizeof *title))
 
     if (drawingArea == 0 || drawingArea->window == 0 || gImage == 0)
         return;
+    if (oldXsize < 0) oldXsize = XSize;
+    if (oldYsize < 0) oldYsize = YSize;
 
     // If we're coming back to normal from fullscreen mode,
     // we need to restore sizes.
@@ -69,7 +73,25 @@ void ShowImage()
         resized = 1;
     }
 
-    gdk_window_resize(win->window, XSize, YSize);
+    if (XSize != oldXsize || YSize != oldYsize)
+    {
+        gint x, y;
+        gint nx = -1, ny = -1;
+
+        gdk_window_resize(win->window, XSize, YSize);
+
+        // If we  resized, see if we need to move:
+        gdk_window_get_position(win->window, &x, &y);
+        if (x + XSize >= MonitorWidth)
+            nx = MonitorWidth - XSize;
+        if (y + YSize >= MonitorHeight)
+            ny = MonitorHeight - YSize;
+        if (x >= 0 || y >= 0) {
+            //printf("Moving from (%d, %d) to (%d, %d)\n", x, y, nx, ny);
+            gdk_window_move(win->window, (nx >= 0 ? nx : x), (ny >= 0 ? ny : y));
+            //gtk_widget_set_uposition(GTK_WIDGET(win), (nx >= 0 ? nx : x), (ny >= 0 ? ny : y));
+        }
+    }
 
     gdk_pixbuf_render_to_drawable(gImage, drawingArea->window,
                      drawingArea->style->fg_gc[GTK_WIDGET_STATE(drawingArea)],
@@ -116,25 +138,9 @@ static gint HandleDelete(GtkWidget* widget, GdkEventKey* event, gpointer data)
     return FALSE;
 }
 
-// Slop to leave around the window if we can
-#define BORDER 35
-
-static gint HandleExpose(GtkWidget* widget, GdkEventKey* event)
+static gint HandleExpose(GtkWidget* widget, GdkEventExpose* event)
 {
-    gint x, y;
-
     ShowImage();
-
-    // See if we need to move
-    gdk_window_get_position(win->window, &x, &y);
-    if (x + XSize > MonitorWidth || y + YSize > MonitorHeight)
-    {
-        if (BORDER + XSize > MonitorWidth || BORDER + YSize > MonitorHeight)
-            gdk_window_move(win->window, 0, 0);
-        else
-            gdk_window_move(win->window, BORDER, BORDER);
-    }
-
     return TRUE;
 }
 
@@ -314,6 +320,8 @@ int main(int argc, char** argv)
     // in the first gdk_pixbuf_render_to_drawable(),
     // calling gdk_draw_rgb_image_dithalign():
     gdk_rgb_init();
+
+    gtk_window_set_default_size(GTK_WINDOW(win), XSize, YSize);
 
     // Now we know we have something to show, so do it:
     gtk_widget_show(win);

@@ -51,7 +51,8 @@ void UpdateInfoDialog()
     char* s;
     int i, mask, flags;
 
-    if (!InfoDialog || !(GTK_WIDGET_FLAGS(InfoDialog) & GTK_VISIBLE))
+    if (!InfoDialog || !InfoDialog->window
+        || !(GTK_WIDGET_FLAGS(InfoDialog) & GTK_VISIBLE))
         return;
 
     sprintf(buffer, "pho: %s info", ArgV[ArgP]);
@@ -139,7 +140,7 @@ void ToggleInfo()
     GtkWidget *label, *vbox, *box, *scroller;
     int i;
 
-    if (InfoDialog)
+    if (InfoDialog && InfoDialog->window)
     {
         if (GTK_WIDGET_FLAGS(InfoDialog) & GTK_VISIBLE)
             gtk_widget_hide(InfoDialog);

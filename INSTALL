@@ -11,6 +11,10 @@ BUILDING:
 To build pho, type: make
 To install the binary and manual page, type (as root): make install
 
+(BSD users: the pho Makefiles assume that "make" is GNU make.
+If your make is actually BSD make, you'll need to type gmake,
+and edit the Makefile to change (cd exif; make) to use gmake instead.)
+
 Make will build two binaries: in addition to pho (a gtk app),
 xpho is the first and simplest version of pho, which uses only
 xlib to display, and can't put up any dialogs.
