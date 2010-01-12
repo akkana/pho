@@ -248,7 +248,6 @@ PhoImage* NewPhoImage(char* fnam)
     return newimg;
 }
 
-/* XXX ReallyDelete no workee, doesn't go to the right shot afterward */
 void ReallyDelete(PhoImage* img)
 {
     if (unlink(img->filename) < 0)
@@ -289,11 +288,6 @@ void ReallyDelete(PhoImage* img)
     ThisImage();
 }
 
-static void FreePixels(guchar* pixels, gpointer data)
-{
-    free(pixels);
-}
-
 void DeleteImage(PhoImage* img)
 {
     char buf[512];
@@ -313,6 +307,10 @@ int RotateImage(PhoImage* img, int degrees)
     guchar *oldpixels, *newpixels;
     int x, y;
     int oldrowstride, newrowstride, nchannels, bitsper, alpha;
+    int newWidth, newHeight, newTrueWidth, newTrueHeight;
+    GdkPixbuf* newImage;
+
+    if (!gImage) return 1;     /* sanity check */
 
     /* Make sure degrees is between 0 and 360 even if it's -90 */
     degrees = (degrees + 360) % 360;
@@ -342,20 +340,40 @@ int RotateImage(PhoImage* img, int degrees)
         return 0;
     }
 
+    /* Swap X and Y if appropriate. */
+    if (degrees == 90 || degrees == 270)
+    {
+        newWidth = img->curHeight;
+        newHeight = img->curWidth;
+        newTrueWidth = img->trueHeight;
+        newTrueHeight = img->trueWidth;
+    }
+    else
+    {
+        newWidth = img->curWidth;
+        newHeight = img->curHeight;
+        newTrueWidth = img->trueWidth;
+        newTrueHeight = img->trueHeight;
+    }
+
     oldrowstride = gdk_pixbuf_get_rowstride(gImage);
+    /* Sometimes rowstride is slightly different from width*nchannels:
+     * gdk_pixbuf optimizes by aligning to 32-bit boundaries.
+     * But apparently it works even if rowstride is not aligned,
+     * just might not be as fast.
+     * XXX check newrowstride alignment
+     */
     bitsper = gdk_pixbuf_get_bits_per_sample(gImage);
     nchannels = gdk_pixbuf_get_n_channels(gImage);
-    if (oldrowstride != img->curWidth * nchannels)
-        printf("Yikes!  rowstride doesn't match!\n");
     alpha = gdk_pixbuf_get_has_alpha(gImage);
-    if (degrees == 90 || degrees == -90 || degrees == 270)
-        newrowstride = oldrowstride
-            * img->curHeight / img->curWidth;
-    else
-        newrowstride = oldrowstride;
 
     oldpixels = gdk_pixbuf_get_pixels(gImage);
-    newpixels = malloc(img->curWidth * img->curHeight * nchannels);
+
+    newImage = gdk_pixbuf_new(GDK_COLORSPACE_RGB, alpha, bitsper,
+                              newWidth, newHeight);
+    if (!newImage) return 1;
+    newpixels = gdk_pixbuf_get_pixels(newImage);
+    newrowstride = gdk_pixbuf_get_rowstride(newImage);
 
     for (x = 0; x < img->curWidth; ++x)
     {
@@ -398,28 +416,15 @@ int RotateImage(PhoImage* img, int degrees)
         }
     }
 
-    /* Swap X and Y if appropriate. */
-    if (degrees == 90 || degrees == 270)
-    {
-        int temp;
-        temp = img->curWidth;
-        img->curWidth = img->curHeight;
-        img->curHeight = temp;
-        temp = img->trueWidth;
-        img->trueWidth = img->trueHeight;
-        img->trueHeight = temp;
-    }
+    img->curWidth = newWidth;
+    img->curHeight = newHeight;
+    img->trueWidth = newTrueWidth;
+    img->trueHeight = newTrueHeight;
 
     img->rotation = (img->rotation + degrees + 360) % 360;
 
-    if (gImage)
-        gdk_pixbuf_unref(gImage);
-    gImage = gdk_pixbuf_new_from_data(newpixels,
-                                      GDK_COLORSPACE_RGB, alpha, bitsper,
-                                     img->curWidth, img->curHeight,
-                                      newrowstride,
-                                      FreePixels, newpixels);
-    if (!gImage) return 1;
+    gdk_pixbuf_unref(gImage);
+    gImage = newImage;
 
     ShowImage();
     return 0;

@@ -75,7 +75,7 @@ static char * ExifXferScrFile = NULL;// Extract Exif header from this file, and
                                     // put it into the jpegs processed.
 
 static int EditComment = FALSE;     // Invoke an editor for editing the comment
-static int SupressNonFatalErrors = FALSE; // Wether or not to pint warnings on recoverable errors
+static int SupressNonFatalErrors = TRUE; // Wether or not to pint warnings on recoverable errors
 
 
 #ifdef MATTHIAS

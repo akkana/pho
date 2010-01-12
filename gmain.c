@@ -26,11 +26,19 @@
  */
 int gMakeNewWindows = 0;
 
+/* The size our window frame adds on the top left of the image */
+gint sFrameWidth = -1;
+gint sFrameHeight = -1;
+gint sPhysMonitorWidth = 0;
+gint sPhysMonitorHeight = 0;
+
 static GdkColor sBlack;
 
 /* gtk/X related window attributes */
 static GtkWidget *sWin = 0;
 static GtkWidget *sDrawingArea = 0;
+
+static void NewWindow(); /* forward */
 
 static void hide_cursor(GtkWidget* w)
 {
@@ -61,6 +69,18 @@ static void show_cursor(GtkWidget* w)
 #endif
 }    
 
+static void AdjustScreenSize()
+{
+    if (gPresentationMode) {
+        gMonitorWidth = sPhysMonitorWidth;
+        gMonitorHeight = sPhysMonitorHeight;
+    }
+    else {
+        gMonitorWidth = sPhysMonitorWidth - sFrameWidth;
+        gMonitorHeight = sPhysMonitorHeight - sFrameHeight;
+    }
+}
+
 /* DrawImage is called from the expose callback.
  * It assumes we already have the image in gImage.
  */
@@ -72,14 +92,12 @@ void DrawImage()
 
     if (gImage == 0 || sWin == 0 || sDrawingArea == 0) return;
 
-    /* If we're in presentation mode, clear the screen first: */
     if (gPresentationMode) {
         hide_cursor(sDrawingArea);
-        gdk_window_clear(sDrawingArea->window);
 
         /* Center the image */
-        dstX = (gMonitorWidth - gCurImage->curWidth) / 2;
-        dstY = (gMonitorHeight - gCurImage->curHeight) / 2;
+        dstX = (sPhysMonitorWidth - gCurImage->curWidth) / 2;
+        dstY = (sPhysMonitorHeight - gCurImage->curHeight) / 2;
     }
     else
         show_cursor(sDrawingArea);
@@ -115,16 +133,30 @@ void DrawImage()
 
 static gint HandleExpose(GtkWidget* widget, GdkEventExpose* event)
 {
-#if GTK_MAJOR_VERSION == 2
+    /* If we're in presentation mode, clear the screen first: */
     if (gPresentationMode) {
-        gtk_widget_modify_bg(sDrawingArea, GTK_STATE_NORMAL, &sBlack);
+        gdk_window_clear(sDrawingArea->window);
     }
-#endif
 
     DrawImage();
 
-#if GTK_MAJOR_VERSION == 2
+    /* Get the frame offset if we don't already have it */
+    if (sFrameWidth < 0 || sFrameHeight < 0) {
+        gint win_x, win_y, contents_x, contents_y;
+        gdk_window_get_root_origin(sWin->window, &win_x, &win_y);
+        gdk_window_get_position(sWin->window, &contents_x, &contents_y);
+        sFrameWidth = contents_x - win_x;
+        if (sFrameWidth < 0) sFrameWidth = 0;
+        sFrameHeight = contents_y - win_y;
+        if (sFrameHeight < 0) sFrameHeight = 0;
+        AdjustScreenSize();
+        /* Note that the first image will be slightly wrong,
+         * since it didn't know about the frame size.  Oh, well!
+         */
+    }
+
     /* Make sure the window can resize smaller, later */
+#if GTK_MAJOR_VERSION == 2
     if (!gMakeNewWindows)
         gtk_widget_set_size_request(GTK_WIDGET(sWin), 1, 1);
 #endif
@@ -151,14 +183,6 @@ static gint HandleDelete(GtkWidget* widget, GdkEventKey* event, gpointer data)
     return TRUE;
 }
 
-#if 0
-/* Called each time a window goes away. */
-static gint HandleDestroy(GtkWidget* widget, GdkEventKey* event, gpointer data)
-{
-    return TRUE;
-}
-#endif
-
 static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
 {
     static double scale = 1.;
@@ -169,7 +193,7 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
           break;
       case GDK_space:
           if (NextImage() != 0) {
-              if (Prompt("Quit pho?", "Quit", "Continue", "qx \n", "c ") != 0)
+              if (Prompt("Quit pho?", "Quit", "Continue", "qx\n", "cn") != 0)
                   EndSession();
           }
           return TRUE;
@@ -186,6 +210,7 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
               gScaleMode = PHO_SCALE_FULLSIZE;
           else
               gScaleMode = PHO_SCALE_NORMAL;
+          AdjustScreenSize();
           ScaleImage(gCurImage);
           ShowImage();
           return TRUE;
@@ -194,10 +219,12 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
               gScaleMode = PHO_SCALE_FULLSCREEN;
           else
               gScaleMode = PHO_SCALE_NORMAL;
+          AdjustScreenSize();
           ScaleImage(gCurImage);
           ShowImage();
           return TRUE;
       case GDK_p:
+          AdjustScreenSize();
           gPresentationMode = !gPresentationMode;
           PrepareWindow();
           return TRUE;
@@ -239,6 +266,7 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
           scale *= 2;
           gCurImage->curWidth = gCurImage->trueWidth * scale;
           gCurImage->curHeight = gCurImage->trueHeight * scale;
+          ScaleImage(gCurImage);
           ShowImage();
           return TRUE;
       case GDK_slash:
@@ -250,17 +278,17 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
           gCurImage->curHeight = gCurImage->trueHeight * scale;
           if (gCurImage->curWidth < 1) gCurImage->curWidth = 1;
           if (gCurImage->curHeight < 1) gCurImage->curHeight = 1;
+          ScaleImage(gCurImage);
           ShowImage();
           return TRUE;
-#if 0
       case GDK_g:  /* start gimp */
-          if ((i = CallExternal("gimp-remotte -n", gCurImage->filename) != 0) {
-              i = CallExternal("gimp", gCurImage->filename);
-              printf("Called gimp, returned %d\n", i);
+          system(strcat("gimp-remote ", gCurImage->filename));
+#if 0
+          if (CallExternal("gimp-remote -n", gCurImage->filename) != 0) {
+              CallExternal("gimp", gCurImage->filename);
           }
-          else printf("Called gimp-remote, returned %d\n", i);
-          break;
 #endif
+          break;
       case GDK_i:
           ToggleInfo();
           return TRUE;
@@ -277,13 +305,100 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
     return FALSE;
 }
 
+/* If we  resized, see if we might move off the screen.
+ * If we're not over the mouse pointer, then we may lose focus
+ * and so should move over the mouse pointer.
+ * (It would be nice if window managers let us keep focus,
+ * but many of them don't.)
+ * But don't move if we're already bigger than the screen.
+ */
+static void MaybeMove()
+{
+/* Some functions, like gdk_get_default_root_window, don't exist in
+ * gtk1, so this function would need to be backported.
+ */
+#if GTK_MAJOR_VERSION == 2
+    gint x, y, nx, ny, w, h;
+    gint mousex, mousey;
+    GdkModifierType mask;
+
+    if (gCurImage->curWidth > sPhysMonitorWidth
+        || gCurImage->curHeight > sPhysMonitorHeight)
+        return;
+
+    /* If we don't have a window yet, don't move it */
+    if (!sWin)
+        return;
+
+#if GTK_MAJOR_VERSION == 2
+    gtk_window_get_position(GTK_WINDOW(sWin), &x, &y);
+    gtk_window_get_size(GTK_WINDOW(sWin), &w, &h);
+#else
+    gdk_window_get_position(sWin->window, &x, &y);
+    gdk_window_get_size(sWin->window, &w, &h);
+#endif
+    /* printf("Currently (%d, %d) %d x %d\n", x, y, w, h); */
+
+    /* XXX If the window size hasn't changed, should probably return. */
+
+    /* Try to center around the old center.
+    nx = x + (w - gCurImage->curWidth) / 2;
+    ny = y + (h - gCurImage->curHeight) / 2;
+     */
+
+    /* Get the mouse position */
+    gdk_window_get_pointer(gdk_get_default_root_window(),
+                           &mousex, &mousey, &mask);
+
+    /* Start with the current position: don't move if we don't have to. */
+    if (x > 0 && y > 0) {
+        nx = x;
+        ny = y;
+    }
+    /* If we don't have a current pos, start by centering over the mouse. */
+    else {
+        nx = mousex - w / 2;
+        ny = mousey - h / 2;
+    }
+
+    /* Make sure it wonn't overflow off the screen */
+    if (nx + gCurImage->curWidth > gMonitorWidth)
+        nx = gMonitorWidth - gCurImage->curWidth;
+    if (nx < 0)
+        nx = 0;
+    if (ny + gCurImage->curHeight > gMonitorHeight)
+        ny = gMonitorHeight - gCurImage->curHeight;
+    if (ny < 0)
+        ny = 0;
+
+    /* Make sure we still cover the mouse cursor (for focus). */
+    /*
+    printf("Mouse @ (%d, %d), our window will go from (%d, %d) - (%d, %d)\n",
+           mousex, mousey, nx, ny,
+           nx+gCurImage->curWidth, ny+gCurImage->curHeight);
+     */
+    if (mousex < nx)
+        nx = mousex - 1;
+    else if (mousex > nx+gCurImage->curWidth)
+        nx = mousex - gCurImage->curWidth;
+    if (mousey < ny)
+        ny = mousey - 1;
+    else if (mousey > ny+gCurImage->curHeight)
+        ny = mousey - gCurImage->curHeight;
+    /* printf("After mouse corrections, move to (%d, %d)\n", nx, ny); */
+    if (x != nx || y != ny) {
+        gtk_window_move(GTK_WINDOW(sWin), nx, ny);
+    }
+#endif /* GTK_MAJOR_VERSION == 2 */
+}
+
 /* Make a new window, destroying the old one. */
 static void NewWindow()
 {
     gint root_x = -1;
     gint root_y = -1;
     if (sWin) {
-#if GTK_MAJOR_VERSION == 2
+#if FOO_GTK_MAJOR_VERSION == 2
         gtk_window_get_position(GTK_WINDOW(sWin), &root_x, &root_y);
 #else
         gdk_window_get_position(sWin->window, &root_x, &root_y);
@@ -312,10 +427,16 @@ static void NewWindow()
     sDrawingArea = gtk_drawing_area_new();
     gtk_container_add(GTK_CONTAINER(sWin), sDrawingArea);
     gtk_widget_show(sDrawingArea);
+#if GTK_MAJOR_VERSION == 2
+    /* This can't be done in expose: it causes one of those extra
+     * spurious expose events that gtk so loves.
+     */
+    gtk_widget_modify_bg(sDrawingArea, GTK_STATE_NORMAL, &sBlack);
+#endif
 
     if (gPresentationMode) {
         gtk_drawing_area_size(GTK_DRAWING_AREA(sDrawingArea),
-                              gMonitorWidth, gMonitorHeight);
+                              sPhysMonitorWidth, sPhysMonitorHeight);
 #if GTK_MAJOR_VERSION == 2
         gtk_window_fullscreen(GTK_WINDOW(sWin));
 #endif
@@ -342,6 +463,8 @@ static void NewWindow()
     /* Request a window position, based on the image size
      * and the position of the previous window.
      */
+    MaybeMove();
+#if 0
     if (root_x >= 0 && root_y >= 0) {
         if (root_x + gCurImage->curWidth > gMonitorWidth
             && gCurImage->curWidth <= gMonitorWidth)
@@ -350,8 +473,10 @@ static void NewWindow()
             && gCurImage->curHeight <= gMonitorHeight)
             root_y = gMonitorHeight - gCurImage->curHeight;
 
-        gdk_window_move(sWin->window, root_x, root_y);
+        gtk_window_move(GTK_WINDOW(sWin->window), root_x, root_y);
+        //gtk_window_set_position(GTK_WINDOW(sWin), GTK_WIN_POS_MOUSE);
     }
+#endif
 
     gtk_widget_show(sWin);
 }
@@ -373,8 +498,8 @@ static void NewWindow()
 #define GDK_WINDOW_SCREEN(win)	      gdk_drawable_get_screen(win)
 #define GDK_WINDOW_XROOTWIN(win)      GDK_ROOT_WINDOW()
 
-#if GTK_MAJOR_VERSION == 2
 #ifdef TEST_FOCUS
+#if GTK_MAJOR_VERSION == 2
 static void
 pho_window_focus (GdkWindow *window,
                   guint32    timestamp)
@@ -414,6 +539,9 @@ pho_window_focus (GdkWindow *window,
   else
   {
       XRaiseWindow (GDK_DISPLAY_XDISPLAY (display), GDK_WINDOW_XID (window));
+      gdk_keyboard_grab();
+      gtk_grab_add(my_window);
+      //gtk_grab_remove(my_window);
 
       /* There is no way of knowing reliably whether we are viewable;
        * _gdk_x11_set_input_focus_safe() traps errors asynchronously.
@@ -423,8 +551,8 @@ pho_window_focus (GdkWindow *window,
        */
   }
 }
+#endif /* GTK2 */
 #endif /* TEST_FOCUS */
-#endif
 
 /* PrepareWindow is responsible for making the window the right
  * size and position, so the user doesn't see flickering.
@@ -433,8 +561,6 @@ pho_window_focus (GdkWindow *window,
  */
 void PrepareWindow()
 {
-    gint x, y, nx = -1, ny = -1;
-
     if (gMakeNewWindows || sWin == 0) {
         NewWindow();
         return;
@@ -443,8 +569,9 @@ void PrepareWindow()
     /* Otherwise, resize and reposition the current window. */
 
     if (gPresentationMode) {
+        /* XXX shouldn't have to do this every time */
         gtk_drawing_area_size(GTK_DRAWING_AREA(sDrawingArea),
-                              gMonitorWidth, gMonitorHeight);
+                              sPhysMonitorWidth, sPhysMonitorHeight);
 #if GTK_MAJOR_VERSION == 2
         gtk_window_fullscreen(GTK_WINDOW(sWin));
 #endif
@@ -452,12 +579,12 @@ void PrepareWindow()
     else {
 #if GTK_MAJOR_VERSION == 2
         /* We need to size the actual window, not just the drawing area.
-         * Resizing the drawing area will resize the window for some
-         * window managers, like openbook, but not for metacity.
+         * Resizing the drawing area will resize the window for many
+         * window managers, but not for metacity.
          *
          * Worse, metacity maximizes a window if the initial size is
          * bigger in either dimension than the screen size.
-         * Since we don't know the size of the wm decorations,
+         * Since we can't be sure about the size of the wm decorations,
          * we will probably hit this and get unintentionally maximized,
          * after which metacity refuses to resize the window any smaller.
          * (Mac OS X apparently does this too.)
@@ -469,23 +596,17 @@ void PrepareWindow()
         gtk_window_resize(GTK_WINDOW(sWin),
                           gCurImage->curWidth, gCurImage->curHeight);
 #else
-        /* In gtk1 we're happy, things "just work", even in metacity */
+        /* In gtk1 we're happy, resizing the drawing area "just works",
+	 * even in metacity.  Ah, the good old days!
+         *
         gdk_window_resize(sWin->window,
                           gCurImage->curWidth, gCurImage->curHeight);
+	 */
+        gtk_drawing_area_size(GTK_DRAWING_AREA(sDrawingArea),
+                              gCurImage->curWidth, gCurImage->curHeight);
 #endif
 
-        /* If we  resized, see if we need to move: */
-        gdk_window_get_position(sWin->window, &x, &y);
-
-        if (x + gCurImage->curWidth >= gMonitorWidth)
-            nx = gMonitorWidth - gCurImage->curWidth;
-        if (y + gCurImage->curHeight >= gMonitorHeight)
-            ny = gMonitorHeight - gCurImage->curHeight;
-        if (x >= 0 || y >= 0) {
-            gdk_window_move(sWin->window, (nx >= 0 ? nx : x),
-                            (ny >= 0 ? ny : y));
-            //gtk_widget_set_uposition(GTK_WIDGET(sWin), (nx >= 0 ? nx : x), (ny >= 0 ? ny : y));
-        }
+        MaybeMove();
     }
 
     /* Request the focus.
@@ -498,6 +619,9 @@ void PrepareWindow()
     /* None of these actually work!  Is there any way to get keyboard
      * focus into a window?
      */
+    gtk_window_activate_focus(GTK_WINDOW(sWin));
+    gtk_window_present(GTK_WINDOW(sWin));
+
     GdkGrabStatus grabstat;
     printf("Trying desperately to grab focus!\n");
     gtk_window_present(GTK_WINDOW(sWin));
@@ -575,8 +699,8 @@ int main(int argc, char** argv)
      */
     gdk_rgb_init();
 
-    gMonitorWidth = gdk_screen_width();
-    gMonitorHeight = gdk_screen_height();
+    sPhysMonitorWidth = gMonitorWidth = gdk_screen_width();
+    sPhysMonitorHeight = gMonitorHeight = gdk_screen_height();
 
     /* Initialize the "black" color */
     sBlack.red = sBlack.green = sBlack.blue = 0x0000;
