@@ -9,6 +9,7 @@
 #include "dialogs.h"
 
 #include <gdk/gdkkeysyms.h>
+#include <stdio.h>      /* needed on Mac, not on Linux, for sprintf */
 #include <ctype.h>
 
 static GtkWidget* KeywordsDialog = 0;
@@ -101,7 +102,7 @@ static gint handleKeywordsKeyPress(GtkWidget* widget, GdkEventKey* event)
     }
 
     /* But we handle certain other events if a modifier key is down */
-    if (! event->state & GDK_MODIFIER_MASK)
+    if (! (event->state & GDK_MODIFIER_MASK))
         return FALSE;
 
     /* But don't just pass all modifier events -- many of them are

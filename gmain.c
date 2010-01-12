@@ -19,7 +19,9 @@
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
 
+#ifdef TEST_FOCUS
 #include <gdk/gdkx.h>    /* for gdk_x11_display_grab */
+#endif
 
 /* Some window managers don't deal well with windows that resize,
  * or don't retain focus if a resized window no longer contains
@@ -351,6 +353,7 @@ static gint HandleDelete(GtkWidget* widget, GdkEventKey* event, gpointer data)
 
 gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
 {
+    if (gDebug) printf("\nKey event\n");
     switch (event->keyval)
     {
       case GDK_d:
@@ -384,6 +387,11 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           ShowImage();
           return TRUE;
       case GDK_f:   /* Full size mode: show image bit-for-bit */
+          /* Don't respond to ctrl-F -- that might be an attempt
+           * to edit in a text field in the keywords dialog
+           */
+          if (event->state & GDK_CONTROL_MASK )
+              return FALSE;
           if (gScaleMode != PHO_SCALE_FULLSIZE)
               gScaleMode = PHO_SCALE_FULLSIZE;
           else
@@ -434,7 +442,7 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
       case GDK_L:
       case GDK_Left:
       case GDK_KP_Left:
-          ScaleAndRotate(gCurImage, -90);
+          ScaleAndRotate(gCurImage, 270);
           PrepareWindow();
           DrawImage();
           return TRUE;
@@ -469,19 +477,34 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           return TRUE;
       case GDK_g:  /* start gimp, or some other app */
           {
-              char buf[BUFSIZ];
+              char* pos;
               char* cmd = getenv("PHO_REMOTE");
-              if (cmd == 0) cmd = "gimp %s";
+              if (cmd == 0) cmd = "gimp";
               else if (gDebug)
                   printf("Calling PHO_REMOTE %s\n", cmd);
 
-              if (strlen(gCurImage->filename) + strlen(cmd) + 2 > BUFSIZ) {
-                  printf("Filename '%s' or command '%s' too long!\n",
-                         gCurImage->filename, cmd);
-                  break;
+              /* PHO_REMOTE command can have a %s in it but doesn't need to.
+               * If it does, we'll use sprintf and system(),
+               * otherwise we'll properly use vfork() and execlp().
+               */
+              if ((pos = strchr(cmd, '%')) == 0) {
+                  if (vfork() == 0) {      /* child process */
+                      if (gDebug)
+                          printf("Child: about to exec %s, %s\n",
+                                 cmd, gCurImage->filename);
+                      execlp(cmd, cmd, gCurImage->filename, (char*)0);
+                  }
               }
-              sprintf(buf, cmd, gCurImage->filename);
-              system(buf);
+              else {
+                  char buf[BUFSIZ];
+                  if (strlen(gCurImage->filename) + strlen(cmd) + 2 > BUFSIZ) {
+                      printf("Filename '%s' or command '%s' too long!\n",
+                             gCurImage->filename, cmd);
+                      break;
+                  }
+                  sprintf(buf, cmd, gCurImage->filename);
+                  system(buf);
+              }
           }
           break;
       case GDK_i:

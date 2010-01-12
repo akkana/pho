@@ -90,7 +90,7 @@ void AddImgToList(char** strp, char* str)
 void PrintNotes()
 {
     int i;
-    char *rot90=0, *rot180=0, *rot270=0;
+    char *rot90=0, *rot180=0, *rot270=0, *rot0=0, *unmatchExif=0;
     PhoImage* img;
 
     /* Should free up memory here, e.g. for sFlagFileList,
@@ -125,9 +125,22 @@ void PrintNotes()
           case -90:
               AddImgToList(&rot270, img->filename);
               break;
+          case 0:
+              /* If the image is rotated at zero but the EXIF says otherwise,
+               * we need to list that too:
+               */
+              if (img->exifRot != 0)
+                  AddImgToList(&rot0, img->filename);
+              break;
           default:
               break;
         }
+
+        /* If the user-chosen rotation doesn't match the EXIF,
+         * we need to know that too.
+         */
+        if (img->curRot != img->exifRot)
+            AddImgToList(&unmatchExif, img->filename);
 
         img = img->next;
         /* Have we looped back to the beginning?*/
@@ -143,6 +156,10 @@ void PrintNotes()
         printf("\nRotate -90 (CCW): %s\n", rot270);
     if (rot180)
         printf("\nRotate 180: %s\n", rot180);
+    if (rot0)
+        printf("\nRotate 0 (wrong EXIF): %s\n", rot0);
+    if (unmatchExif)
+        printf("\nWrong EXIF: %s\n", unmatchExif);
     for (i=0; i < NUM_NOTES; ++i)
         if (sFlagFileList[i])
         {
@@ -153,5 +170,6 @@ void PrintNotes()
                 printf("\nNote %d: ", i);
             printf("%s\n", sFlagFileList[i]);
         }
+    printf("\n");
 }
 

@@ -55,7 +55,6 @@ int ShowImage()
     ScaleAndRotate(gCurImage, 0);
     PrepareWindow();
     /* Keywords dialog will be updated if necessary from DrawImage */
-    //UpdateKeywordsDialog();
 
     if (gDelaySeconds > 0 && gPendingTimeout == 0
         && (gCurImage->next != 0 || gCurImage->next != gFirstImage)) {
@@ -72,6 +71,7 @@ static int LoadImageFromFile(PhoImage* img)
     GError* err = NULL;
 #endif
     int rot;
+    int firsttime;
 
     if (img == 0)
         return -1;
@@ -101,22 +101,59 @@ static int LoadImageFromFile(PhoImage* img)
         return -1;
     }
 
-    img->curWidth = img->trueWidth = gdk_pixbuf_get_width(gImage);
-    img->curHeight = img->trueHeight = gdk_pixbuf_get_height(gImage);
-    img->curRot = 0;
+    img->curWidth = gdk_pixbuf_get_width(gImage);
+    img->curHeight = gdk_pixbuf_get_height(gImage);
 
-    /* Read the EXIF rotation if we haven't already rotated this image */
-    ExifReadInfo(img->filename);
-    if (HasExif() && (rot = ExifGetInt(ExifOrientation)) != 0) {
-        img->desiredRot = rot;
+    /* The first time an image is loaded, it should be rotated
+     * to its appropriate EXIF rotation. Subsequently, though,
+     * it should be rotated to curRot.
+     */
+    if (img->trueWidth == 0 || img->trueHeight == 0) {
+        firsttime = 1;
+        img->trueWidth = img->curWidth;
+        img->trueHeight = img->curHeight;
+
+        /* Read the EXIF rotation if we haven't already rotated this image */
+        ExifReadInfo(img->filename);
+        if (HasExif() && (rot = ExifGetInt(ExifOrientation)) != 0)
+            img->exifRot = rot;
+        else
+            img->exifRot = 0;
     }
 
     return 0;
 }
 
+static int LoadImageAndRotate(PhoImage* img)
+{
+    int e;
+    int rot = img->curRot;
+    int firsttime = (img->trueWidth == 0);
+
+    img->trueWidth = img->trueHeight = img->curRot = 0;
+
+    e = LoadImageFromFile(img);
+    if (e) return e;
+
+    /* If it's not the first time we've loaded this image,
+     * default its rotation to the EXIF rotation if any.
+     * Otherwise rotate to the saved img->curRot.
+     */
+    if (firsttime && img->exifRot != 0)
+        ScaleAndRotate(gCurImage, img->exifRot);
+
+    else
+        ScaleAndRotate(gCurImage, rot);
+
+    return 0;
+}
+
+/* ThisImage() is called when gCurImage has changed and needs to
+ * be reloaded.
+ */
 int ThisImage()
 {
-    if (LoadImageFromFile(gCurImage) != 0)
+    if (LoadImageAndRotate(gCurImage) != 0)
         return NextImage();
     ShowImage();
     return 0;
@@ -133,13 +170,15 @@ int NextImage()
             return -1;  /* end of list, can't go farther */
         else
             gCurImage = gCurImage->next;
-    } while (LoadImageFromFile(gCurImage) != 0);
+    } while (LoadImageAndRotate(gCurImage) != 0);
     ShowImage();
     return 0;
 }
 
 int PrevImage()
 {
+    if (gDebug)
+        printf("\n================= PrevImage ====================\n");
     do {
         if (gCurImage == 0) {  /* no image loaded yet, first call */
             gCurImage = gFirstImage;
@@ -151,7 +190,7 @@ int PrevImage()
                 return -1;  /* end of list */
             gCurImage = gCurImage->prev;
         }
-    } while (LoadImageFromFile(gCurImage) != 0);
+    } while (LoadImageAndRotate(gCurImage) != 0);
     ShowImage();
     return 0;
 }
@@ -176,16 +215,16 @@ static void ScaleToFit(int *new_width, int *new_height,
 #define SWAP(a, b) { int temp = a; a = b; b = temp; }
 //#define SWAP(a, b)  {a ^= b; b ^= a; a ^= b;}
 
-/* Scale the image according to the current scale mode.
+/* Rotate the image according to the current scale mode, scaling as needed.
  * 
  * This will read the image from disk if necessary,
  * and it will rotate the image at the appropriate time
  * (when the image is at its smallest).
  *
  * This is the routine that should be called by external callers:
- * callers should never need to call RotateImage or LoadImageFromFile.
+ * callers should never need to call RotateImage.
  *
- * degrees is the amount of rotation *in addition to* img->desiredRot.
+ * degrees is the increment from the current rotation (curRot).
  */
 void ScaleAndRotate(PhoImage* img, int degrees)
 {
@@ -198,18 +237,18 @@ void ScaleAndRotate(PhoImage* img, int degrees)
     int aspect_changing;
 
     if (gDebug)
-        printf("ScaleAndRotate(%d)\n", degrees);
+        printf("ScaleAndRotate(%d (cur = %d))\n", degrees, img->curRot);
 
-    degrees += img->desiredRot - img->curRot;
-
-    /* Make sure degrees is between 0 and 360 */
+    /* degrees should be between 0 and 360 */
     degrees = (degrees + 360) % 360;
+
+    /* Is the aspect ratio changing? */
     aspect_changing = ((degrees % 180) != 0);
 
-    /* First, load the image if we haven't already */
+    /* First, load the image if we haven't already, to get true w/h */
     if (true_width == 0 || true_height == 0) {
+        if (gDebug) printf("Loading, first time, from ScaleAndRotate!\n");
         LoadImageFromFile(img);
-        degrees = degrees + img->desiredRot;
     }
 
     /* Adjust aspect ratio of true width and height for rotation */
@@ -327,7 +366,8 @@ void ScaleAndRotate(PhoImage* img, int degrees)
         new_width = cur_width;
         new_height = cur_height;
     }
-    /* Finally, we're done with the scaling modes.
+    /*
+     * Finally, we're done with the scaling modes.
      * Time to do the scaling and rotation,
      * reloading the image if needed.
      */
@@ -335,23 +375,33 @@ void ScaleAndRotate(PhoImage* img, int degrees)
     /* First figure out if we're getting bigger and hence need to reload. */
     if ((new_width > cur_width || new_height > cur_height)
         && (cur_width < true_width && cur_height < true_height)) {
-        /* image->curRot is going to be set back to zero
-         * (or to the exif rotation setting)
-         * so adjust current planned rotation accordingly.
+        if (gDebug)
+            printf("Getting bigger, from %dx%d to %dx%d -- need to reload\n",
+                   cur_width, cur_height, new_width, new_height);
+
+        /* image->curRot is going to be set back to zero when we load
+         * from file, so adjust current planned rotation accordingly.
          */
         degrees = (degrees + img->curRot + 360) % 360;
             /* Now it's the absolute end rot desired */
-        aspect_changing = (((degrees + 360) % 180) != 0);
 
+        img->curRot = 0;
         LoadImageFromFile(img);
-        //degrees += img->desiredRot;
-        cur_width = true_width = gdk_pixbuf_get_width(gImage);
-        cur_height = true_height = gdk_pixbuf_get_height(gImage);
 
+        /* Now we no longer care whether aspect is changing from the old rot.
+         * Is it changing from 0?
+         */
+        aspect_changing = (((degrees + 360) % 180) != 0);
         if (aspect_changing) {
-            SWAP(true_width, true_height);
-            SWAP(cur_width, cur_height);
+            cur_width = true_width = gdk_pixbuf_get_height(gImage);
+            cur_height = true_height = gdk_pixbuf_get_width(gImage);
         }
+        else {
+            cur_width = true_width = gdk_pixbuf_get_width(gImage);
+            cur_height = true_height = gdk_pixbuf_get_height(gImage);
+        }
+        img->trueWidth = true_width;
+        img->trueHeight = true_height;
     }
 
     /* new_* are the sizes we want after rotation. But we need
@@ -400,16 +450,22 @@ void ScaleAndRotate(PhoImage* img, int degrees)
         if (gImage)
             gdk_pixbuf_unref(gImage);
         gImage = newimage;
-        img->curWidth = gdk_pixbuf_get_width(gImage);
-        img->curHeight = gdk_pixbuf_get_height(gImage);
+
+        cur_width = gdk_pixbuf_get_width(gImage);
+        cur_height = gdk_pixbuf_get_height(gImage);
     }
 
+    img->curWidth = cur_width;
+    img->curHeight = cur_height;
     /* If we didn't rotate before, do it now. */
     if (degrees != 0)
         RotateImage(img, degrees);
 
-    /* We'd better have current=desired rotation by now */
-    img->desiredRot = img->curRot;
+#ifdef NOTDEF
+    printf("**** End of ScaleAndRotate: curRot is %d, cur %dx%d, true %dx%d\n",
+           gCurImage->curRot, gCurImage->curWidth, gCurImage->curHeight,
+           gCurImage->trueWidth, gCurImage->trueHeight);
+#endif
 }
 
 PhoImage* NewPhoImage(char* fnam)
@@ -434,11 +490,12 @@ static void FreePhoImage(PhoImage* img)
 void ClearImageList()
 {
     PhoImage* img = gFirstImage;
-    while (img) {
-        PhoImage* del = img;
-        img = img->next;
-        FreePhoImage(del);
-    }
+    do {
+        PhoImage* next = img->next;
+        FreePhoImage(img);
+        img = next;
+    } while (img && img != gFirstImage);
+
     gCurImage = gFirstImage = 0;
 }
 
@@ -505,9 +562,11 @@ void DeleteImage(PhoImage* delImg)
         ReallyDelete(delImg);
 }
 
-/* RotateImage just rotates; it no longer calls ScaleImage.
+/* RotateImage just rotates an existing image, no scaling or reloading.
  * It's typically called from ScaleAndRotate either just
  * before or just after scaling.
+ * No one except ScaleAndRotate should call it.
+ * Degrees is the amount of rotation relative to current.
  */
 static int RotateImage(PhoImage* img, int degrees)
 {
@@ -518,6 +577,8 @@ static int RotateImage(PhoImage* img, int degrees)
     GdkPixbuf* newImage;
 
     if (!gImage) return 1;     /* sanity check */
+
+    if (gDebug) printf("RotateImage(%d)\n", degrees);
 
     /* Make sure degrees is between 0 and 360 even if it's -90 */
     degrees = (degrees + 360) % 360;
@@ -608,7 +669,7 @@ static int RotateImage(PhoImage* img, int degrees)
     img->trueWidth = newTrueWidth;
     img->trueHeight = newTrueHeight;
 
-    img->curRot = img->desiredRot = (img->curRot + degrees + 360) % 360;
+    img->curRot = (img->curRot + degrees + 360) % 360;
 
     gdk_pixbuf_unref(gImage);
     gImage = newImage;
@@ -618,7 +679,7 @@ static int RotateImage(PhoImage* img, int degrees)
 
 void Usage()
 {
-    printf("pho version %s.  Copyright 2002,2003,2004,2007 Akkana Peck akkana@shallowsky.com.\n", VERSION);
+    printf("pho version %s.  Copyright 2002-2009 Akkana Peck akkana@shallowsky.com.\n", VERSION);
     printf("Usage: pho [-dhnp] image [image ...]\n");
     printf("\t-p: Presentation mode (full screen)\n");
     printf("\t-k: Keywords mode (show a Keywords dialog for each image)\n");
@@ -659,6 +720,9 @@ void VerboseHelp()
     printf("/\tHalf size\n");
     printf("<kp>-\tHalf size\n");
     printf("i\tShow/hide info dialog\n");
+    printf("o\nChange the working file set (add files or make a new list)\n");
+    printf("g\tRun gimp on the current image\n");
+    printf("\t(or set PHO_REMOTE to an alternate command)\n");
     printf("q\tQuit\n");
     printf("<esc>\tQuit (or hide a dialog, if one is showing)\n");
     exit(1);

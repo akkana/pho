@@ -19,10 +19,11 @@
  */
 typedef struct PhoImage_s {
     char* filename;
-    int trueWidth, trueHeight;
+
+    int trueWidth, trueHeight;  /* may be swapped if rot = 90 or 270 */
     int curWidth, curHeight;
-    int curRot;       /* rotation of the current image bits */
-    int desiredRot;   /* exif or user-specified rotation */
+    int curRot;       /* current rotation of the current image bits */
+    int exifRot;      /* exif-specified rotation */
     unsigned long noteFlags;
     unsigned int deleted;
     struct PhoImage_s* prev;

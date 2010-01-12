@@ -2,29 +2,17 @@ Ideas for improving pho (in no particular order).
 If you have more ideas, or want to contribute to the project,
 let me know!
 
-QUICK FIXES before releasing 0.9.6-pre1:
-- One d toggles Deleted flag, prints at end
-- Event handler for info dialog (so you can ctrl-space, etc.) DONE
-- Comments field more greppable when printing at end. DONE
-- exif fields in info dialog not editable DONE
+BUGS:
 
-CURRENT SUSPECTED CRITICAL BUGS:
-- Non-presentation mode: rotate horizontal to vertical.
-  Displays in left half of window but doesn't resize window.
-  (CAN'T REPRO)
+- EXIF rotation problems (maybe fixed)
 
-- Random gtk error messages on stdout (CAN'T REPRO)
+- non-presentation mode, first DrawImage doesn't allow space for titlebar
+  like subsequent ones.
 
-- keyword mode, then f, then f, then /, then rotate:
-  doesn't resize window. (CAN'T REPRO)
+- Calling DrawImage too many times
 
-BUGS WITH KEYWORD MODE:
 
-- shifted (capital) letters are treated like ctrl-
-  actually looks like only F and D
-  (Should be fixed now)
-
-- Show cursor in text fields in keywords dialog (gtk bug, can't fix)
+- Show cursor in text fields in keywords dialog (gtk bug, probably can't fix)
 
 Regression tests:
 - make sure keywords on current image get saved when you quit.
@@ -38,19 +26,10 @@ Regression tests:
   to scale down before rotating (for performance).
   (I think I fixed this.)
 
-HIGH PRIORITY:
-
-- Investigate possible memory leak of PhoImage.filename.
-  Check comment (probably not a leak) at the same time.
-
-- On Mac: if the image size isn't changing, and we're not in presentation
-  mode, going to the next img doesn't actually draw the next image.
-  But only if the image size is bigger than the screen; in /2 mode
-  it works fine.
-
-- Finish Keywords mode (see bugs above)
 
 FUTURE FEATURE WORK:
+
+- crop with jpegtran
 
 - Parse and write Keywords file
 
