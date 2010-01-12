@@ -98,7 +98,7 @@ int HandleEvent()
           switch (keysym)
           {
             case XK_d:
-                SetNoteFlag(DELETED_INDEX, ArgP);
+                //ReallyDelete();
                 // Fall through: go to next image.
             case XK_space:
                 if (NextImage() != 0)
@@ -120,7 +120,7 @@ int HandleEvent()
             case XK_7:
             case XK_8:
             case XK_9:
-                SetNoteFlag(keysym - XK_0, ArgP);
+                SetNoteFlag(ArgP, keysym - XK_0);
                 break;
             case XK_t:   // make life easier for xv users
             case XK_r:
@@ -174,6 +174,9 @@ int main(int argc, char** argv)
     ArgV = argv;
     ArgC = argc;
     ArgP = 0;
+
+    // Allocate space to store notes about each image.
+    MakeNotesList(ArgC);
 
     // Load the first image (make sure we have at least one):
     if (NextImage() != 0)

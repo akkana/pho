@@ -17,7 +17,6 @@ static GtkWidget* InfoDImgName = 0;
 static GtkWidget* InfoDImgSize = 0;
 static GtkWidget* InfoDImgRotation = 0;
 static GtkWidget* InfoFlag[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-static GtkWidget* InfoDImgDeleted = 0;
 
 void UpdateAndPopDown()
 {
@@ -26,8 +25,7 @@ void UpdateAndPopDown()
     gtk_widget_hide(InfoDialog);
     if (text && *text)
         AddComment(ArgP, text);
-    SetDeleted(ArgP,
-            gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(InfoDImgDeleted)));
+            
     flags = 0;
     for (i=0, mask=1; i<10; ++i, mask <<= 1)
     {
@@ -73,8 +71,6 @@ void UpdateInfoDialog()
           gtk_label_set_text(GTK_LABEL(InfoDImgRotation), "  0");
           break;
     }
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(InfoDImgDeleted),
-                                 IsDeleted(ArgP) ? TRUE : FALSE);
     flags = GetFlags(ArgP);
     for (i=0, mask=1; i<10; ++i, mask <<= 1)
         gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(InfoFlag[i]),
@@ -164,11 +160,6 @@ void ToggleInfo()
     gtk_box_pack_start(GTK_BOX(GTK_DIALOG(InfoDialog)->vbox),
                        box, TRUE, TRUE, 0);
     gtk_widget_show(box);
-
-    InfoDImgDeleted = gtk_check_button_new_with_label("Deleted");
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(InfoDialog)->vbox),
-                       InfoDImgDeleted, TRUE, TRUE, 0);
-    gtk_widget_show(InfoDImgDeleted);
 
     box = gtk_hbox_new(FALSE, 0);
     label = gtk_label_new("Comment:");

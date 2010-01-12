@@ -135,7 +135,7 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
       case GDK_7:
       case GDK_8:
       case GDK_9:
-          SetNoteFlag(event->keyval - GDK_0, ArgP);
+          SetNoteFlag(ArgP, event->keyval - GDK_0);
           return TRUE;
       case GDK_t:   // make life easier for xv users
       case GDK_r:
@@ -188,12 +188,14 @@ int main(int argc, char** argv)
     ArgC = argc;
     ArgP = 0;
 
+    // Allocate space to store notes about each image.
+    MakeNotesList(ArgC);
+
     // Load the first image (make sure we have at least one):
     if (NextImage() != 0)
         exit(1);
 
     // See http://www.gtk.org/tutorial
-
     gtk_init(&ArgC, &ArgV);
     
     win = gtk_window_new(GTK_WINDOW_TOPLEVEL);

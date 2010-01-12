@@ -28,24 +28,25 @@ int YSize = 300;
 int MonitorWidth = 1600;
 int MonitorHeight = 1200;
 
-static int numImages = 0;
-
-int LoadImageFromFile()
+static int LoadImageFromFile(int index)
 {
+    struct ImgNotes_s *curNote;
+
+    if (IsDeleted(index))
+        return -1;
+
+    curNote = FindImgNote(index);
+
     if (image)
         gdk_pixbuf_unref(image);
-    image = gdk_pixbuf_new_from_file(ArgV[ArgP]);
+    image = gdk_pixbuf_new_from_file(ArgV[index]);
     if (!image)
     {
-        fprintf(stderr, "Can't open %s\n", ArgV[ArgP]);
-        return 1;
+        fprintf(stderr, "Can't open %s\n", ArgV[index]);
+        return -1;
     }
 
-    if (ArgP > numImages)
-        ++numImages;
-
     // Rotate if necessary:
-    FindImgNote(ArgP);
     if (curNote && curNote->rotation != 0)
     {
         int rot = curNote->rotation;
@@ -63,7 +64,7 @@ int NextImage()
         if (ArgP >= ArgC-1)
             return -1;
         ++ArgP;
-    } while (LoadImageFromFile() != 0);
+    } while (LoadImageFromFile(ArgP) != 0);
     return 0;
 }
 
@@ -74,7 +75,7 @@ int PrevImage()
         if (ArgP <= 1)
             return -1;
         --ArgP;
-    } while (LoadImageFromFile() != 0);
+    } while (LoadImageFromFile(ArgP) != 0);
     return 0;
 }
 
@@ -85,19 +86,19 @@ void FreePixels(guchar* pixels, gpointer data)
 
 void DeleteImage()
 {
-    FindImgNote(ArgP);
+    struct ImgNotes_s* curNote = FindImgNote(ArgP);
     if (!curNote) return;
     ShowDeleteDialog();
 }
 
 void ReallyDelete()
 {
-    curNote->deleted = 1;
     if (unlink(ArgV[ArgP]) < 0)
     {
         printf("OOPS!  Can't delete %s\n", ArgV[ArgP]);
         return;
     }
+    MarkDeleted(ArgP);
     if (NextImage() != 0)
         if (PrevImage() != 0)
             EndSession();
@@ -110,11 +111,9 @@ int RotateImage(int degrees)
     int x, y;
     int temp;
     int oldrowstride, newrowstride, nchannels, bitsper, alpha;
-    struct ImgNotes_s* imgnote;
 
     // If we ever rotate it, we'll definitely need notes on this image:
-    FindImgNote(ArgP);
-    imgnote = curNote;
+    struct ImgNotes_s* curNote = FindImgNote(ArgP);
 
     // If we've resized it smaller than original, but after
     // rotating it we'd be able to show it bigger than current size,
@@ -128,8 +127,8 @@ int RotateImage(int degrees)
         if (!image) return 1;
         XSize = gdk_pixbuf_get_width(image);
         YSize = gdk_pixbuf_get_height(image);
-        degrees = (degrees + imgnote->rotation) % 360;
-        imgnote->rotation = 0;
+        degrees = (degrees + curNote->rotation) % 360;
+        curNote->rotation = 0;
     }
 
     // degrees might be zero now, since we might have just
@@ -192,7 +191,7 @@ int RotateImage(int degrees)
           YSize = temp;
     }
 
-    imgnote->rotation = (imgnote->rotation + degrees + 360) % 360;
+    curNote->rotation = (curNote->rotation + degrees + 360) % 360;
 
     if (image)
         gdk_pixbuf_unref(image);
@@ -208,7 +207,7 @@ int RotateImage(int degrees)
 
 void Usage()
 {
-    printf("pho version 0.5.1.  Copyright 2002 Akkana Peck.\n");
+    printf("pho version 0.6.  Copyright 2002 Akkana Peck.\n");
     printf("Usage: pho [-d] image [image ...]\n");
     exit(1);
 }

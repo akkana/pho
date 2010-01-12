@@ -11,105 +11,77 @@
 #include <stdio.h>
 #include <stdlib.h>       // for malloc()
 
-static struct ImgNotes_s* NotesList = 0;
-struct ImgNotes_s* curNote = 0;
+struct ImgNotes_s **NotesList = 0;
 
-void
+static int numImages = 0;
+
+void MakeNotesList(int num)
+{
+    NotesList = calloc(num, sizeof (struct ImgNotes_s *));
+}
+
+struct ImgNotes_s*
 FindImgNote(int index)
 {
-    // Loop over the list and insert it at the right place
-    struct ImgNotes_s* thisnote = NotesList;
-    struct ImgNotes_s* lastnote = 0;
-    struct ImgNotes_s* newnote;
-
-    // Shortcut: often we'll already be pointing at the right item,
-    // so check for that first:
-    if (curNote && curNote->index == index)
-        return;
-
-    while (thisnote && thisnote->index <= index)
-    {
-        if (thisnote->index == index)
-        {
-            curNote = thisnote;
-            return;
-        }
-
-        lastnote = thisnote;
-        thisnote = thisnote->next;
-    }
+    if (NotesList[index] != 0)
+        return NotesList[index];
 
     // We didn't match anything exactly, so we have to make a new node.
-    newnote = malloc(sizeof (struct ImgNotes_s));
-    if (!newnote)
-    {
-        curNote = 0;
-        return;
-    }
-    newnote->index = index;
-    newnote->rotation = 0;
-    newnote->deleted = 0;
-    newnote->noteFlags = 0;
-    newnote->comment = 0;
+    NotesList[index] = malloc(sizeof (struct ImgNotes_s));
+    if (!NotesList[index])
+        return 0;
 
-    // Now insert it into the list
-    newnote->prev = lastnote;
-    if (lastnote)
-        lastnote->next = newnote;
-    newnote->next = thisnote;
-    if (thisnote)
-        thisnote->prev = newnote;
-    if (!NotesList)
-        NotesList = newnote;
-    curNote = newnote;
-    return;
+    NotesList[index]->rotation = 0;
+    NotesList[index]->noteFlags = 0;
+    NotesList[index]->comment = 0;
+
+    if (index > numImages)
+        ++numImages;
+
+    return NotesList[index];
+}
+
+void MarkDeleted(int index)
+{
+    ArgV[index][0] = 0;
+}
+
+int IsDeleted(int index)
+{
+    return (ArgV[index][0] == 0);
 }
 
 char* GetComment(int index)
 {
-    FindImgNote(index);
+    struct ImgNotes_s *curNote = FindImgNote(index);
     if (!curNote) return 0;
     return curNote->comment;
 }
 
 int GetRotation(int index)
 {
-    FindImgNote(index);
+    struct ImgNotes_s *curNote = FindImgNote(index);
     if (!curNote) return 0;
     return curNote->rotation;
 }
 
 void AddComment(int index, char* note)
 {
-    FindImgNote(index);
+    struct ImgNotes_s *curNote = FindImgNote(index);
     if (!curNote) return;
     curNote->comment = strdup(note);
 }
 
-int IsDeleted(int index)
-{
-    FindImgNote(ArgP);
-    if (!curNote) return 0;
-    return (curNote->deleted);
-}
-
-void SetDeleted(int index, unsigned int deleted)
-{
-    FindImgNote(ArgP);
-    if (curNote)
-        curNote->deleted = deleted;
-}
-
 void SetFlags(int index, unsigned int flags)
 {
-    FindImgNote(ArgP);
+    struct ImgNotes_s *curNote = FindImgNote(index);
     if (curNote)
         curNote->noteFlags = flags;
 }
 
 unsigned int GetFlags(int index)
 {
-    FindImgNote(ArgP);
+    struct ImgNotes_s *curNote = FindImgNote(index);
     if (!curNote) return 0;
     return curNote->noteFlags;
 }
@@ -121,7 +93,8 @@ char* GetFlagString(int index)
     int i, mask;
     int foundone = 0;
 
-    FindImgNote(ArgP);
+    struct ImgNotes_s *curNote = FindImgNote(index);
+
     if (!curNote) return spaces;
     if (curNote->noteFlags == 0) return spaces;
     mask = 1;
@@ -143,16 +116,19 @@ char* GetFlagString(int index)
     return buf;
 }
 
-void SetNoteFlag(int note, int index)
+void SetNoteFlag(int index, int note)
 {
     int mask = (1 << note);
+    struct ImgNotes_s *curNote = FindImgNote(index);
+
     if (note > 15) return;
-    FindImgNote(index);
     if (!curNote) return;
     if (curNote->noteFlags & mask)
         curNote->noteFlags &= ~mask;   // clear
     else
         curNote->noteFlags |= mask;    // set
+
+    printf("Set note %d for %d to 0x%x\n", note, index, curNote->noteFlags);
 }
 
 static char *flags[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -176,59 +152,54 @@ void AddImgToList(char** strp, char* str)
 void PrintNotes()
 {
     int i;
-    char* deleted=0;
     char *rot90=0, *rot180=0, *rot270=0;
-    struct ImgNotes_s* thisnote = NotesList;
 
-    while (thisnote)
+    for (i=1; i<numImages; ++i)
     {
-        if (thisnote->comment)
-            printf("%s: %s\n", ArgV[thisnote->index], thisnote->comment);
-        if (thisnote->noteFlags)
+        if (!NotesList[i] || IsDeleted(i))
+            continue;
+
+        if (NotesList[i]->comment)
+            printf("%s: %s\n", ArgV[i], NotesList[i]->comment);
+        if (NotesList[i]->noteFlags)
         {
             int flag;
-            for (i=1, flag=1; i<=10; ++i)
+            int j;
+            for (j=1, flag=1; j<=10; ++j)
             {
                 flag <<= 1;
-                if (thisnote->noteFlags & flag)
-                    AddImgToList(flags+i, ArgV[thisnote->index]);
+                if (NotesList[i]->noteFlags & flag)
+                    AddImgToList(flags+j, ArgV[i]);
             }
         }
-        if (thisnote->deleted)
-            AddImgToList(&deleted, ArgV[thisnote->index]);
 
-        switch (thisnote->rotation)
+        switch (NotesList[i]->rotation)
         {
           case 90:
-              AddImgToList(&rot90, ArgV[thisnote->index]);
+              AddImgToList(&rot90, ArgV[i]);
               break;
           case 180:
-              AddImgToList(&rot180, ArgV[thisnote->index]);
+              AddImgToList(&rot180, ArgV[i]);
               break;
           case 270:
           case -90:
-              AddImgToList(&rot270, ArgV[thisnote->index]);
+              AddImgToList(&rot270, ArgV[i]);
               break;
           default:
               break;
         }
-        thisnote = thisnote->next;
     }
 
     // Now we've looped over all the structs, so we can print out
     // the tables of rotation and notes.
-#ifdef NOT_REALLY_DELETED
-    if (deleted)
-        printf("Deleted: %s\n", deleted);
-#endif
     if (rot90)
-        printf("Rotate 90 (CW): %s\n", rot90);
+        printf("\nRotate 90 (CW): %s\n", rot90);
     if (rot270)
-        printf("Rotate -90 (CCW): %s\n", rot270);
+        printf("\nRotate -90 (CCW): %s\n", rot270);
     if (rot180)
-        printf("Rotate 180: %s\n", rot180);
+        printf("\nRotate 180: %s\n", rot180);
     for (i=0; i<10; ++i)
         if (flags[i])
-            printf("Note %d: %s\n", i, flags[i]);
+            printf("\nNote %d: %s\n", i, flags[i]);
 }
 
