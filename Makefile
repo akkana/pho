@@ -1,9 +1,9 @@
 # Makefile for pho
 
-VERSION = 0.9.7-pre2
+VERSION = 0.9.7-pre3
 
 # Locate the gtk/gdk libraries (thanks to nev for this!)
-CFLAGS = -g -Wall -pedantic -DVERSION='"$(VERSION)"'
+CFLAGS += -g -Wall -pedantic -DVERSION='"$(VERSION)"'
 G1FLAGS := $(shell gdk-pixbuf-config --cflags 2> /dev/null)
 G2FLAGS := $(shell pkg-config --cflags gtk+-2.0 gdk-2.0 2> /dev/null)
 CFLAGS := $(CFLAGS) $(shell if test -n "${G2FLAGS}"; then echo "${G2FLAGS}"; else echo "${G1FLAGS}"; fi)

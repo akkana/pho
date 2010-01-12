@@ -68,7 +68,6 @@ static int LoadImageFromFile(PhoImage* img)
 {
     GError* err = NULL;
     int rot;
-    int firsttime;
 
     if (img == 0)
         return -1;
@@ -92,16 +91,18 @@ static int LoadImageFromFile(PhoImage* img)
 
     img->curWidth = gdk_pixbuf_get_width(gImage);
     img->curHeight = gdk_pixbuf_get_height(gImage);
+    /* trueWidth and Height used to be set inside next clause,
+     * but that doesn't make sense -- we need it not just the first
+     * time, but also ever time the image is reloaded.
+     */
+    img->trueWidth = img->curWidth;
+    img->trueHeight = img->curHeight;
 
     /* The first time an image is loaded, it should be rotated
      * to its appropriate EXIF rotation. Subsequently, though,
      * it should be rotated to curRot.
      */
     if (img->trueWidth == 0 || img->trueHeight == 0) {
-        firsttime = 1;
-        img->trueWidth = img->curWidth;
-        img->trueHeight = img->curHeight;
-
         /* Read the EXIF rotation if we haven't already rotated this image */
         ExifReadInfo(img->filename);
         if (HasExif() && (rot = ExifGetInt(ExifOrientation)) != 0)
@@ -190,12 +191,10 @@ int PrevImage()
 static void ScaleToFit(int *new_width, int *new_height,
                        int max_width, int max_height)
 {
-    double ratio = 1.;
     /* scale so that the biggest ratio just barely fits on screen. */
     double xratio = (double)max_width / *new_width;
     double yratio = (double)max_height / *new_height;
-    if (xratio > yratio) ratio = yratio;
-    else ratio = xratio;
+    double ratio = MIN(xratio, yratio);
 
     *new_width = ratio * *new_width;
     *new_height = ratio * *new_height;
@@ -217,14 +216,10 @@ static void ScaleToFit(int *new_width, int *new_height,
  */
 void ScaleAndRotate(PhoImage* img, int degrees)
 {
-    int true_width = img->trueWidth;
-    int true_height = img->trueHeight;
-    int cur_width = img->curWidth;
-    int cur_height = img->curHeight;
+#define true_width img->trueWidth
+#define true_height img->trueHeight
     int new_width;
     int new_height;
-    int aspect_changing;
-    int unrot_new_height, unrot_new_width;
 
     if (gDebug)
         printf("ScaleAndRotate(%d (cur = %d))\n", degrees, img->curRot);
@@ -232,20 +227,19 @@ void ScaleAndRotate(PhoImage* img, int degrees)
     /* degrees should be between 0 and 360 */
     degrees = (degrees + 360) % 360;
 
-    /* Is the aspect ratio changing? */
-    aspect_changing = ((degrees % 180) != 0);
-
     /* First, load the image if we haven't already, to get true w/h */
     if (true_width == 0 || true_height == 0) {
         if (gDebug) printf("Loading, first time, from ScaleAndRotate!\n");
         LoadImageFromFile(img);
     }
 
-    /* Adjust aspect ratio of true width and height for rotation */
-    if (aspect_changing) {
-        SWAP(true_width, true_height);
-        SWAP(cur_width, cur_height);
-    }
+    /*
+     * Calculate new_width and new_height, the size to which the image
+     * should be scaled before or after rotation,
+     * based on the current scale mode.
+     * That means that if the aspect ratio is changing,
+     * new_width will be the image's height after rotation.
+     */
 
     /* Fullsize: display always at real resolution,
      * even if it's too big to fit on the screen.
@@ -261,40 +255,48 @@ void ScaleAndRotate(PhoImage* img, int degrees)
 #define NORMAL_SCALE_SLOP 5
     else if (gScaleMode == PHO_SCALE_NORMAL
              || gScaleMode == PHO_SCALE_SCREEN_RATIO) {
-        int max_width = gMonitorWidth;
-        int max_height = gMonitorHeight;
-        int diff;
-
+        int max_width, max_height;
+        int aspect_changing;    /* Is the aspect ratio changing? */
+        
         new_width = true_width;
         new_height = true_height;
 
-        if (new_width > max_width || new_height > max_height) {
-            ScaleToFit(&new_width, &new_height, max_width, max_height);
+        aspect_changing = ((degrees % 180) != 0);
+        if (aspect_changing) {
+            max_width = gMonitorHeight;
+            max_height = gMonitorWidth;
+            if (gDebug)
+                printf("Aspect ratio is changing\n");
+        } else {
+            max_width = gMonitorWidth;
+            max_height = gMonitorHeight;
         }
+        if (new_width > max_width || new_height > max_height)
+            ScaleToFit(&new_width, &new_height, max_width, max_height);
 
+        /* In case we're scaling: */
         new_width *= gScaleRatio;
         new_height *= gScaleRatio;
 
-        /* Now w and h hold the desired sizes.  See if we're close already. */
-        diff = abs(cur_width - new_width)
-            + abs(cur_height - new_height);
-        if (diff < NORMAL_SCALE_SLOP) {
-            new_width = cur_width;
-            new_height = cur_height;
+        /* See if new_width and new_height are close enough already
+         * that it might not be worth doing the work of scaling:
+         */
+        if (abs(img->curWidth - new_width) + abs(img->curHeight - new_height)
+            < NORMAL_SCALE_SLOP) {
+            new_width = img->curWidth;
+            new_height = img->curHeight;
         }
     }
 
     else if (gScaleMode == PHO_SCALE_IMG_RATIO) {
-        int diff;
         new_width = true_width * gScaleRatio;
         new_height = true_height * gScaleRatio;
 
         /* See if we're close */
-        diff = abs(cur_width - new_width)
-               + abs(cur_height - new_height);
-        if (diff < NORMAL_SCALE_SLOP) {
-            new_width = cur_width;
-            new_height = cur_height;
+        if (abs(img->curWidth - new_width) + abs(img->curHeight - new_height)
+            < NORMAL_SCALE_SLOP) {
+            new_width = img->curWidth;
+            new_height = img->curHeight;
         }
     }
         
@@ -309,8 +311,8 @@ void ScaleAndRotate(PhoImage* img, int degrees)
          * onto only one monitor, but gdk_screen_width() gives the
          * width of the full xinerama setup.
          */
-        int diffx = abs(cur_width - gMonitorWidth);
-        int diffy = abs(cur_height - gMonitorHeight);
+        int diffx = abs(img->curWidth - gMonitorWidth);
+        int diffy = abs(img->curHeight - gMonitorHeight);
         double xratio, yratio;
         gint screenwidth, screenheight;
 
@@ -322,24 +324,24 @@ void ScaleAndRotate(PhoImage* img, int degrees)
         }
 
         if (diffx < FULLSCREEN_SCALE_SLOP || diffy < FULLSCREEN_SCALE_SLOP) {
-            /* XXX these get overwritten in a few lines! */
-            new_width = cur_width;
-            new_height = cur_height;
+            new_width = img->curWidth;
+            new_height = img->curHeight;
         }
+        else {
+            xratio = (double)screenwidth / true_width;
+            yratio = (double)screenheight / true_height;
 
-        xratio = (double)screenwidth / true_width;
-        yratio = (double)screenheight / true_height;
-
-        /* Use xratio for the more extreme of the two */
-        if (xratio > yratio) xratio = yratio;
-        new_width = xratio * true_width;
-        new_height = xratio * true_height;
+            /* Use xratio for the more extreme of the two */
+            if (xratio > yratio) xratio = yratio;
+            new_width = xratio * true_width;
+            new_height = xratio * true_height;
+        }
     }
     else {
         /* Shouldn't ever happen, means gScaleMode is bogus */
         printf("Internal error: Unknown scale mode %d\n", gScaleMode);
-        new_width = cur_width;
-        new_height = cur_height;
+        new_width = img->curWidth;
+        new_height = img->curHeight;
     }
     /*
      * Finally, we're done with the scaling modes.
@@ -348,11 +350,20 @@ void ScaleAndRotate(PhoImage* img, int degrees)
      */
 
     /* First figure out if we're getting bigger and hence need to reload. */
-    if ((new_width > cur_width || new_height > cur_height)
-        && (cur_width < true_width && cur_height < true_height)) {
+    if ((new_width > img->curWidth || new_height > img->curHeight)
+        && (img->curWidth < true_width && img->curHeight < true_height)) {
         if (gDebug)
             printf("Getting bigger, from %dx%d to %dx%d -- need to reload\n",
-                   cur_width, cur_height, new_width, new_height);
+                   img->curWidth, img->curHeight, new_width, new_height);
+
+        /* Because curRot is going back to zero, that means we
+         * might need to swap new_width and new_height, in case
+         * the aspect ratio is changing
+        //if (img->curRot % 180 != 0) {
+         */
+        if (degrees % 180 != 0) {
+            SWAP(new_width, new_height);
+        }
 
         /* image->curRot is going to be set back to zero when we load
          * from file, so adjust current planned rotation accordingly.
@@ -362,21 +373,12 @@ void ScaleAndRotate(PhoImage* img, int degrees)
 
         img->curRot = 0;
         LoadImageFromFile(img);
-
-        /* Now we no longer care whether aspect is changing from the old rot.
-         * Is it changing from 0?
-         */
-        aspect_changing = (((degrees + 360) % 180) != 0);
-        if (aspect_changing) {
-            cur_width = true_width = gdk_pixbuf_get_height(gImage);
-            cur_height = true_height = gdk_pixbuf_get_width(gImage);
-        }
-        else {
-            cur_width = true_width = gdk_pixbuf_get_width(gImage);
-            cur_height = true_height = gdk_pixbuf_get_height(gImage);
-        }
-        img->trueWidth = true_width;
-        img->trueHeight = true_height;
+    }
+#if 0
+    else if (degrees % 180 != 0) {
+        SWAP(new_width, new_height);
+        printf("Not reloading, but swapped new width/height, now %dx%d\n",
+               new_width, new_height);
     }
 
     /* new_* are the sizes we want after rotation. But we need
@@ -387,59 +389,59 @@ void ScaleAndRotate(PhoImage* img, int degrees)
     /* If we're going to scale up, then do the rotation first,
      * before scaling. Otherwise, scale down first then rotate.
      */
-    if (degrees != 0 && (new_width > cur_width || new_height > cur_height)) {
+    if (degrees != 0 &&
+        (new_width > img->curWidth || new_height > img->curHeight)) {
+        if (gDebug) printf("Rotating before scaling up\n");
+        printf("Will be scaling from %dx%d to %dx%d\n",
+               img->curWidth, img->curHeight, new_width, new_height);
         RotateImage(img, degrees);
         degrees = 0;    /* finished with rotation */
-        unrot_new_width = new_width;
-        unrot_new_height = new_height;
     }
-    else if (aspect_changing) {
-        unrot_new_height = new_width;
-        unrot_new_width = new_height;
-    } else {
-        unrot_new_width = new_width;
-        unrot_new_height = new_height;
-    }
+#endif
 
     /* Do the scaling (thought we'd never get there!) */
-    if (unrot_new_width != img->curWidth || unrot_new_height != img->curHeight)
+    if (new_width != img->curWidth || new_height != img->curHeight)
     {
         GdkPixbuf* newimage = gdk_pixbuf_scale_simple(gImage,
-                                                      unrot_new_width,
-                                                      unrot_new_height,
-                                                      GDK_INTERP_NEAREST);
+                                                      new_width,
+                                                      new_height,
+                                                      GDK_INTERP_BILINEAR);
+        /* If that's too slow use GDK_INTERP_NEAREST */
+
         /* scale_simple apparently has no error return; if it fails,
          * it still returns a pixbuf but width and height are -1.
          * Hope this undocumented behavior doesn't change!
+         * Later: now it's documented. Whew.
          */
         if (!newimage || gdk_pixbuf_get_width(newimage) < 1) {
             printf("\007Error scaling up to %d x %d: probably out of memory\n",
-                   unrot_new_width, unrot_new_height);
+                   new_width, new_height);
             if (newimage)
                 gdk_pixbuf_unref(newimage);
             Prompt("Couldn't scale up: probably out of memory", "Bummer", 0,
                    "\n ", "");
             return;
         }
+        if (gDebug)
+            printf("Scale from %dx%d = %dx%d to %dx%d = %dx%d\n",
+                   img->curWidth, img->curHeight,
+                   gdk_pixbuf_get_width(gImage), gdk_pixbuf_get_height(gImage),
+                   new_width, new_height,
+                   gdk_pixbuf_get_width(newimage),
+                   gdk_pixbuf_get_height(newimage));
         if (gImage)
             gdk_pixbuf_unref(gImage);
         gImage = newimage;
 
-        cur_width = gdk_pixbuf_get_width(gImage);
-        cur_height = gdk_pixbuf_get_height(gImage);
+        img->curWidth = gdk_pixbuf_get_width(gImage);
+        img->curHeight = gdk_pixbuf_get_height(gImage);
     }
 
-    img->curWidth = cur_width;
-    img->curHeight = cur_height;
     /* If we didn't rotate before, do it now. */
-    if (degrees != 0)
+    if (degrees != 0) {
+        printf("Rotating by %d degrees\n", degrees);
         RotateImage(img, degrees);
-
-#ifdef NOTDEF
-    printf("**** End of ScaleAndRotate: curRot is %d, cur %dx%d, true %dx%d\n",
-           gCurImage->curRot, gCurImage->curWidth, gCurImage->curHeight,
-           gCurImage->trueWidth, gCurImage->trueHeight);
-#endif
+    }
 
     /* We've finished making our changes. Now we may need to make
      * changes in the window size or position.
@@ -557,7 +559,10 @@ static int RotateImage(PhoImage* img, int degrees)
 
     if (!gImage) return 1;     /* sanity check */
 
-    if (gDebug) printf("RotateImage(%d)\n", degrees);
+    if (gDebug)
+        printf("RotateImage(%d), initially %d x %d, true %dx%d\n",
+               degrees, img->curWidth, img->curHeight,
+               img->trueWidth, img->trueHeight);
 
     /* Make sure degrees is between 0 and 360 even if it's -90 */
     degrees = (degrees + 360) % 360;
@@ -627,19 +632,8 @@ static int RotateImage(PhoImage* img, int degrees)
                 return 1;
             }
             for (i=0; i<nchannels; ++i)
-            {
-#if 0
-                if (x > img->curWidth-3 && y > img->curHeight-3)
-                {
-                    printf("(%d, %d) -> (%d, %d) # %d\n", x, y, newx, newy, i);
-                    printf("%d -> %d\n",
-                           newy*newrowstride + newx*nchannels + i,
-                           y*oldrowstride + x*nchannels + i);
-                }
-#endif
                 newpixels[newy*newrowstride + newx*nchannels + i]
                     = oldpixels[y*oldrowstride + x*nchannels + i];
-            }
         }
     }
 

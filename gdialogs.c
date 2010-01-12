@@ -459,7 +459,7 @@ int Prompt(char* msg, char* yesStr, char* noStr, char* yesChars, char* noChars)
                                                    GTK_DIALOG_MODAL,
                                                    yesStr, 1,
                                                    noStr, 0,
-                                                   0);
+                                                   NULL);
         KeepOnTop(promptDialog);
 
         /* Make sure Enter will activate OK, not Cancel */

@@ -287,11 +287,11 @@ static void CheckArg(char* arg)
         else if (*arg == 'n')
             gMakeNewWindows = 1;
         else if (*arg == 'p')
-            SetViewModes(PHO_DISPLAY_PRESENTATION, gScaleMode, gScaleRatio);
+            gDisplayMode = PHO_DISPLAY_PRESENTATION;
         else if (*arg == 'P')
-            SetViewModes(PHO_DISPLAY_NORMAL, gScaleMode, gScaleRatio);
+            gDisplayMode = PHO_DISPLAY_NORMAL;
         else if (*arg == 'k')
-            SetViewModes(PHO_DISPLAY_KEYWORDS, gScaleMode, gScaleRatio);
+            gDisplayMode = PHO_DISPLAY_KEYWORDS;
         else if (*arg == 's') {
             /* find the slideshow delay time, from e.g. pho -s2 */
             if (isdigit(arg[1]))
