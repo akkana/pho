@@ -1,3 +1,4 @@
+/* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 /*
  * gmain.c: gtk main routines for pho, an image viewer.
  *
@@ -16,6 +17,8 @@
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
+
+#include <gdk/gdkx.h>    // for gdk_x11_display_grab
 
 /* Some window managers don't deal well with windows that resize,
  * or don't retain focus if a resized window no longer contains
@@ -90,6 +93,8 @@ void EndSession()
 {
     PrintNotes();
     gtk_main_quit();
+    /* This doesn't always quit!  So make sure: */
+    exit(0);
 }
 
 static gint HandleDelete(GtkWidget* widget, GdkEventKey* event, gpointer data)
@@ -130,7 +135,7 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
           PrevImage();
           return TRUE;
       case GDK_Home:
-          gCurImage = gFirstImage;
+          gCurImage = 0;
           NextImage();
           return TRUE;
       case GDK_F:
@@ -203,8 +208,8 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
           return TRUE;
 #if 0
       case GDK_g:  // start gimp
-          if ((i = CallExternal("gimp-remotte -n", ArgV[ArgP])) != 0) {
-              i = CallExternal("gimp", ArgV[ArgP]);
+          if ((i = CallExternal("gimp-remotte -n", gCurImage->filename) != 0) {
+              i = CallExternal("gimp", gCurImage->filename);
               printf("Called gimp, returned %d\n", i);
           }
           else printf("Called gimp-remote, returned %d\n", i);
@@ -305,6 +310,76 @@ static void NewWindow()
     gtk_widget_show(sWin);
 }
 
+/**
+ * gdk_window_focus:
+ * @window: a #GdkWindow
+ * @timestamp: timestamp of the event triggering the window focus
+ *
+ * Sets keyboard focus to @window. If @window is not onscreen this
+ * will not work. In most cases, gtk_window_present() should be used on
+ * a #GtkWindow, rather than calling this function.
+ *
+ * For Pho: this is a replacement for gdk_window_focus
+ * due to the issue in http://bugzilla.gnome.org/show_bug.cgi?id=150668
+ * 
+ **/
+//#define GDK_WINDOW_SCREEN(win)	      (GDK_DRAWABLE_IMPL_X11 (((GdkWindowObject *)win)->impl)->screen)
+//#define GDK_WINDOW_DISPLAY(win)       (GDK_SCREEN_X11 (GDK_WINDOW_SCREEN (win))->display)
+//#define GDK_WINDOW_XROOTWIN(win)      (GDK_SCREEN_X11 (GDK_WINDOW_SCREEN (win))->xroot_window)
+
+#define GDK_WINDOW_DISPLAY(win)       gdk_drawable_get_display(win)
+#define GDK_WINDOW_SCREEN(win)	      gdk_drawable_get_screen(win)
+#define GDK_WINDOW_XROOTWIN(win)      GDK_ROOT_WINDOW()
+
+static void
+pho_window_focus (GdkWindow *window,
+                  guint32    timestamp)
+{
+  GdkDisplay *display;
+  
+  g_return_if_fail (GDK_IS_WINDOW (window));
+
+  if (GDK_WINDOW_DESTROYED (window))
+    return;
+
+  display = GDK_WINDOW_DISPLAY (window);
+
+  if (gdk_x11_screen_supports_net_wm_hint (GDK_WINDOW_SCREEN (window),
+                                           gdk_atom_intern ("_NET_ACTIVE_WINDOW", FALSE)))
+  {
+      XEvent xev;
+
+      xev.xclient.type = ClientMessage;
+      xev.xclient.serial = 0;
+      xev.xclient.send_event = True;
+      xev.xclient.window = GDK_WINDOW_XWINDOW (window);
+      xev.xclient.message_type =
+          gdk_x11_get_xatom_by_name_for_display (display,
+                                                 "_NET_ACTIVE_WINDOW");
+      xev.xclient.format = 32;
+      xev.xclient.data.l[0] = 1; /* requestor type; we're an app */
+      xev.xclient.data.l[1] = timestamp;
+      xev.xclient.data.l[2] = GDK_WINDOW_XID (window);
+      xev.xclient.data.l[3] = 0;
+      xev.xclient.data.l[4] = 0;
+      
+      XSendEvent (GDK_DISPLAY_XDISPLAY (display), GDK_WINDOW_XROOTWIN (window), False,
+                  SubstructureRedirectMask | SubstructureNotifyMask,
+                  &xev);
+  }
+  else
+  {
+      XRaiseWindow (GDK_DISPLAY_XDISPLAY (display), GDK_WINDOW_XID (window));
+
+      /* There is no way of knowing reliably whether we are viewable;
+       * _gdk_x11_set_input_focus_safe() traps errors asynchronously.
+      _gdk_x11_set_input_focus_safe (display, GDK_WINDOW_XID (window),
+                                     RevertToParent,
+                                     timestamp);
+       */
+  }
+}
+
 /* PrepareWindow is responsible for making the window the right
  * size and position, so the user doesn't see flickering.
  * It may actually make a new window, or it may just resize and/or
@@ -360,8 +435,26 @@ void PrepareWindow()
      * Neither gtk_window_present nor gdk_window_focus seem to work.
      */
 #if GTK_MAJOR_VERSION == 2
+    pho_window_focus(sWin->window, GDK_CURRENT_TIME);
+
+#if 0
+    /* None of these actually work!  Is there any way to get keyboard
+     * focus into a window?
+     */
+    GdkGrabStatus grabstat;
+    printf("Trying desperately to grab focus!\n");
     gtk_window_present(GTK_WINDOW(sWin));
-    gdk_window_focus(sWin->window, 0);
+    gtk_widget_grab_focus(sWin);
+    //gdk_x11_display_grab(gdk_drawable_get_display(sWin->window));
+    grabstat = gdk_keyboard_grab(sWin->window, FALSE, GDK_CURRENT_TIME);
+    printf("Grab status: %d\n", grabstat);
+    gdk_window_lower(sWin->window);
+    //gdk_window_raise(sWin->window);
+    _gdk_x11_set_input_focus_safe(gdk_drawable_get_display(sWin->window),
+                                  GDK_WINDOW_XID(sWin->window),
+                                  TRUE,
+                                  GDK_CURRENT_TIME);
+#endif
 #endif
 
     DrawImage();
@@ -405,7 +498,7 @@ int main(int argc, char** argv)
                     img->prev = lastImg;
                 }
                 gFirstImage->prev = img;
-                img->next = gFirstImage;
+                img->next = 0;
             }
         }
         --argc;

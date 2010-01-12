@@ -20,6 +20,14 @@ images after uploading them from a digital camera.
 
 <p><a href="#download">Skip to the download section.</a>
 
+<p>7/13/2004: a new release is imminent.  Lots of cool new improvements.
+Works in gtk2 if you have it, but should still build on a gtk1
+system.  New "presentation mode" to do fullscreen (no window
+borders).
+If you want to help test it, grab <a
+href="pho-0.9.5-pre2.tar.gz">pho-0.9.5-pre2.tar.gz</a>.
+Let me know if you have problems.
+
 <h2>Why another image viewer?  Surely there are plenty of those?</h2>
 
 <p>
@@ -44,16 +52,22 @@ to keep track of them in my head.  That's dumb!  Why not make the
 computer do that work?  So I did.
 
 <p>
-Pho can delete images on disk, but it can't save rotated
-images yet (I'm working on it; I need to integrate code to read
-and save the EXIF info first.)
-I use my <a href="../imagebatch/">imagebatch</a> scripts for that.
+Since I wrote pho several years ago, I keep hearing about other
+image viewers, and thinking maybe pho was redundant.  But I recently
+did a search, and couldn't come up with any other image viewers that
+are similarly efficient for paging through large collections of
+images.  So I guess I'll keep maintaining pho!
 
 <p>
 Pho can read any format supported by gdk-pixbuf.  I haven't found a
 list of those formats anywhere, but it seems to be substantial.
 The only format I've hit so far that it doesn't read is photocd.
 I usually use <i>hpcdtoppm</i> for PhotoCDs.
+
+<p>
+Pho can delete images on disk, but it can't save rotated
+images yet.
+I use my <a href="../imagebatch/">imagebatch</a> scripts for that.
 
 <h2>How to use pho</h2>
 
@@ -132,6 +146,18 @@ feature it really needs ... <a href="../../mailme.html">let me know!</a>
 
 <h2>Changelog</h2>
 <dl>
+<dt>9/30/2004, <a href="pho-0.9.5-pre2.tar.gz">Pho 0.9.5-pre2</a>:
+<dd>Fixed some bugs involving ending up at the wrong image when
+    deleting or pressing HOME.  Cleaned up handing of image list.<br>
+    Fixed an aspect ratio problem.
+<dt>7/13/2004, <a href="pho-0.9.5-pre1.tar.gz">Pho 0.9.5-pre1</a>:
+<dd>Rewrote the image list handling to use a linked list.
+    Lots of associated code cleanup.<br>
+    Port to gtk2, and build under either gtk1 or gtk2.<br>
+    Add new "fullscreen mode" (e.g. for presentations, or for difficult
+    window managers).<br>
+    Various futile attempts to hang on to window focus in various window
+    managers.
 <dt>9/30/2003, <a href="pho-0.9.2.tar.gz">Pho 0.9.2</a>:
 <dd>Don't try to move the window unless the image size has changed
     (fix the annoying bug where pho wouldn't let you move windows).

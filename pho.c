@@ -1,3 +1,4 @@
+/* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 /*
  * pho.c: core routines for pho, an image viewer.
  *
@@ -46,6 +47,9 @@ static int LoadImageFromFile(PhoImage* img)
 #endif
     int rot;
 
+    if (img == 0)
+        return -1;
+
     /* Free the current image */
     if (gImage) {
         gdk_pixbuf_unref(gImage);
@@ -84,7 +88,17 @@ static int LoadImageFromFile(PhoImage* img)
 
     img->curWidth = img->trueWidth;
     img->curHeight = img->trueHeight;
-     return 0;
+    return 0;
+}
+
+int ThisImage()
+{
+    if (gScaleMode == PHO_SCALE_ABSSIZE)
+        gScaleMode = PHO_SCALE_NORMAL;
+    if (LoadImageFromFile(gCurImage) != 0)
+        return NextImage();
+    ShowImage();
+    return 0;
 }
 
 int NextImage()
@@ -94,11 +108,10 @@ int NextImage()
     do {
         if (gCurImage == 0)   /* no image loaded yet, first call */
             gCurImage = gFirstImage;
-        else {
+        else if (gCurImage->next == 0 || gCurImage->next == gFirstImage)
+            return -1;  /* end of list, can't go farther */
+        else
             gCurImage = gCurImage->next;
-            if (!gCurImage || gCurImage == gFirstImage)
-                return -1;  /* end of list */
-        }
     } while (LoadImageFromFile(gCurImage) != 0);
     ShowImage();
     return 0;
@@ -109,8 +122,11 @@ int PrevImage()
     if (gScaleMode == PHO_SCALE_ABSSIZE)
         gScaleMode = PHO_SCALE_NORMAL;
     do {
-        if (gCurImage == 0)   /* no image loaded yet, first call */
+        if (gCurImage == 0) {  /* no image loaded yet, first call */
             gCurImage = gFirstImage;
+            if (gCurImage->prev)
+                gCurImage = gCurImage->prev;
+        }
         else {
             if (gCurImage == gFirstImage)
                 return -1;  /* end of list */
@@ -178,7 +194,7 @@ static void ScaleImage(PhoImage* img)
             /* Use xratio for the most extreme */
             if (xratio > yratio) xratio = yratio;
             w = xratio * img->trueWidth;
-            h = yratio * img->trueHeight;
+            h = xratio * img->trueHeight;
         }
         /* Now w and h hold the desired sizes.  See if we're close */
         diff = abs(img->curWidth - w) + abs(img->curHeight - h);
@@ -233,6 +249,7 @@ PhoImage* NewPhoImage(char* fnam)
     return newimg;
 }
 
+/* XXX ReallyDelete no workee, doesn't go to the right shot afterward */
 void ReallyDelete(PhoImage* img)
 {
     if (unlink(img->filename) < 0)
@@ -240,25 +257,37 @@ void ReallyDelete(PhoImage* img)
         printf("OOPS!  Can't delete %s\n", img->filename);
         return;
     }
-    /* Disconnect it from the linked list */
-    if (img->prev == 0 || img->next == 0) {   /* This is the only image! */
+    /* Disconnect it from the linked list, and reset gCurImage. */
+    if (img == gFirstImage && img->next == 0) {   /* This is the only image! */
         EndSession();
     }
-    if (img->prev == img->next) {             /* One image left after this */
+    if (img->prev == img->next) {       /* One image left after this */
         gCurImage = img->prev;
         gCurImage->prev = gCurImage->next = 0;
     }
-    else {
+    else if (img->next == 0) {          /* last image in the list. Go back! */
         gCurImage = img->prev;
-        gCurImage->next = img->next;
-        gCurImage->next->prev = gCurImage;
+        gCurImage->next = 0;
+        gFirstImage->prev = gCurImage;
+    }
+    else {
+        gCurImage = img->next;
+        gCurImage->prev = img->prev;
+        if (img->prev)
+            img->prev->next = gCurImage;
+        if (gCurImage->next)
+            gCurImage->next->prev = gCurImage;
+    }
+    /* If we deleted the first image, make sure we reset the list */
+    if (img == gFirstImage) {
+        gFirstImage = img->next;
     }
 
     /* It's disconnected.  Free all the memory */
     if (img->comment) free(img->comment);
     free(img);
 
-    NextImage();
+    ThisImage();
 }
 
 static void FreePixels(guchar* pixels, gpointer data)

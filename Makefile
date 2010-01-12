@@ -1,6 +1,6 @@
 # Makefile for pho
 
-VERSION = 0.9.5
+VERSION = 0.9.5-pre2
 
 # Locate the gtk/gdk libraries (thanks to nev for this!)
 CFLAGS = -g -O2 -Wall -DVERSION='"$(VERSION)"'
@@ -28,7 +28,7 @@ SRCS = pho.c gmain.c imagenote.c gdialogs.c
 OBJS = $(subst .c,.o,$(SRCS))
 
 pho: $(EXIFLIB) $(OBJS)
-	$(CC) -o pho $(OBJS) $(EXIFLIB) $(GLIBS) $(LDFLAGS)
+	$(CC) -o $@ $(OBJS) $(EXIFLIB) $(GLIBS) $(LDFLAGS)
 
 cflags:
 	echo $(CFLAGS)
@@ -38,8 +38,8 @@ all: pho xpho
 $(EXIFLIB): exif/*.c
 	(cd exif; make)
 
-xpho: $(EXIFLIB) pho.o xmain.o
-	$(CC) -o xpho pho.o imagenote.o xmain.o $(EXIFLIB) $(XLIBS) $(LDFLAGS)
+xpho: $(EXIFLIB) pho.o imagenote.o xmain.o
+	$(CC) -o $@ $< $(EXIFLIB) $(XLIBS) $(LDFLAGS)
 
 tar: clean $(TARFILE)
 
