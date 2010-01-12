@@ -1,6 +1,6 @@
 # Makefile for pho
 
-VERSION = 0.9.6-pre2
+VERSION = 0.9.6-pre3
 
 # Locate the gtk/gdk libraries (thanks to nev for this!)
 CFLAGS = -g -Wall -DVERSION='"$(VERSION)"'
@@ -36,7 +36,7 @@ cflags:
 all: pho xpho
 
 $(EXIFLIB): exif/*.c
-	(cd exif; make)
+	(cd exif && $(MAKE))
 
 xpho: $(EXIFLIB) pho.o imagenote.o xmain.o
 	$(CC) -o $@ $< $(EXIFLIB) $(XLIBS) $(LDFLAGS)

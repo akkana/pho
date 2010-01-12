@@ -442,53 +442,67 @@ void ClearImageList()
     gCurImage = gFirstImage = 0;
 }
 
-void ReallyDelete(PhoImage* img)
+void ReallyDelete(PhoImage* delImg)
 {
-    if (unlink(img->filename) < 0)
+    if (unlink(delImg->filename) < 0)
     {
-        printf("OOPS!  Can't delete %s\n", img->filename);
+        printf("OOPS!  Can't delete %s\n", delImg->filename);
         return;
     }
+
+    /* next and prev should never be 0, but check anyway */
+    if (delImg->next == 0)
+        printf("BUG: delImg->next is zero!\n");
+    if (delImg->prev == 0)
+        printf("BUG: delImg->prev is zero!\n");
+
     /* Disconnect it from the linked list, and reset gCurImage. */
-    if (img == gFirstImage && img->next == 0) {   /* This is the only image! */
+    if (delImg == gFirstImage                /* this is the only image! */
+        && (delImg->next == gFirstImage || delImg->next == 0)) {
         EndSession();
     }
-    if (img->prev == img->next) {       /* One image left after this */
-        gCurImage = img->prev;
-        gCurImage->prev = gCurImage->next = 0;
+    else if (delImg->prev == delImg->next) { /* One image left after this */
+        gFirstImage = gCurImage = delImg->prev;
+        gCurImage->prev = gCurImage->next = gCurImage;
     }
-    else if (img->next == 0) {          /* last image in the list. Go back! */
-        gCurImage = img->prev;
-        gCurImage->next = 0;
+    else if (delImg->next == gFirstImage) {  /* Last image, so go back */
+        gCurImage = delImg->prev;
+        gCurImage->next = gFirstImage;
         gFirstImage->prev = gCurImage;
     }
     else {
-        gCurImage = img->next;
-        gCurImage->prev = img->prev;
-        if (img->prev)
-            img->prev->next = gCurImage;
-        if (gCurImage->next)
-            gCurImage->next->prev = gCurImage;
+        gCurImage = delImg->next;
+        gCurImage->prev = delImg->prev;
+        if (delImg->prev == 0) {
+            printf("BUG: delImg->prev == 0!\n");
+            delImg->prev = gFirstImage;
+        }
+        delImg->prev->next = gCurImage;
+        if (gCurImage->next == 0) {
+            printf("BUG: delImg->prev == 0!\n");
+            gCurImage->next = gFirstImage;
+        }
+        gCurImage->next->prev = gCurImage;
     }
     /* If we deleted the first image, make sure we reset the list */
-    if (img == gFirstImage) {
-        gFirstImage = img->next;
+    if (delImg == gFirstImage) {
+        gFirstImage = delImg->next;
     }
 
     /* It's disconnected.  Free all the memory */
-    FreePhoImage(img);
+    FreePhoImage(delImg);
 
     ThisImage();
 }
 
-void DeleteImage(PhoImage* img)
+void DeleteImage(PhoImage* delImg)
 {
     char buf[512];
-    if (img->filename == 0)
+    if (delImg->filename == 0)
         return;
-    sprintf(buf, "Delete file %s?", img->filename);
+    sprintf(buf, "Delete file %s?", delImg->filename);
     if (Prompt(buf, "Delete", 0, "dD\n", "nN") > 0)
-        ReallyDelete(img);
+        ReallyDelete(delImg);
 }
 
 /* RotateImage just rotates; it no longer calls ScaleImage.

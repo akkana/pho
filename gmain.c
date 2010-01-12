@@ -196,17 +196,17 @@ static PhoImage* AddImage(char* filename)
     PhoImage* img = NewPhoImage(filename);
     if (gDebug)
         printf("Adding image %s\n", filename);
-    PhoImage* lastImg;
     if (!img) {
         fprintf(stderr, "Out of memory!\n");
         exit(1);
     }
     /* Make img the new last image in the list */
-    if (gFirstImage == 0)
-        gFirstImage = img;
+    if (gFirstImage == 0) {
+        gFirstImage = img->next = img->prev = img;
+    }
     else {
-        lastImg = gFirstImage->prev;
-        if (lastImg == 0) {
+        PhoImage* lastImg = gFirstImage->prev;
+        if (lastImg == gFirstImage || lastImg == 0) {  /* only 1 img in list */
             gFirstImage->next = img;
             img->prev = gFirstImage;
         }
@@ -215,7 +215,7 @@ static PhoImage* AddImage(char* filename)
             img->prev = lastImg;
         }
         gFirstImage->prev = img;
-        img->next = 0;
+        img->next = gFirstImage;
     }
     return img;
 }
@@ -372,6 +372,10 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
       case GDK_Home:
           gCurImage = 0;
           NextImage();
+          return TRUE;
+      case GDK_End:
+          gCurImage = gFirstImage->prev;
+          ThisImage();
           return TRUE;
       case GDK_n:   /* Get out of any weird display modes */
           gScaleMode = PHO_SCALE_NORMAL;

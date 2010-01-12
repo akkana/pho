@@ -12,7 +12,11 @@
  */
 #include <gtk/gtk.h>
 
-/* Images are kept in a doubly linked list */
+/* Images are kept in a doubly linked list.
+ * gFirstImage is the beginning;
+ * gFirstImage->prev is the last item,
+ * lastImg->next is gFirstImage.
+ */
 typedef struct PhoImage_s {
     char* filename;
     int trueWidth, trueHeight;
