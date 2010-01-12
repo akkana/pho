@@ -1,3 +1,15 @@
+pho (0.9.6) unstable; urgency=low
+
+  * Add Keyword mode.
+  * Add slideshow mode.
+  * Swap -f and -F.
+  * Add PHO_REMOTE environment variable.
+  * Simplify exif/Makefile so it'll work on FreeBSD and other systems where make is non-GNU make. 
+  * Change the list next/prev code to fix (I hope) a bug where pho would get confused and cycle from the last image back to the first. 
+  * Lots of performance and stability work.
+
+ -- Akkana Peck <akkana@shallowsky.com>  Sun, 9 Nov 2008 16:20:00 -0800
+
 pho (0.9.5) unstable; urgency=low
 
   * Code cleanup: rewrote the image list handling to use a linked list.

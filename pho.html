@@ -18,16 +18,17 @@ and making notes about what to do with each image --
 for instance, for going through hundreds of
 images after uploading them from a digital camera.
 
-<p><b>Pho 0.9.6 is nigh! Please test 0.9.6-pre2!</b>
+<p><b>Pho 0.9.6 is released!</b>
 
-<p><a href="#download">Skip to the download section.</a>
+<p>To get it, <a href="#download">skip to the download section.</a>
 
 <p>
 The big change here is Keywords mode. It uses the same note flags
 that Pho has always had, but Keywords mode gives you an easy way to
 annotate a directory of images with strings. You can type in phrases
 for each note, and you can have up to 31 notes now, not just 10.
-If you use Pho to categorize your photos, you'll like Keywords mode.
+If you use Pho to categorize your photos, you'll find Keywords mode
+very handy.
 
 <p>
 There's also a new slideshow mode, where you specify the interval in seconds
@@ -36,11 +37,16 @@ You can use this for a screensaver, or just to go through slides
 automatically. Hitting the spacebar cancels slideshow mode.
 
 <p>
-You can now customize the command called up with the 'g' key:
-it still defaults to gimp-remote, but you can call a different
-program, e.g. view the current image in firefox with
+You can now customize the command called up with the 'g' key.
+It defaults to gimp (not gimp-remote as in previous pho versions),
+but you can call any program you like,
+e.g. view the current image in firefox with
 <code>export PHO_CMD="firefox %s"</code> --
 don't forget the %s for the filename!
+
+<p>
+BSD users: pho should build on *BSD now as of 0.9.6-pre2.
+If it doesn't, please let me know.
 
 <p>
 Other changes include major work on scaling modes. Double and half size
@@ -61,7 +67,7 @@ of redraws, speed up rotates, and reduce the number of times Pho has to
 re-read the file on disk.
 
 <p>
-To get it, <a href="#download">Skip to the download section</a>.
+<a href="#download">Skip to the download section</a>.
 
 
 <h2>Why another image viewer?  Surely there are plenty of those?</h2>
@@ -145,34 +151,31 @@ a web page, 2 on the couple of photos that need additional editing
 in gimp, and 3 on the photos I want to save as desktop backgrounds.
 
 <a name="download">
-<h2>Getting pho</h2>
+<h2>Download: Getting pho</h2>
 <p>
 <p>
-Try the new pho 0.9.6 pre2! I expect to release Pho 0.9.6 very soon.
-Source tarball only: <a href="pho-0.9.6-pre2.tar.gz">pho-0.9.6-pre2.tar.gz</a>.
+Try the new pho 0.9.6 release!
+Source tarball only: <a href="pho-0.9.6.tar.gz">pho-0.9.6.tar.gz</a>.
 <p>
-If that doesn't work,
-The last stable version of pho is <b>0.9.5.1</b>.
-<p>
-<b>Source tarball: <a href="pho-0.9.5.1.tar.gz">Pho 0.9.5.1 source tarball</a>.</b>
+<b>Ubuntu (Hardy) package: <a
+href="pho_0.9.6_i386-hardy.deb">pho_0.9.6_i386-hardy.deb</a></b>
 <br />
-<b>Ubuntu (Feisty) package: <a href="pho_0.9.5.1_i386_feisty.deb">pho_0.9.5.1_i386_feisty.deb</a></b>
+<b>Debian (Etch) package: <a
+href="pho_0.9.6_i386-etch.deb">pho_0.9.6_i386-etch.deb</a></b>
 <br />
-<b>Debian (Etch) package: <a href="pho_0.9.5.1_i386_etch.deb">pho_0.9.5.1_i386_etch.deb</a></b>
-<br />
-<b>Debian (Sarge) package: <a href="pho_0.9.5.1_i386_sarge.deb">pho_0.9.5.1_i386_sarge.deb</a></b>
-<br />
-<b>Windows binary (requires gtk+): <a href="pho-0.9.5-pre5.zip">pho-0.9.5-pre5.zip</a>.</b> Thanks to Michael Schumacher.
-(This is labelled 0.9.5-pre5, but there have been no changes
-between pre5 and the final 0.9.5. No 0.9.5.1 yet.)
+
+<b>Windows binary (requires gtk+): <a
+href="pho-0.9.5-pre5.zip">pho-0.9.5-pre5.zip</a>.</b>
+(Thanks to Michael Schumacher!)
+The Windows binary is currently still on 0.9.5 -- I'll put up
+binaries for 0.9.6 when I can get some.
 
 <p>
 <i>Dependencies:</i>
-pho uses the gtk+ libraries, including gdk-pixbuf.
+pho uses the gtk+-2.0 libraries (though if it can't find them, 
+it can run slightly less functionally with gtk1 and gdk-pixbuf).
 You may need to edit the Makefile if your system has these libraries
 installed in different place from my system (sorry, no autoconf yet).
-Also included is a little xlib program, xpho, which is mostly
-interesting as an example of how to use gdk_pixbuf_xlib.
 <p>
 To compile pho, you'll need a compiler, GTK, and all the libraries
 it depends on. For example, on Ubuntu Feisty, this command should get you
@@ -182,8 +185,11 @@ aptitude install build-essential libgtk2.0-dev
 </pre>
 
 <p>
-Pho does work on Mac OS X, as an X application
+Pho does work on Mac OS X
 if you have the appropriate gtk/gdk headers and libraries.
+I've only seen it used as an X11 application, but in theory
+it should be able to run with the new experimental native gtk
+libraries too (if you've tried it, let me know how it works!)
 
 <p>
 If you like pho, or if you think it's promising but there's some
@@ -191,6 +197,14 @@ feature it really needs ... <a href="../../mailme.html">let me know!</a>
 
 <h2>Changelog</h2>
 <dl>
+<dt>11/9/2008, <a href="pho-0.9.6.tar.gz">Pho 0.9.6</a>:
+<dd>RELEASE! The only difference from 0.9.6-pre3 is to change
+    the default PHO_REMOTE command from gimp-remote to gimp,
+    since gimp-remote is obsolete and no longer provided in Linux
+    distros (and never was, on Mac or Win).
+<dt>10/2/2008, <a href="pho-0.9.6-pre3.tar.gz">Pho 0.9.6-pre3</a>:
+<dd>Change the list next/prev code to fix (I hope) a bug where pho
+    would get confused and cycle from the last image back to the first.
 <dt>8/13/2008, <a href="pho-0.9.6-pre2.tar.gz">Pho 0.9.6-pre2</a>:
 <dd>Simplify exif/Makefile so it'll work on FreeBSD and other
     systems where make is non-GNU make.

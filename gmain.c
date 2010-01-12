@@ -471,7 +471,7 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           {
               char buf[BUFSIZ];
               char* cmd = getenv("PHO_REMOTE");
-              if (cmd == 0) cmd = "gimp-remote %s";
+              if (cmd == 0) cmd = "gimp %s";
               else if (gDebug)
                   printf("Calling PHO_REMOTE %s\n", cmd);
 
