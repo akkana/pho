@@ -13,6 +13,7 @@
 #include <unistd.h>       // for unlink()
 
 #include "pho.h"
+#include "exif/phoexif.h"
 
 GdkPixbuf* gImage = 0;
 
@@ -31,6 +32,7 @@ int MonitorHeight = 1200;
 
 static int LoadImageFromFile(int index)
 {
+    int rot;
     struct ImgNotes_s *curNote;
 
     if (IsDeleted(index))
@@ -52,11 +54,17 @@ static int LoadImageFromFile(int index)
 
     resized = 0;
 
+    ExifReadInfo(ArgV[index]);
+
     // Rotate if necessary:
-    if (curNote && curNote->rotation != 0)
+    if (curNote && curNote->rotation != -1)
     {
-        int rot = curNote->rotation;
+        rot = curNote->rotation;
         curNote->rotation = 0;
+        RotateImage(rot);
+    }
+    else if (HasExif() && (rot = ExifGetInt(ExifOrientation)) != 0)
+    {
         RotateImage(rot);
     }
 
@@ -123,6 +131,10 @@ int RotateImage(int degrees)
 
     // If we ever rotate it, we'll definitely need notes on this image:
     struct ImgNotes_s* curNote = FindImgNote(ArgP);
+    if (curNote == 0)
+        return 1;
+    if (curNote->rotation == -1)
+        curNote->rotation = 0;
 
     // If we've resized it smaller than original, but after
     // rotating it we'd be able to show it bigger than current size,
@@ -225,7 +237,7 @@ int RotateImage(int degrees)
 
 void Usage()
 {
-    printf("pho version 0.8.  Copyright 2002 Akkana Peck.\n");
+    printf("pho version %s.  Copyright 2002 Akkana Peck.\n", VERSION);
     printf("Usage: pho image [image ...]\n");
     exit(1);
 }

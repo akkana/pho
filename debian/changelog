@@ -1,6 +1,13 @@
+pho (0.9) unstable; urgency=low
+
+  * Add EXIF handling, using code from jhead.
+  * Fix some build errors, and release 0.9.
+
+ -- Akkana Peck <dev@shallowsky.com>  Wed,  8 Jan 2002 23:24:01 -0800
+
 pho (0.8-1) unstable; urgency=low
 
   * Initial Debian Release.
 
- -- Akkana Peck <dev@shallowsky.com>  Tue, 15 Oct 2002 21:49:27 -0700
+ -- Akkana Peck <dev@shallowsky.com>  Tue,  15 Oct 2002 21:49:27 -0700
 

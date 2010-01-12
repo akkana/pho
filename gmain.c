@@ -5,14 +5,16 @@
  * You are free to use or modify this code under the Gnu Public License.
  */
 
+#include "pho.h"
+#include "exif/phoexif.h"
+
 #include <stdlib.h>       // for getenv()
 #include <stdio.h>
+#include <string.h>
 
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
-
-#include "pho.h"
 
 extern void UpdateInfoDialog();
 
@@ -25,11 +27,10 @@ static int gFullScreenMode = 0;
  */
 void ShowImage()
 {
-    char title[160];
+    char title[BUFSIZ];
+#define TITLELEN ((sizeof title) / (sizeof *title))
 
-    if (drawingArea->window == 0)
-        return;
-    if (gImage == 0)
+    if (drawingArea == 0 || drawingArea->window == 0 || gImage == 0)
         return;
 
     // If we're coming back to normal from fullscreen mode,
@@ -76,10 +77,21 @@ void ShowImage()
                                   GDK_RGB_DITHER_NONE, 0, 0);
 
     // Update the titlebar
-    sprintf(title, "pho: %s (%d x %d)%s",
-            ArgV[ArgP],
-            realXSize, realYSize,
-            gFullScreenMode ? " (fullscreen)" : "");
+    sprintf(title, "pho: %s (%d x %d)", ArgV[ArgP], realXSize, realYSize);
+    if (HasExif())
+    {
+        const char* date = ExifGetString(ExifDate);
+        if (date && date[0]) {
+            /* Make sure there's room */
+            if (strlen(title) + strlen(date) + 3 < TITLELEN)
+            strcat(title, " (");
+            strcat(title, date);
+            strcat(title, ")");
+        }
+    }
+    if (gFullScreenMode && (strlen(title) + 13 < TITLELEN))
+        strcat(title, " (fullscreen)");
+
     gtk_window_set_title(GTK_WINDOW(win), title);
 
     UpdateInfoDialog();
@@ -138,8 +150,20 @@ static gint HandleDestroy(GtkWidget* widget, GdkEventKey* event, gpointer data)
     return TRUE;
 }
 
+static int CallExternal(char* progname, char* filename)
+{
+    /* Seems like there ought to be a better way, calling fork/execl directly;
+     * but then there's no good way to get the notification if the first
+     * command (gimp-remote) fails to execute ...
+     */
+    char buf[BUFSIZ];
+    snprintf(buf, sizeof buf, "%s %s &", progname, filename);
+    return system(buf);
+}
+
 static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
 {
+    int i;
     switch (event->keyval)
     {
       case GDK_d:
@@ -195,6 +219,13 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
           return TRUE;
       case GDK_Up:
           RotateImage(180);
+          break;
+      case GDK_g:  // start gimp
+          if ((i = CallExternal("gimp-remotte -n", ArgV[ArgP])) != 0) {
+              i = CallExternal("gimp", ArgV[ArgP]);
+              printf("Called gimp, returned %d\n", i);
+          }
+          else printf("Called gimp-remote, returned %d\n", i);
           break;
       case GDK_Escape:
       case GDK_q:

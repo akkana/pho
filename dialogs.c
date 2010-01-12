@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "pho.h"
+#include "exif/phoexif.h"
 
 static GtkWidget* InfoDialog = 0;
 static GtkWidget* InfoDEntry = 0;
@@ -19,6 +20,8 @@ static GtkWidget* InfoDImgSize = 0;
 static GtkWidget* InfoDOrigSize = 0;
 static GtkWidget* InfoDImgRotation = 0;
 static GtkWidget* InfoFlag[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+static GtkWidget* InfoExifContainer;
+static GtkWidget* InfoExifEntries[NUM_EXIF_FIELDS];
 
 void UpdateAndPopDown()
 {
@@ -51,13 +54,16 @@ void UpdateInfoDialog()
     if (!InfoDialog || !(GTK_WIDGET_FLAGS(InfoDialog) & GTK_VISIBLE))
         return;
 
+    sprintf(buffer, "pho: %s info", ArgV[ArgP]);
+    gtk_window_set_title(GTK_WINDOW(InfoDialog), buffer);
+
     s = GetComment(ArgP);
     gtk_entry_set_text(GTK_ENTRY(InfoDEntry), s ? s : "");
 
     gtk_label_set_text(GTK_LABEL(InfoDImgName), ArgV[ArgP]);
-    sprintf(buffer, "Actual Size: %d x %d", realXSize, realYSize);
+    sprintf(buffer, "%d x %d", realXSize, realYSize);
     gtk_label_set_text(GTK_LABEL(InfoDOrigSize), buffer);
-    sprintf(buffer, "Displayed Size: %d x %d", XSize, YSize);
+    sprintf(buffer, "%d x %d", XSize, YSize);
     gtk_label_set_text(GTK_LABEL(InfoDImgSize), buffer);
     switch (GetRotation(ArgP))
     {
@@ -75,10 +81,32 @@ void UpdateInfoDialog()
           gtk_label_set_text(GTK_LABEL(InfoDImgRotation), "  0");
           break;
     }
+
+    /* Update the flags buttons */
     flags = GetFlags(ArgP);
     for (i=0, mask=1; i<10; ++i, mask <<= 1)
         gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(InfoFlag[i]),
                                      (flags & mask) ? TRUE : FALSE);
+
+    /* Loop over the various EXIF elements.
+     * Expect we already called ExifReadInfo, back in LoadImageFromFile.
+     */
+    if (HasExif())
+        gtk_widget_set_sensitive(InfoExifContainer, TRUE);
+    else
+        gtk_widget_set_sensitive(InfoExifContainer, FALSE);
+    for (i=0; i<NUM_EXIF_FIELDS; ++i)
+    {
+        if (HasExif()) {
+            gtk_entry_set_text(GTK_ENTRY(InfoExifEntries[i]),
+                               ExifGetString(i));
+            //gtk_entry_set_editable(GTK_ENTRY(InfoExifEntries[i]), TRUE);
+        }
+        else {
+            gtk_entry_set_text(GTK_ENTRY(InfoExifEntries[i]), " ");
+            gtk_entry_set_editable(GTK_ENTRY(InfoExifEntries[i]), FALSE);
+        }
+    }
 }
 
 static gint InfoDialogExpose(GtkWidget* widget, GdkEventKey* event)
@@ -108,7 +136,7 @@ static gint HandleInfoKeyPress(GtkWidget* widget, GdkEventKey* event)
 void ToggleInfo()
 {
     GtkWidget *ok;
-    GtkWidget *label, *box;
+    GtkWidget *label, *vbox, *box, *scroller;
     int i;
 
     if (InfoDialog)
@@ -124,6 +152,30 @@ void ToggleInfo()
     gtk_signal_connect(GTK_OBJECT(InfoDialog), "key_press_event",
                        (GtkSignalFunc)HandleInfoKeyPress, 0);
 
+#ifdef SCROLLER
+    /* With the scroller, the dialog comes up tiny.
+     * Until I solve this, turn it off by default.
+     */
+    scroller = gtk_scrolled_window_new(0, 0);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroller),
+                                   GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
+    gtk_box_pack_start(GTK_BOX (GTK_DIALOG(InfoDialog)->vbox), scroller,
+                       TRUE, TRUE, 0);
+    gtk_widget_show (scroller);
+
+    vbox = gtk_vbox_new(FALSE, 3);
+    gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW (scroller),
+                                          vbox);
+    gtk_widget_show(vbox);
+#else /* SCROLLER */
+    scroller = 0;  /* warning fix */
+    vbox = GTK_DIALOG(InfoDialog)->vbox;
+#endif /* SCROLLER */
+
+    //vbox = GTK_DIALOG(InfoDialog)->vbox;
+    //gtk_box_set_spacing(GTK_BOX(vbox), 3);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 8);
+
     // Make the button
     ok = gtk_button_new_with_label("Ok");
     gtk_box_pack_start(GTK_BOX(GTK_DIALOG(InfoDialog)->action_area),
@@ -134,51 +186,94 @@ void ToggleInfo()
 
     // Add the info items
     InfoDImgName = gtk_label_new("imgName");
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(InfoDialog)->vbox),
-                       InfoDImgName, TRUE, TRUE, 0);
-    InfoDImgSize = gtk_label_new("imgSize");
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(InfoDialog)->vbox),
-                       InfoDImgSize, TRUE, TRUE, 0);
-    InfoDOrigSize = gtk_label_new("origSize");
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(InfoDialog)->vbox),
-                       InfoDOrigSize, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), InfoDImgName, TRUE, TRUE, 4);
     gtk_widget_show(InfoDImgName);
+
+    box = gtk_table_new(3, 2, FALSE);
+    //gtk_table_set_row_spacings(GTK_TABLE(box), 2);
+    gtk_table_set_col_spacings(GTK_TABLE(box), 7);
+    label = gtk_label_new("Displayed Size:");
+    gtk_misc_set_alignment(GTK_MISC(label), 1., .5);
+    gtk_table_attach_defaults(GTK_TABLE(box), label, 0, 1, 0, 1);
+    gtk_widget_show(label);
+    InfoDImgSize = gtk_label_new("0x0");
+    gtk_misc_set_alignment(GTK_MISC(InfoDImgSize), 0., .5);
+    gtk_table_attach_defaults(GTK_TABLE(box), InfoDImgSize, 1, 2, 0, 1);
     gtk_widget_show(InfoDImgSize);
+    label = gtk_label_new("Actual Size:");
+    gtk_misc_set_alignment(GTK_MISC(label), 1., .5);
+    gtk_table_attach_defaults(GTK_TABLE(box), label, 0, 1, 1, 2);
+    gtk_widget_show(label);
+    InfoDOrigSize = gtk_label_new("0x0");
+    gtk_misc_set_alignment(GTK_MISC(InfoDOrigSize), 0., .5);
+    gtk_table_attach_defaults(GTK_TABLE(box), InfoDOrigSize, 1, 2, 1, 2);
     gtk_widget_show(InfoDOrigSize);
 
-    box = gtk_hbox_new(FALSE, 0);
     label = gtk_label_new("Rotation:");
-    gtk_box_pack_start(GTK_BOX(box), label, TRUE, TRUE, 0);
+    gtk_misc_set_alignment(GTK_MISC(label), 1., .5);
+    gtk_table_attach_defaults(GTK_TABLE(box), label, 0, 1, 2, 3);
     gtk_widget_show(label);
     InfoDImgRotation = gtk_label_new("imgRot");
-    gtk_box_pack_start(GTK_BOX(box), InfoDImgRotation, TRUE, TRUE, 0);
+    gtk_misc_set_alignment(GTK_MISC(InfoDImgRotation), 0., .5);
+    gtk_table_attach_defaults(GTK_TABLE(box), InfoDImgRotation, 1, 2, 2, 3);
     gtk_widget_show(InfoDImgRotation);
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(InfoDialog)->vbox),
-                       box, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), box, TRUE, TRUE, 0);
     gtk_widget_show(box);
 
-    box = gtk_hbox_new(FALSE, 0);
+    /* Make the line of Notes buttons */
+    box = gtk_table_new(2, 11, FALSE);
+    gtk_table_set_row_spacings(GTK_TABLE(box), 2);
+    gtk_table_set_col_spacings(GTK_TABLE(box), 7);
+    label = gtk_label_new("Notes:");
+    gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_RIGHT);
+    gtk_table_attach_defaults(GTK_TABLE(box), label, 0, 1, 0, 1);
+    gtk_widget_show(label);
     for (i=0; i<10; ++i)
     {
         char str[2] = { i + '0', '\0' };
         InfoFlag[i] = gtk_toggle_button_new_with_label(str);
-        gtk_box_pack_start(GTK_BOX(box), InfoFlag[i], TRUE, TRUE, 0);
+        gtk_table_attach_defaults(GTK_TABLE(box), InfoFlag[i], i+1, i+2, 0, 1);
         gtk_widget_show(InfoFlag[i]);
     }
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(InfoDialog)->vbox),
-                       box, TRUE, TRUE, 0);
+
+    label = gtk_label_new("Comment:");
+    gtk_table_attach_defaults(GTK_TABLE(box), label, 0, 1, 1, 2);
+    gtk_widget_show(label);
+    InfoDEntry = gtk_entry_new();
+    gtk_table_attach_defaults(GTK_TABLE(box), InfoDEntry, 1, 11, 1, 2);
+    gtk_widget_show(InfoDEntry);
+    gtk_box_pack_start(GTK_BOX(vbox), box, TRUE, TRUE, 0);
     gtk_widget_show(box);
 
-    box = gtk_hbox_new(FALSE, 0);
-    label = gtk_label_new("Comment:");
-    gtk_box_pack_start(GTK_BOX(box), label, TRUE, TRUE, 0);
-    InfoDEntry = gtk_entry_new();
-    gtk_box_pack_start(GTK_BOX(box), InfoDEntry, TRUE, TRUE, 0);
+    label = gtk_hseparator_new();
+    gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 8);
     gtk_widget_show(label);
-    gtk_widget_show(InfoDEntry);
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(InfoDialog)->vbox),
-                       box, TRUE, TRUE, 0);
-    gtk_widget_show(box);
+
+    label = gtk_label_new("Exif:");
+    gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
+    gtk_widget_show(label);
+
+    InfoExifContainer = gtk_table_new(NUM_EXIF_FIELDS, 2, FALSE);
+    // set_padding doesn't work on tables, apparently
+    //gtk_misc_set_padding(GTK_MISC(InfoExifContainer), 7, 7);
+    gtk_table_set_row_spacings(GTK_TABLE(InfoExifContainer), 2);
+    gtk_table_set_col_spacings(GTK_TABLE(InfoExifContainer), 5);
+    gtk_box_pack_start(GTK_BOX(vbox), InfoExifContainer, TRUE, TRUE, 0);
+    /* Loop over the various EXIF elements */
+    for (i=0; i<NUM_EXIF_FIELDS; ++i)
+    {
+        label = gtk_label_new(ExifLabels[i].str);
+        gtk_misc_set_alignment(GTK_MISC(label), 1., .5);
+        gtk_widget_show(label);
+        gtk_table_attach_defaults(GTK_TABLE(InfoExifContainer), label,
+                                  0, 1, i, i+1);
+        InfoExifEntries[i] = gtk_entry_new();
+        gtk_table_attach_defaults(GTK_TABLE(InfoExifContainer),
+                                  InfoExifEntries[i],
+                                  1, 2, i, i+1);
+        gtk_widget_show(InfoExifEntries[i]);
+    }
+    gtk_widget_show(InfoExifContainer);
 
     gtk_signal_connect(GTK_OBJECT(InfoDialog), "expose_event",
                        (GtkSignalFunc)InfoDialogExpose, 0);

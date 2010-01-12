@@ -2,7 +2,7 @@
 
 Summary: A lightweight image viewer.
 Name: pho
-Version: 0.7.1
+Version: 0.9
 Release: 1
 Copyright: GPL
 Group: Applications/Multimedia
@@ -16,7 +16,7 @@ Buildrequires: gdk-pixbuf-devel >= 0.14
 
 %description
 Pho is a lightweight image browser.
-For more information, please see http://www.shallowsky.com/software/pho.html
+For more information, please see http://www.shallowsky.com/software/pho/
 
 %prep
 %setup -q

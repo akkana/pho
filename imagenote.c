@@ -31,7 +31,7 @@ FindImgNote(int index)
     if (!NotesList[index])
         return 0;
 
-    NotesList[index]->rotation = 0;
+    NotesList[index]->rotation = -1;
     NotesList[index]->noteFlags = 0;
     NotesList[index]->comment = 0;
 
@@ -62,6 +62,7 @@ int GetRotation(int index)
 {
     struct ImgNotes_s *curNote = FindImgNote(index);
     if (!curNote) return 0;
+    if (curNote->rotation == -1) return 0;
     return curNote->rotation;
 }
 

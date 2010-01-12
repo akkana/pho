@@ -18,6 +18,8 @@ and making notes about what to do with each image --
 for instance, for going through hundreds of
 images after uploading them from a digital camera.
 
+<p><a href="#download">Skip to the download section.</a>
+
 <h2>Why another image viewer?  Surely there are plenty of those?</h2>
 
 <p>
@@ -32,7 +34,7 @@ and boom, there goes your high-res image.
 But, more important, there were a few extra things I needed.
 During image triage, I need to be able to do a few things quickly:
 <ul>
-<li>Rotate images by +/- 90 degrees, and remember the rotations.
+<li>Rotate images by multiples of 90 degrees, and remember the rotations.
 <li>Delete bad images.
 <li>Copy a few of the best horizontals to my Backgrounds (wallpaper) directory.
 <li>Note which images I might want to put on a web page (after resizing).
@@ -45,7 +47,13 @@ computer do that work?  So I did.
 Pho can now delete images on disk, but it can't save rotated
 images yet (I'm working on it; I need to integrate code to read
 and save the EXIF info first.)
-I use my <a href="imagebatch.html">imagebatch</a> scripts for that.
+I use my <a href="imagebatch/">imagebatch</a> scripts for that.
+
+<p>
+<b>New</b>: Pho can now read (but not write) EXIF!
+It's not entirely ready for prime time, but those interested in testing
+can check out the <a href="pho/pho-0.9pre2.tar.gz">0.9pre2 tarball</a>.
+Be sure to let me know if you hit bugs.
 
 <p>
 Pho can read any format supported by gdk-pixbuf.  I haven't found a
@@ -83,7 +91,8 @@ and list 5 might be the images I want to make into a web page.)
 <a name="download">
 <h2>Getting pho</h2>
 
-The current version of pho is: <b>0.8</b> (updated 10/18/2002).
+The current version of pho is: <b>0.9</b> (updated 10/18/2002).
+It runs on: Linux (gtk and qt)
 
 <p>
 <i>Dependencies:</i>
@@ -98,30 +107,31 @@ Also included is a little xlib program, xpho, which is mostly
 interesting as an example of how to use gdk_pixbuf_xlib.
 
 <p>
-Pho does work on Mac OS X, as an X application
-if you have the appropriate gtk/gdk headers and libraries.
-As far as I know, gdk-pixbuf is Unix only, so pho won't
-work on Windows or Mac Classic.  (But you're welcome to use the
-skeleton of the program and insert your own platform specific
-image drawing code; if you send it to me I'd love to incorporate
-it into the pho source.)
-
-<p>
 <i>New: RPM and Deb packages!</i>
 <ul>
-<li><a href="pho-0.8.tar.gz">latest pho source tarball</a>.
-<li><a href="pho/pho_0.8-1_i386.deb">Debian package (.deb)</a>
-<li><a href="pho/pho-0.8-1.i386.rpm">RPM for Linux/i386</a>
+<li><a href="pho/pho-0.9.tar.gz">latest pho source tarball</a>.
+<li><a href="pho/pho_0.9-1_i386.deb">Debian package (.deb)</a>
+<li><a href="pho/pho-0.9-1.i386.rpm">RPM for Linux/i386</a>
   (built on Redhat 7.3)
-and a Redhat <a href="pho/pho-0.8-1.src.rpm">Source RPM</a>
-<li>Pho <a href="pho/pho.1">manual</a> and <a href="pho/pho">binary for
- Linux i386</a>
+and a Redhat <a href="pho/pho-0.9-1.src.rpm">Source RPM</a>
 </ul>
 
 <p>
-I haven't made an RPM or deb for pho yet; if there really is someone
-besides me and close friends using pho, and you'd like to see a
-different format made available, please tell me.
+Pho does work on Mac OS X, as an X application
+if you have the appropriate gtk/gdk headers and libraries.
+<a href="pho/pho-0.8.ppc">Here's a mac binary</a>.
+It's built on OS X 10.2.2 and requires XFree86, gtk+, and gdk-pixbuf
+(available as <i>fink</i> packages -- <i>fink install gdk-pixbuf</i>
+will get all of it, but it may take a while if you don't already
+have the gnome libraries).
+
+<p>
+I believe there's a gdk-pixbuf for Windows, but lacking a Windows
+development machine I haven't tried it.  I don't think it's available
+for Mac Classic.  (But you're welcome to use the
+skeleton of the program and insert your own platform specific
+image drawing code; if you send it to me I'd love to incorporate
+it into the pho source.)
 
 <p>
 If you like pho, or if you think it's promising but there's some
@@ -129,6 +139,13 @@ feature it really needs ... <a href="../mailme.html">let me know!</a>
 
 <h2>Changelog</h2>
 <dl>
+<dt>1/8/2003, <a href="pho/pho-0.9.tar.gz">Pho 0.9</a>:
+<dd>Fix pho.spec version, and a make clean bug.
+<dt>12/3/2002, <a href="pho/pho-0.9pre2.tar.gz">Pho 0.9pre2</a>:
+<dd>Fix a crash in the quit dialog.
+<dt>11/27/2002, <a href="pho/pho-0.9pre1.tar.gz">Pho 0.9pre1</a>:
+<dd>Add EXIF handling, using code from
+ <a href="http://www.sentex.net/~mwandel/jhead/">jhead, by Matthias Wandel</a>.
 <dt>10/18/2002, <a href="pho/pho-0.8.tar.gz">Pho 0.8</a>:
 <dd>Build RPM and deb; show image size in titlebar; add home key.
 <dt>8/13/2002, <a href="pho/pho-0.7.tgz">Pho 0.7</a>:

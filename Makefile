@@ -1,9 +1,9 @@
 # Makefile for pho
 
-VERSION = 0.8
+VERSION = 0.9
 
 # Locate the gtk/gdk libraries (thanks to nev for this!)
-CFLAGS = -O2 -Wall 
+CFLAGS = -g -O2 -Wall -DVERSION='"$(VERSION)"'
 CFLAGS := $(CFLAGS) $(shell gdk-pixbuf-config --cflags)
 
 XLIBS := $(shell gdk-pixbuf-config --libs) -lgdk_pixbuf_xlib -lX11
@@ -18,21 +18,32 @@ INSTALLPREFIX = ${DESTDIR}/usr/local
 
 TARFILE = pho-$(VERSION).tar.gz
 
+EXIFLIB = exif/libphoexif.a
+
+SRCS = pho.c imagenote.c gmain.c dialogs.c
+
+OBJS = $(subst .c,.o,$(SRCS))
+
 all: pho xpho
 
-pho: pho.o imagenote.o gmain.o dialogs.o
-	$(CC) -o pho pho.o imagenote.o gmain.o dialogs.o $(GLIBS) $(LDFLAGS)
+pho: $(EXIFLIB) $(OBJS)
+	$(CC) -o pho pho.o imagenote.o gmain.o dialogs.o \
+              $(EXIFLIB) $(GLIBS) $(LDFLAGS)
 
-xpho: pho.o xmain.o
-	$(CC) -o xpho pho.o imagenote.o xmain.o $(XLIBS) $(LDFLAGS)
+$(EXIFLIB): exif/*.c
+	(cd exif; make)
+
+xpho: $(EXIFLIB) pho.o xmain.o
+	$(CC) -o xpho pho.o imagenote.o xmain.o $(EXIFLIB) $(XLIBS) $(LDFLAGS)
 
 tar: clean $(TARFILE)
 
 $(TARFILE): 
 	( make clean && \
 	  cd .. && \
-	  tar czvf pho-$(VERSION).tar.gz $(CWDBASE) && \
-	  mv $(TARFILE) $(CWD) \
+	  tar czvf $(TARFILE) --owner=root $(CWDBASE) && \
+	  mv $(TARFILE) $(CWD) && \
+	  echo Created $(TARFILE) \
 	)
 
 rpm: $(TARFILE)
@@ -51,4 +62,5 @@ install: pho
 clean:
 	rm -f *.[oas] *.ld core* pho xpho pho-*.tar.gz *.rpm
 	rm -rf debian/pho
+	cd exif; make clean
 
