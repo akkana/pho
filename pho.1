@@ -1,0 +1,73 @@
+.TH PHO l "June 28 2002" "PHO"
+.SH NAME
+\fBpho\fP \- View and annotate multiple images
+.SH SYNTAX
+.B pho
+.RI [ options ]
+.RI [ filename [ filename... ]]
+.SH DESCRIPTION
+.I pho
+displays images, in the formats handled by the
+.IR gdk-pixbuf
+package, to an X display.
+It is intended as a lightweight and fast viewer,
+optimized for rapidly going through large numbers of uploaded images.
+.PP
+.I pho
+is entirely keyboard driven,
+and allows for interactive rotation and taking of notes on each image.
+It resizes after rotations and will always attempt to show
+the image as large as possible.  The final rotation reached for
+each image will be remembered and printed when the program exits
+(for use with a batch image rotation script).
+.PP
+.I pho
+can also remember up to ten lists of images (numbered 0-9) which can
+correspond to anything the user wishes, plus a list of images to be
+deleted.
+\fIpho\fR currently does not actually change any files on disk.
+.SH COMMAND-LINE OPTIONS
+.TP
+\fB\-d\fR
+Debug mode: may print a few debugging messages to standard output.
+.TP
+\fB\-v, -h\fR
+Print version and usage info, and exit.
+.SH KEY BINDINGS
+When pho is running, it obeys the following keys:
+.TP
+\fB[space]\fR
+Go to next image
+.TP
+\fB[backspace]\fR
+Go to previous image
+.TP
+\fBr\fR, \fBt\fR, \fB[right-arrow]\fR
+Rotate right (clockwise)
+.TP
+\fBR\fR, \fBT\fR, \fB[left-arrow]\fR
+Rotate left (counter-clockwise)
+.TP
+\fBR\fR, \fBT\fR, \fB[up-arrow]\fR
+Rotate 180 degrees.
+.TP
+\fBd\fR
+Mark for deletion
+.TP
+\fBi\fR
+Bring up an information dialog
+.TP
+\fB0\fR through \fB9\fR
+Add the image to the appropriate notes list
+.TP
+\fBq\fR
+Quit
+.SH AUTHOR
+Akkana Peck
+.SH COPYRIGHT
+Copyright \(co 2002 Akkana Peck
+.br
+This is free software, licensed under the GNU Public License.
+.SH SEE ALSO
+The most recent version of \fIpho\fR, and more information about it, is at:
+http://www.shallowsky.com/software/pho.html

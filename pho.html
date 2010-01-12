@@ -1,0 +1,113 @@
+<html>
+<head>
+<title>yass</title>
+</head>
+
+<body bgcolor=white>
+
+<h1>pho: View and annotate multiple images</h1>
+
+<i><a href="../mailme.html">...Akkana</a></i>
+
+<p>
+<b>pho</b> is a lightweight program for viewing large numbers of
+images at once, and making notes about what to do with each image --
+for instance, for going through hundreds of
+images after uploading them from a digital camera.
+
+<h2>Why another image viewer?  Surely there are plenty of those?</h2>
+
+<p>
+I used to use xv for paging through images -- it's an excellent
+viewing program -- but it had a few features which annoyed me.  For
+example, it creates a directory called .xvpics in every directory it touches;
+and if an image has to be resized to fit the screen, and you save it
+(perhaps after rotating it), it saves at the smaller size and boom,
+there goes your high-res image.
+
+<p>
+But, more important, there were a few extra things I needed.
+During image triage, I need to be able to do a few things quickly:
+<ul>
+<li>Rotate images by +/- 90 degrees, and remember the rotations.
+<li>Delete bad images.
+<li>Copy a few of the best horizontals to my Backgrounds (wallpaper) directory.
+<li>Note which images I might want to put on a web page (after resizing).
+</ul>
+With xv, I found that I was writing these lists on paper, or trying
+to keep track of them in my head.  That's dumb!  Why not make the
+computer do that work?
+
+<p>
+Currently, pho doesn't make any changes to the files on disk.
+I use my <a href="imagebatch.html">imagebatch</a> scripts for that.
+
+<h2>How to use pho</h2>
+
+Usage: pho *.jpg (or whatever).<br>
+It will show the first image, scaled for your screen if needed.
+Then the following keys work:
+<dl>
+<dt>space             <dd>Go to next image.
+<dt>backspace, -      <dd>Go to previous image.
+<dt>r, t, right-arrow <dd>Rotate right (clockwise). 
+<dt>R, T, left-arrow  <dd>Rotate left (counter-clockwise).
+<dt>up-arrow          <dd>Rotate 180 degrees.
+<dt>d                 <dd>Mark for deletion.
+<dt>i                 <dd>Show information about the image.
+<dt>0-9               <dd>Add this image to the appropriate list.
+<dt>q                 <dd>Quit.
+</dl>
+
+pho will remember the correct (last) rotation for each image.
+When it exits (either because the last image was viewed or because
+the user typed q), it will print out the images that need to be
+rotated and deleted (it does not actually change the files on disk),
+and the images which were added to numbered lists.
+(For example, list 1 might be the images I want to use as wallpaper,
+and list 5 might be the images I want to make into a web page.)
+
+<a name="download">
+<h2>Getting pho</h2>
+
+pho uses the
+<a href="http://developer.gnome.org/doc/API/gdk-pixbuf/index.html">gdk_pixbuf</a>
+library for reading, scaling, and displaying images.
+So you will need gdk-pixbuf installed in order to run pho.
+To compile it, you will also need gdk-pixbuf-devel.
+You may need to edit the Makefile if your system has gdk-pixbuf
+installed in different place from my system (sorry, no autoconf yet).
+
+<p>
+As far as I know, gdk-pixbuf is Unix only, so this program won't
+work on Windows or Mac machines.  (But you're welcome to use the
+skeleton of the program and insert your own platform specific
+image drawing code.)
+
+<p>
+<a href="pho">pho binary for Linux i386</a> (compiled on Redhat 7.3)
+<br>
+<a href="pho.tgz">pho source tarball</a>
+
+<p>
+If you like pho, or if you think it's promising but there's some
+feature it really needs, or have an idea for a better name for it
+... let me know!  
+
+<h2>Changelog</h2>
+<dl>
+<dt>7/3/2002, Pho 0.4:
+<dd>Fixed a bug with gif rotation.
+<dt>7/1/2002, Pho 0.3:
+<dd>Rename yass to pho, add info dialog.
+<dt>6/28/2002, Yass 0.2
+<dd>Some added features; add manual and make install target.
+<dt>6/24/2002, Yass 0.1:
+<dd>First release.
+</dl>
+
+<hr>
+<a href="index.html">Akkana's Software</a><br>
+<a href="../index.html">Shallowsky Home</a>
+</body>
+</html>
