@@ -283,13 +283,17 @@ static gint HandleKeyPress(GtkWidget* widget, GdkEventKey* event)
           ShowImage();
           return TRUE;
       case GDK_g:  /* start gimp */
-          system(strcat("gimp-remote ", gCurImage->filename));
-#if 0
-          if (CallExternal("gimp-remote -n", gCurImage->filename) != 0) {
-              CallExternal("gimp", gCurImage->filename);
+      {
+          char buf[BUFSIZ];
+          if (strlen(gCurImage->filename) > BUFSIZ - 15) {
+              printf("Overly long filename! Can't gimp '%s'\n",
+                     gCurImage->filename);
+              break;
           }
-#endif
+          sprintf(buf, "gimp-remote %s", gCurImage->filename);
+          system(buf);
           break;
+      }
       case GDK_i:
           ToggleInfo();
           return TRUE;
