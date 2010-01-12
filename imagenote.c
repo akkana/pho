@@ -13,97 +13,20 @@
 #include <glib.h>
 #include <ctype.h>
 
-struct ImgNotes_s **NotesList = 0;
+static char *sFlagStrings[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-static int numImages = 0;
-
-void MakeNotesList(int num)
-{
-    NotesList = calloc(num, sizeof (struct ImgNotes_s *));
-}
-
-struct ImgNotes_s*
-FindImgNote(int index)
-{
-    if (NotesList[index] != 0)
-        return NotesList[index];
-
-    // We didn't match anything exactly, so we have to make a new node.
-    NotesList[index] = malloc(sizeof (struct ImgNotes_s));
-    if (!NotesList[index])
-        return 0;
-
-    NotesList[index]->rotation = -1;
-    NotesList[index]->noteFlags = 0;
-    NotesList[index]->comment = 0;
-
-    if (index > numImages)
-        ++numImages;
-
-    return NotesList[index];
-}
-
-void MarkDeleted(int index)
-{
-    ArgV[index][0] = 0;
-}
-
-int IsDeleted(int index)
-{
-    return (ArgV[index][0] == 0);
-}
-
-char* GetComment(int index)
-{
-    struct ImgNotes_s *curNote = FindImgNote(index);
-    if (!curNote) return 0;
-    return curNote->comment;
-}
-
-int GetRotation(int index)
-{
-    struct ImgNotes_s *curNote = FindImgNote(index);
-    if (!curNote) return 0;
-    if (curNote->rotation == -1) return 0;
-    return curNote->rotation;
-}
-
-void AddComment(int index, char* note)
-{
-    struct ImgNotes_s *curNote = FindImgNote(index);
-    if (!curNote) return;
-    curNote->comment = strdup(note);
-}
-
-void SetFlags(int index, unsigned int flags)
-{
-    struct ImgNotes_s *curNote = FindImgNote(index);
-    if (curNote)
-        curNote->noteFlags = flags;
-}
-
-unsigned int GetFlags(int index)
-{
-    struct ImgNotes_s *curNote = FindImgNote(index);
-    if (!curNote) return 0;
-    return curNote->noteFlags;
-}
-
-char* GetFlagString(int index)
+char* GetFlagString(PhoImage* img)
 {
     static char buf[35];
     static char* spaces= "                                  ";
     int i, mask;
     int foundone = 0;
 
-    struct ImgNotes_s *curNote = FindImgNote(index);
-
-    if (!curNote) return spaces;
-    if (curNote->noteFlags == 0) return spaces;
+    if (img->noteFlags == 0) return spaces;
     mask = 1;
     for (i=0; i<10; ++i, mask <<= 1)
     {
-        if (curNote->noteFlags & mask)
+        if (img->noteFlags & mask)
         {
             int len;
             if (!foundone)
@@ -119,22 +42,14 @@ char* GetFlagString(int index)
     return buf;
 }
 
-void SetNoteFlag(int index, int note)
+void ToggleNoteFlag(PhoImage* img, int note)
 {
-    int mask = (1 << note);
-    struct ImgNotes_s *curNote = FindImgNote(index);
-
-    if (note > 15) return;
-    if (!curNote) return;
-    if (curNote->noteFlags & mask)
-        curNote->noteFlags &= ~mask;   // clear
+    int bit = (1 << note);
+    if (img->noteFlags & bit)
+        img->noteFlags &= ~bit;
     else
-        curNote->noteFlags |= mask;    // set
-
-    //printf("Set note %d for %d to 0x%x\n", note, index, curNote->noteFlags);
+        img->noteFlags |= bit;
 }
-
-static char *flags[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 char *QuoteString(char *str)
 {
@@ -171,7 +86,7 @@ void AddImgToList(char** strp, char* str)
 
     if (*strp)
     {
-       char* newstr = malloc(strlen(*strp) + strlen(str) + 2);
+        char* newstr = malloc(strlen(*strp) + strlen(str) + 2);
         if (!newstr) return;
         strcpy(newstr, *strp);
         strcat(newstr, " ");
@@ -189,41 +104,50 @@ void PrintNotes()
 {
     int i;
     char *rot90=0, *rot180=0, *rot270=0;
+    PhoImage* img;
 
-    for (i=1; i<=numImages; ++i)
+    /* Should free up memory here, e.g. for sFlagStrings,
+     * but since this is only called right before exit,
+     * it's never been allocated so it doesn't matter.
+     * If PrintNotes ever gets called except at exit,
+     * this will leak.
+     */
+
+    img = gFirstImage;
+    while (img)
     {
-        if (!NotesList[i] || IsDeleted(i))
-            continue;
-
-        if (NotesList[i]->comment)
-            printf("%s: %s\n", ArgV[i], NotesList[i]->comment);
-        if (NotesList[i]->noteFlags)
+        if (img->comment)
+            printf("%s: %s\n", img->filename, img->comment);
+        if (img->noteFlags)
         {
-            int flag;
-            int j;
+            int flag, j;
             for (j=1, flag=1; j<=10; ++j)
             {
                 flag <<= 1;
-                if (NotesList[i]->noteFlags & flag)
-                    AddImgToList(flags+j, ArgV[i]);
+                if (img->noteFlags & flag)
+                    AddImgToList(sFlagStrings+j, img->filename);
             }
         }
 
-        switch (NotesList[i]->rotation)
+        switch (img->rotation)
         {
           case 90:
-              AddImgToList(&rot90, ArgV[i]);
+              AddImgToList(&rot90, img->filename);
               break;
           case 180:
-              AddImgToList(&rot180, ArgV[i]);
+              AddImgToList(&rot180, img->filename);
               break;
           case 270:
           case -90:
-              AddImgToList(&rot270, ArgV[i]);
+              AddImgToList(&rot270, img->filename);
               break;
           default:
               break;
         }
+
+        img = img->next;
+        /* Have we looped back to the beginning?*/
+        if (img == gFirstImage) break;
     }
 
     // Now we've looped over all the structs, so we can print out
@@ -235,7 +159,7 @@ void PrintNotes()
     if (rot180)
         printf("\nRotate 180: %s\n", rot180);
     for (i=0; i<10; ++i)
-        if (flags[i])
-            printf("\nNote %d: %s\n", i, flags[i]);
+        if (sFlagStrings[i])
+            printf("\nNote %d: %s\n", i, sFlagStrings[i]);
 }
 

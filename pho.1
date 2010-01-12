@@ -39,40 +39,57 @@ When pho is running, it obeys the following keys:
 \fB[space]\fR
 Go to next image
 .TP
-\fB[backspace]\fR
+\fB[backspace]\fR, \fB-\fR
 Go to previous image
 .TP
 \fBr\fR, \fBt\fR, \fB[right-arrow]\fR
 Rotate right (clockwise)
 .TP
-\fBR\fR, \fBT\fR, \fB[left-arrow]\fR
+\fBR\fR, \fBT\fR, \fBl\fR, \fBL\fR, \fB[left-arrow]\fR
 Rotate left (counter-clockwise)
 .TP
-\fBR\fR, \fBT\fR, \fB[up-arrow]\fR
+\fB[up-arrow]\fR
 Rotate 180 degrees.
 .TP
 \fBHome\fR
 Go back to the first image.
 .TP
 \fBd\fR
-Delete (will bring up a confirmation dialog; another d deletes the file)
+Delete (will bring up a confirmation dialog; clicking OK or
+typing another d deletes the file).
 .TP
 \fBi\fR
-Bring up an information dialog
+Bring up an information dialog.
 .TP
 \fB0\fR through \fB9\fR
 Add the image to the appropriate notes list
 .TP
-\fBf\fRToggle in/out of "full screen mode".
+\fBf\fR
+Toggle in/out of "full screen mode".
+Images will be scaled up to fill the screen in at least one dimension.
+.TP
+\fBp\fR
+Toggle in/out of "presentation mode".
+If the window manager permits, pho will take up the full screen
+with the image (if smaller) centered.
+.TP
+\fBF\fR
+Toggle in/out of "full size mode".  Images will be shown at their
+native size, even if it's bigger than the screen size.
+(Hint: Many window managers let you move oversized windows with alt-drag.)
+.TP
+\fB+\fR, \fB=\fR Magnify: show the image at twice the current size.
+.TP
+\fB/\fR, \fB<keypad>-\fR Unmagnify: show the image at half the current size.
 .TP
 \fBq\fR
 Quit
 .SH AUTHOR
 Akkana Peck
 .SH COPYRIGHT
-Copyright \(co 2002 Akkana Peck
+Copyright \(co 2002, 2003, 2004 Akkana Peck
 .br
-This is free software, licensed under the GNU Public License.
+Pho is free software, licensed under the GNU Public License.
 .SH SEE ALSO
 The most recent version of \fIpho\fR, and more information about it, is at:
 http://www.shallowsky.com/software/pho.html
