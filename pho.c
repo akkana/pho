@@ -3,7 +3,7 @@
  *
  * This file contains the image manipulation routines.
  *
- * Copyright 2002 by Akkana Peck.
+ * Copyright 2002, 2003 by Akkana Peck.
  * You are free to use or modify this code under the Gnu Public License.
  */
 
@@ -171,9 +171,7 @@ int RotateImage(int degrees)
         newrowstride = oldrowstride;
 
     oldpixels = gdk_pixbuf_get_pixels(gImage);
-    // XXX This should only need XSize*YSize*nchannels, but for some reason 
-    // that crashed  after trashing the stack when I was assuming nchannels=3.
-    newpixels = malloc(XSize * YSize * (nchannels+1));
+    newpixels = malloc(XSize * YSize * nchannels);
 
     for (x = 0; x < XSize; ++x)
     {
@@ -184,17 +182,17 @@ int RotateImage(int degrees)
             switch (degrees)
             {
               case 90:
-                newx = YSize - y;
+                newx = YSize - y - 1;
                 newy = x;
                 break;
               case -90:
               case 270:
                 newx = y;
-                newy = XSize - x;
+                newy = XSize - x - 1;
                 break;
               case 180:
-                newx = XSize - x;
-                newy = YSize - y;
+                newx = XSize - x - 1;
+                newy = YSize - y - 1;
                 break;
               default:
                 printf("Illegal rotation value!\n");
@@ -237,7 +235,7 @@ int RotateImage(int degrees)
 
 void Usage()
 {
-    printf("pho version %s.  Copyright 2002 Akkana Peck.\n", VERSION);
+    printf("pho version %s.  Copyright 2002,2003 Akkana Peck akkana@shallowsky.com.\n", VERSION);
     printf("Usage: pho image [image ...]\n");
     exit(1);
 }

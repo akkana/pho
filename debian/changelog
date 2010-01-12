@@ -1,3 +1,12 @@
+pho (0.9.1) unstable; urgency=low
+
+  * Rusty Russell: fix an off-by-one error in rotation code,
+    eliminating the need to allocate more memory than needed.
+  * Brian Langenberger: bracket printed filenames with quotes if
+    they contain spaces or quote characters.
+
+ -- Akkana Peck <dev@shallowsky.com>  Wed,  8 Jan 2002 23:24:01 -0800
+
 pho (0.9) unstable; urgency=low
 
   * Add EXIF handling, using code from jhead.

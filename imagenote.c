@@ -10,6 +10,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>       // for malloc()
+#include <glib.h>
+#include <ctype.h>
 
 struct ImgNotes_s **NotesList = 0;
 
@@ -134,11 +136,42 @@ void SetNoteFlag(int index, int note)
 
 static char *flags[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
+char *QuoteString(char *str)
+{
+  int i;
+  char *newstr;
+
+  /*look for a space or quote in str */
+  for (i = 0; str[i] != '\0'; i++)
+    if (isspace(str[i]) || (str[i] == '\"') || (str[i] == '\'')) {
+      GString *gstr = g_string_new("\"");
+      for (i = 0; str[i] != '\0'; i++) {
+	if (str[i] == '\"')
+	  g_string_append(gstr, (gchar *)"\\\"");
+	/*else if (str[i] == '\'')
+	  g_string_append(gstr, (gchar *)"\\\'");*/
+	else
+	  g_string_append_c(gstr, (gchar)str[i]);
+      }
+
+      g_string_append_c(gstr, '\"');
+
+      newstr = gstr->str;
+      g_string_free(gstr, FALSE);
+      return newstr;
+    }
+
+  /*if there are no spaces or quotes in str, return a copy of str*/
+  return (char *)g_strdup((gchar *)str);
+}
+
 void AddImgToList(char** strp, char* str)
 {
+  str = QuoteString(str);
+
     if (*strp)
     {
-        char* newstr = malloc(strlen(*strp) + strlen(str) + 2);
+       char* newstr = malloc(strlen(*strp) + strlen(str) + 2);
         if (!newstr) return;
         strcpy(newstr, *strp);
         strcat(newstr, " ");
@@ -148,6 +181,8 @@ void AddImgToList(char** strp, char* str)
     }
     else
         *strp = strdup(str);
+
+    free(str);
 }
 
 void PrintNotes()
