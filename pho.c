@@ -91,12 +91,6 @@ static int LoadImageFromFile(PhoImage* img)
 
     img->curWidth = gdk_pixbuf_get_width(gImage);
     img->curHeight = gdk_pixbuf_get_height(gImage);
-    /* trueWidth and Height used to be set inside next clause,
-     * but that doesn't make sense -- we need it not just the first
-     * time, but also ever time the image is reloaded.
-     */
-    img->trueWidth = img->curWidth;
-    img->trueHeight = img->curHeight;
 
     /* The first time an image is loaded, it should be rotated
      * to its appropriate EXIF rotation. Subsequently, though,
@@ -110,6 +104,13 @@ static int LoadImageFromFile(PhoImage* img)
         else
             img->exifRot = 0;
     }
+
+    /* trueWidth and Height used to be set inside EXIF clause,
+     * but that doesn't make sense -- we need it not just the first
+     * time, but also ever time the image is reloaded.
+     */
+    img->trueWidth = img->curWidth;
+    img->trueHeight = img->curHeight;
 
     return 0;
 }
@@ -440,10 +441,8 @@ void ScaleAndRotate(PhoImage* img, int degrees)
     }
 
     /* If we didn't rotate before, do it now. */
-    if (degrees != 0) {
-        printf("Rotating by %d degrees\n", degrees);
+    if (degrees != 0)
         RotateImage(img, degrees);
-    }
 
     /* We've finished making our changes. Now we may need to make
      * changes in the window size or position.
