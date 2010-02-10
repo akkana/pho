@@ -35,10 +35,15 @@ gint gPhysMonitorHeight = 0;
 /* Initialize the "black" color */
 static GdkColor sBlack = { 0x0000, 0x0000, 0x0000 };
 
-
 /* gtk related window attributes */
 GtkWidget *gWin = 0;
 static GtkWidget *sDrawingArea = 0;
+
+/* This is so gross. GTK has no way to tell if a window has been exposed.
+ * GTK_WIDGET_MAPPED and GTK_WIDGET_VISIBLE are both true before the
+ * main loop has run or an expose event has happened.
+ */
+static int sExposed = 0;
 
 static void NewWindow(); /* forward */
 
@@ -192,6 +197,8 @@ void SetViewModes(int dispmode, int scalemode, double scalefactor)
             /* switching to keyword mode from some other mode */
             gScaleMode = PHO_SCALE_SCREEN_RATIO;
             gScaleRatio = .5;
+            if (gDebug)
+                printf("Showing keywords dialog from SetViewModes\n");
             ShowKeywordsDialog();
         }
         else {
@@ -264,6 +271,8 @@ void DrawImage()
                gCurImage->curWidth, gCurImage->curHeight);
     }
     if (gImage == 0 || gWin == 0 || sDrawingArea == 0) return;
+    if (!sExposed)
+        return;
 
     if (gDisplayMode == PHO_DISPLAY_PRESENTATION) {
         gint width, height;
@@ -311,8 +320,11 @@ void DrawImage()
         }
         gtk_window_set_title(GTK_WINDOW(gWin), title);
 
-        if (gDisplayMode == PHO_DISPLAY_KEYWORDS)
+        if (gDisplayMode == PHO_DISPLAY_KEYWORDS) {
+            if (gDebug)
+                printf("Showing keywords dialog from DrawImage\n");
             ShowKeywordsDialog(gCurImage);
+        }
     }
 
     gdk_pixbuf_render_to_drawable(gImage, sDrawingArea->window,
@@ -332,6 +344,7 @@ static gint HandleExpose(GtkWidget* widget, GdkEventExpose* event)
 {
     gint width, height;
 
+    sExposed = 1;
     gdk_drawable_get_size(widget->window, &width, &height);
     if (gDebug) {
         printf("HandleExpose: area %dx%d +%d+%d in window %dx%d\n",
@@ -375,9 +388,7 @@ void EndSession()
 {
     gCurImage = 0;
     UpdateInfoDialog();
-    if (gDisplayMode == PHO_DISPLAY_KEYWORDS)
-        ShowKeywordsDialog();
-
+    RememberKeywords();
     PrintNotes();
     gtk_main_quit();
     /* This doesn't always quit!  So make sure: */
@@ -400,6 +411,8 @@ static void NewWindow()
 {
     gint root_x = -1;
     gint root_y = -1;
+
+    sExposed = 0;    /* reset the exposed flag */
 
     if (gDebug)
         printf("NewWindow()\n");
@@ -563,9 +576,13 @@ void PrepareWindow()
         }
 
         /* If we didn't resize the window, then we won't get an expose
-         * event, and hence DrawImage won't be called. So call it explicitly:
+         * event, and hence DrawImage won't be called. So call it explicitly
+         * -- but not if we haven't displayed a window yet.
+         * If we do that, we get duplicate calls to DrawImage
+         * plus in keywords mode, the keywords dialog gets set as
+         * transient too early. (I hate window management.)
          */
-        else {
+        else if (GTK_WIDGET_VISIBLE(gWin)) {
             DrawImage();
         }
 

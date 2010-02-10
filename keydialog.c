@@ -20,7 +20,7 @@ static GtkWidget* KeywordsContainer = 0;  /* where the Entries live */
 static PhoImage* sLastImage = 0;
 
 /* Make sure we remember any changes that have been made in the dialog */
-static void RememberKeywords()
+void RememberKeywords()
 {
     int i, mask, flags;
 
@@ -53,8 +53,6 @@ void UpdateKeywordsDialog()
     if (!IsVisible(KeywordsDialog)) return;
     if (gCurImage != sLastImage)
         sLastImage = gCurImage;
-
-    KeepOnTop(KeywordsDialog);
 
     sprintf(buffer, "pho keywords (%s)", gCurImage->filename);
     gtk_window_set_title(GTK_WINDOW(KeywordsDialog), buffer);
@@ -243,6 +241,11 @@ void ShowKeywordsDialog()
     else if (!IsVisible(KeywordsDialog))
         gtk_widget_show(KeywordsDialog);
     /* else it's already showing */
+
+    /* Calling this from UpdateKeywordsDialog somehow sends focus
+     * back to the image window.
+     */
+    KeepOnTop(KeywordsDialog);
 
     /* Save any state we have from the previous image */
     RememberKeywords();

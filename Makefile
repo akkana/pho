@@ -1,6 +1,6 @@
 # Makefile for pho
 
-VERSION = 0.9.7
+VERSION = 0.9.7-pre4
 
 # Locate the gtk/gdk libraries (thanks to nev for this!)
 CFLAGS += -g -Wall -pedantic -DVERSION='"$(VERSION)"'
@@ -48,7 +48,7 @@ tar: clean $(TARFILE)
 $(TARFILE): 
 	( make clean && \
 	  cd .. && \
-	  tar czvf $(TARFILE) --owner=root $(CWDBASE) && \
+	  tar czvf $(TARFILE) --exclude=.svn --owner=root $(CWDBASE) && \
 	  mv $(TARFILE) $(CWD) && \
 	  echo Created $(TARFILE) \
 	)
