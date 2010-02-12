@@ -19,6 +19,11 @@ static GtkWidget* KeywordsDImgName = 0;
 static GtkWidget* KeywordsContainer = 0;  /* where the Entries live */
 static PhoImage* sLastImage = 0;
 
+static void LeaveKeywordsMode()
+{
+    SetViewModes(PHO_DISPLAY_NORMAL, gScaleMode, gScaleRatio);
+}
+
 /* Make sure we remember any changes that have been made in the dialog */
 void RememberKeywords()
 {
@@ -95,7 +100,7 @@ static gint handleKeywordsKeyPress(GtkWidget* widget, GdkEventKey* event)
     switch (event->keyval)
     {
       case GDK_Escape:
-          HideKeywordsDialog();
+          LeaveKeywordsMode();
           return TRUE;
     }
 
@@ -207,7 +212,7 @@ static void MakeNewKeywordsDialog()
     gtk_box_pack_start(GTK_BOX(btn_box), ok, TRUE, TRUE, 0);
 
     gtk_signal_connect(GTK_OBJECT(ok), "clicked",
-                       (GtkSignalFunc)HideKeywordsDialog, 0);
+                       (GtkSignalFunc)LeaveKeywordsMode, 0);
     gtk_widget_show(ok);
 
     KeywordsDImgName = gtk_label_new("imgName");
