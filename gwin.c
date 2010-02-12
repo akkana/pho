@@ -271,8 +271,8 @@ void DrawImage()
                gCurImage->curWidth, gCurImage->curHeight);
     }
     if (gImage == 0 || gWin == 0 || sDrawingArea == 0) return;
-    if (!sExposed)
-        return;
+    if (!sExposed) return;
+    if (!GTK_WIDGET_MAPPED(gWin)) return;
 
     if (gDisplayMode == PHO_DISPLAY_PRESENTATION) {
         gint width, height;
