@@ -36,6 +36,15 @@ int gDisplayMode = PHO_DISPLAY_NORMAL;
 int gDelaySeconds = 0;
 int gPendingTimeout = 0;
 
+/* This routine exists to keep track of any allocated memory
+ * existing in the PhoImage structure.
+ */
+static void FreePhoImage(PhoImage* img)
+{
+    if (img->comment) free(img->comment);
+    free(img);
+}
+
 static int RotateImage(PhoImage* img, int degrees);    /* forward */
 
 static gint DelayTimer(gpointer data)
@@ -152,17 +161,40 @@ int ThisImage()
 
 int NextImage()
 {
+    PhoImage* curSav = gCurImage;
+    int retval = 0;
     if (gDebug)
         printf("\n================= NextImage ====================\n");
-    do {
+
+    while (1) {
         if (gCurImage == 0)   /* no image loaded yet, first call */
-            gCurImage = gFirstImage;
+            gCurImage = curSav = gFirstImage;
         else if ((gCurImage->next == 0) || (gCurImage->next == gFirstImage))
-            return -1;  /* end of list, can't go farther */
+            /* We're at the end of the list, can't go farther.
+             * However, we may have gotten here by trying to go to
+             * the next image and failing, in which case we no longer
+             * have a pixmap loaded. So we still need to LoadImage,
+             * but we'll want to return -1 to indicate we didn't progress.
+             */
+            retval = -1;
         else
             gCurImage = gCurImage->next;
-    } while (LoadImageAndRotate(gCurImage) != 0);
-    ShowImage();
+
+        if (LoadImageAndRotate(gCurImage) == 0) {   /* Success! */
+            ShowImage();
+            return retval;
+        }
+
+        /* The image didn't load. Remove it from the list. */
+        if (gDebug)
+            printf("Removing '%s' from list\n", gCurImage->filename);
+        curSav->next = gCurImage->next;
+        if (gCurImage->next)
+            gCurImage->next->prev = curSav;
+        FreePhoImage(gCurImage);
+        gCurImage = curSav;
+    }
+    /* NOTREACHED */
     return 0;
 }
 
@@ -457,15 +489,6 @@ PhoImage* NewPhoImage(char* fnam)
     newimg->filename = fnam;  /* no copy, we don't own the memory */
 
     return newimg;
-}
-
-/* This routine exists to keep track of any allocated memory
- * existing in the PhoImage structure.
- */
-static void FreePhoImage(PhoImage* img)
-{
-    if (img->comment) free(img->comment);
-    free(img);
 }
 
 /* Remove all images from the image list, to start fresh. */

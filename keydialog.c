@@ -185,8 +185,13 @@ static void MakeNewKeywordsDialog()
 
     /* Use a toplevel window, so it won't pop up centered on the image win */
     KeywordsDialog = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    /* Unfortunately that means we have to make everything inside. */
 
-    /* Unfortunately that means we have to make everything inside */
+    /* Tried making it a utility win for focus issues, but it didn't help:
+    gtk_window_set_type_hint (GTK_WINDOW(KeywordsDialog),
+                              GDK_WINDOW_TYPE_HINT_UTILITY);
+     */
+
     dlg_vbox = gtk_vbox_new(FALSE, 3);
     gtk_container_add(GTK_CONTAINER(KeywordsDialog), dlg_vbox);
     gtk_widget_show(dlg_vbox);
@@ -249,8 +254,8 @@ void ShowKeywordsDialog()
 
     /* Calling this from UpdateKeywordsDialog somehow sends focus
      * back to the image window.
-     */
     KeepOnTop(KeywordsDialog);
+     */
 
     /* Save any state we have from the previous image */
     RememberKeywords();

@@ -351,7 +351,8 @@ static gint HandleExpose(GtkWidget* widget, GdkEventExpose* event)
                event->area.width, event->area.height,
                event->area.x, event->area.y,
                width, height);
-        if (event->area.x != 0 || event->area.y != 0) {
+        if ((gDisplayMode != PHO_DISPLAY_PRESENTATION) &&
+            (event->area.x != 0 || event->area.y != 0)) {
             if (event->area.width != width || event->area.height != height)
                 printf("*** Expose different from window size!\n");
             if (event->area.width != gCurImage->curWidth ||
