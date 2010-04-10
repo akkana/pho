@@ -247,22 +247,7 @@ PhoImage* AddImage(char* filename)
         exit(1);
     }
     /* Make img the new last image in the list */
-    if (gFirstImage == 0) {
-        gFirstImage = img->next = img->prev = img;
-    }
-    else {
-        PhoImage* lastImg = gFirstImage->prev;
-        if (lastImg == gFirstImage || lastImg == 0) {  /* only 1 img in list */
-            gFirstImage->next = img;
-            img->prev = gFirstImage;
-        }
-        else {
-            lastImg->next = img;
-            img->prev = lastImg;
-        }
-        gFirstImage->prev = img;
-        img->next = gFirstImage;
-    }
+    AppendItem(img);
     return img;
 }
 

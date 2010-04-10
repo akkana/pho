@@ -36,15 +36,6 @@ int gDisplayMode = PHO_DISPLAY_NORMAL;
 int gDelaySeconds = 0;
 int gPendingTimeout = 0;
 
-/* This routine exists to keep track of any allocated memory
- * existing in the PhoImage structure.
- */
-static void FreePhoImage(PhoImage* img)
-{
-    if (img->comment) free(img->comment);
-    free(img);
-}
-
 static int RotateImage(PhoImage* img, int degrees);    /* forward */
 
 static gint DelayTimer(gpointer data)
@@ -127,8 +118,10 @@ static int LoadImageFromFile(PhoImage* img)
 static int LoadImageAndRotate(PhoImage* img)
 {
     int e;
-    int rot = img->curRot;
-    int firsttime = (img->trueWidth == 0);
+    int rot = (img ? img->curRot : 0);
+    int firsttime = (img && (img->trueWidth == 0));
+
+    if (!img) return -1;
 
     img->trueWidth = img->trueHeight = img->curRot = 0;
 
@@ -161,14 +154,30 @@ int ThisImage()
 
 int NextImage()
 {
-    PhoImage* curSav = gCurImage;
     int retval = 0;
+    int looping = 0;
     if (gDebug)
         printf("\n================= NextImage ====================\n");
 
-    while (1) {
-        if (gCurImage == 0)   /* no image loaded yet, first call */
-            gCurImage = curSav = gFirstImage;
+    /* Loop, since images may fail to load
+     * and may need to be deleted from the list
+     */
+    while (1)
+    {
+        if (gFirstImage == 0)
+            /* There's no list! How can we go to the next item? */
+            return -1;
+
+        if (gCurImage == 0) {  /* no image loaded yet, first call */
+            if (gDebug)
+                printf("NextImage: going to first image\n");
+            gCurImage = gFirstImage;
+        }
+
+        else if (looping && gCurImage->next == gFirstImage)
+            /* We're to the end of the list, after deleting something bogus */
+            return -1;
+
         else if ((gCurImage->next == 0) || (gCurImage->next == gFirstImage))
             /* We're at the end of the list, can't go farther.
              * However, we may have gotten here by trying to go to
@@ -177,7 +186,11 @@ int NextImage()
              * but we'll want to return -1 to indicate we didn't progress.
              */
             retval = -1;
-        else
+
+        /* We only want to go to ->next the first time;
+         * if we're looping because of an error, gCurImage is already set.
+         */
+        else if (!looping)
             gCurImage = gCurImage->next;
 
         if (LoadImageAndRotate(gCurImage) == 0) {   /* Success! */
@@ -185,14 +198,14 @@ int NextImage()
             return retval;
         }
 
-        /* The image didn't load. Remove it from the list. */
+        /* The image didn't load. Remove it from the list.
+         * That means we're going to loop around and try again,
+         * so keep gCurImage where it is (but change gCurImage->next).
+         */
         if (gDebug)
-            printf("Removing '%s' from list\n", gCurImage->filename);
-        curSav->next = gCurImage->next;
-        if (gCurImage->next)
-            gCurImage->next->prev = curSav;
-        FreePhoImage(gCurImage);
-        gCurImage = curSav;
+            printf("Skipping '%s' (didn't load)\n", gCurImage->filename);
+        DeleteItem(gCurImage);
+        looping = 1;
     }
     /* NOTREACHED */
     return 0;
@@ -491,19 +504,6 @@ PhoImage* NewPhoImage(char* fnam)
     return newimg;
 }
 
-/* Remove all images from the image list, to start fresh. */
-void ClearImageList()
-{
-    PhoImage* img = gFirstImage;
-    do {
-        PhoImage* next = img->next;
-        FreePhoImage(img);
-        img = next;
-    } while (img && img != gFirstImage);
-
-    gCurImage = gFirstImage = 0;
-}
-
 void ReallyDelete(PhoImage* delImg)
 {
     if (unlink(delImg->filename) < 0)
@@ -512,47 +512,11 @@ void ReallyDelete(PhoImage* delImg)
         return;
     }
 
-    /* next and prev should never be 0, but check anyway */
-    if (delImg->next == 0)
-        printf("BUG: delImg->next is zero!\n");
-    if (delImg->prev == 0)
-        printf("BUG: delImg->prev is zero!\n");
+    DeleteItem(delImg);
 
-    /* Disconnect it from the linked list, and reset gCurImage. */
-    if (delImg == gFirstImage                /* this is the only image! */
-        && (delImg->next == gFirstImage || delImg->next == 0)) {
+    /* If we just deleted the last image, all we can do is quit */
+    if (!gFirstImage)
         EndSession();
-    }
-    else if (delImg->prev == delImg->next) { /* One image left after this */
-        gFirstImage = gCurImage = delImg->prev;
-        gCurImage->prev = gCurImage->next = gCurImage;
-    }
-    else if (delImg->next == gFirstImage) {  /* Last image, so go back */
-        gCurImage = delImg->prev;
-        gCurImage->next = gFirstImage;
-        gFirstImage->prev = gCurImage;
-    }
-    else {
-        gCurImage = delImg->next;
-        gCurImage->prev = delImg->prev;
-        if (delImg->prev == 0) {
-            printf("BUG: delImg->prev == 0!\n");
-            delImg->prev = gFirstImage;
-        }
-        delImg->prev->next = gCurImage;
-        if (gCurImage->next == 0) {
-            printf("BUG: delImg->prev == 0!\n");
-            gCurImage->next = gFirstImage;
-        }
-        gCurImage->next->prev = gCurImage;
-    }
-    /* If we deleted the first image, make sure we reset the list */
-    if (delImg == gFirstImage) {
-        gFirstImage = delImg->next;
-    }
-
-    /* It's disconnected.  Free all the memory */
-    FreePhoImage(delImg);
 
     ThisImage();
 }

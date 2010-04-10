@@ -1,0 +1,44 @@
+
+Important regression tests:
+
+LIST HANDLING TESTS
+
+List of one image
+List of one image: delete it
+
+List of two images, delete first
+List of two images, delete second
+
+List consisting of only a bogus item
+List with bogus first item
+List with bogus item in the middle
+List with bogus last item
+
+pho
+
+pho ?.jpg
+
+pho 1.jpg
+pho 1.jpg 2.jpg
+cp delete.jpg a.jpg
+pho a.jpg
+cp delete.jpg a.jpg; cp delete.jpg b.jpg
+pho a.jpg 1.jpg b.jpg
+
+pho nosuchfile 1.jpg 6.jpg noneatall
+
+ROTATION TESTS
+
+Start with a larger-than-screen image, and rotate it 4 ways,
+  go forward then back
+Start with a file with EXIF rotation, rotate it 4 ways, go forward then back
+Start with a file with EXIF orientation, rotate it 4 ways, forward then back
+
+SCALING/MODE TESTS
+
+(something to test fullscreen and fullsize modes)
+
+go between presentation and normal mode, while advancing images.
+
+
+

@@ -86,6 +86,12 @@ extern int gDisplayMode;
  */
 extern void SetViewModes(int dispmode, int scalemode, double scalefactor);
 
+/* ************** List maintenance functions ************** */
+extern void DeleteItem(PhoImage* item);
+extern void AppendItem(PhoImage* item);
+extern void ClearImageList();
+
+/* ************** Misc. functions ************** */
 /* Some window managers don't deal well with windows that resize,
  * or don't retain focus if a resized window no longer contains
  * the mouse pointer. This allows making new windows instead.

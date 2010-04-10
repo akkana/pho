@@ -23,7 +23,7 @@ TARFILE = pho-$(VERSION).tar.gz
 
 EXIFLIB = exif/libphoexif.a
 
-SRCS = pho.c gmain.c gwin.c imagenote.c gdialogs.c keydialog.c
+SRCS = pho.c gmain.c phoimglist.c gwin.c imagenote.c gdialogs.c keydialog.c
 
 # winman.c
 
