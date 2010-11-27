@@ -176,6 +176,15 @@ static void MaybeMove()
      */
 }
 
+double FracOfScreenSize() {
+    if (gMonitorWidth == 0 || gMonitorHeight == 0)
+        return 0.0;    /* Signal to re-call this function later */
+
+    if (gMonitorWidth > gMonitorHeight)
+        return gMonitorHeight * .75;
+    return gMonitorWidth * .75;
+}
+
 /* Change the view (display and scale) modes,
  * and re-display the image if necessary.
  */
@@ -195,8 +204,10 @@ void SetViewModes(int dispmode, int scalemode, double scalefactor)
     if (dispmode == PHO_DISPLAY_KEYWORDS) {
         if (gDisplayMode != PHO_DISPLAY_KEYWORDS) {
             /* switching to keyword mode from some other mode */
-            gScaleMode = PHO_SCALE_SCREEN_RATIO;
-            gScaleRatio = .5;
+            //gScaleMode = PHO_SCALE_SCREEN_RATIO;
+            //gScaleRatio = .5;
+            gScaleMode = PHO_SCALE_FIXED;
+            gScaleRatio = FracOfScreenSize();
             if (gDebug)
                 printf("Showing keywords dialog from SetViewModes\n");
             ShowKeywordsDialog();
@@ -302,6 +313,7 @@ void DrawImage()
                 strcat(title, ")");
             }
         }
+        /* XXX replace these strcats with safer strncat */
         if (gScaleMode == PHO_SCALE_FULLSIZE)
             strcat(title, " (fullsize)");
         else if (gScaleMode == PHO_SCALE_FULLSCREEN)
@@ -318,6 +330,8 @@ void DrawImage()
                         (gScaleMode == PHO_SCALE_IMG_RATIO ? "fullsize " : ""),
                         (int)gScaleRatio);
         }
+        else if (gScaleMode == PHO_SCALE_FIXED)
+            strcat(title, " (fixed)");
         gtk_window_set_title(GTK_WINDOW(gWin), title);
 
         if (gDisplayMode == PHO_DISPLAY_KEYWORDS) {

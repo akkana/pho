@@ -232,18 +232,68 @@ int PrevImage()
 }
 
 /* Limit new_width and new_height so that they're no bigger than
- * max_width and max_height.
+ * max_width and max_height. This doesn't actually scale, just
+ * calculates dimensions and returns them in *width and *height.
  */
-static void ScaleToFit(int *new_width, int *new_height,
-                       int max_width, int max_height)
+static void ScaleToFit(int *width, int *height,
+                       int max_width, int max_height,
+                       int scaleMode, double scaleRatio)
 {
-    /* scale so that the biggest ratio just barely fits on screen. */
-    double xratio = (double)max_width / *new_width;
-    double yratio = (double)max_height / *new_height;
-    double ratio = MIN(xratio, yratio);
+    int new_w, new_h;
 
-    *new_width = ratio * *new_width;
-    *new_height = ratio * *new_height;
+    if (scaleMode == PHO_SCALE_SCREEN_RATIO) {
+        /* Which dimension needs to be scaled down more? */
+        double xratio = (double)(*width) / max_width;
+        double yratio = (double)(*height) / max_height;
+
+        if (xratio > 1. || yratio > 1.) {    /* need some scaling */
+            if (xratio > yratio) {  /* X needs more scaling down */
+                new_w = *width / xratio;
+                new_h = *height / xratio;
+            } else {                /* Y needs more scaling down */
+                new_w = *width / yratio;
+                new_h = *height / yratio;
+            }
+        }
+    }
+    else {
+        double xratio, yratio;
+        if (scaleMode == PHO_SCALE_FIXED) {
+            /* Special case: scaleRatio isn't actually a ratio,
+             * it's the max size we want the image's long dimension to be.
+             */
+            if (*width > *height) {
+                new_w = scaleRatio;
+                new_h = scaleRatio * *height / *width;
+            }
+            else {
+                new_w = scaleRatio * *width / *height;
+                new_h = scaleRatio;
+            }
+            /* Reset scaleRatio so it can now be used for (no) scaling */
+            scaleRatio = 1.0;
+        }
+        else {
+            new_w = *width;
+            new_h = *height;
+        }
+        new_w *= scaleRatio;
+        new_h *= scaleRatio;
+        xratio = (double)new_w / (double)max_width;
+        yratio = (double)new_h / (double)max_height;
+        if (xratio > 1. || yratio > 1.) {
+            if (xratio > yratio) {
+                new_w /= xratio;
+                new_h /= xratio;
+            } else {
+                new_w /= yratio;
+                new_h /= yratio;
+            }
+        }
+    }
+
+    *width = new_w * scaleRatio;
+    *height = new_h * scaleRatio;
 }
 
 #define SWAP(a, b) { int temp = a; a = b; b = temp; }
@@ -302,7 +352,9 @@ void ScaleAndRotate(PhoImage* img, int degrees)
      */
 #define NORMAL_SCALE_SLOP 5
     else if (gScaleMode == PHO_SCALE_NORMAL
-             || gScaleMode == PHO_SCALE_SCREEN_RATIO) {
+             || gScaleMode == PHO_SCALE_SCREEN_RATIO
+             || gScaleMode == PHO_SCALE_FIXED)
+    {
         int max_width, max_height;
         int aspect_changing;    /* Is the aspect ratio changing? */
 
@@ -319,12 +371,28 @@ void ScaleAndRotate(PhoImage* img, int degrees)
             max_width = gMonitorWidth;
             max_height = gMonitorHeight;
         }
-        if (new_width > max_width || new_height > max_height)
-            ScaleToFit(&new_width, &new_height, max_width, max_height);
 
-        /* In case we're scaling: */
-        new_width *= gScaleRatio;
-        new_height *= gScaleRatio;
+        /* If we're in fixed mode, make sure we've set the scale ratio */
+        if (gScaleMode == PHO_SCALE_FIXED && gScaleRatio == 0.0)
+            gScaleRatio = FracOfScreenSize();
+
+        if (new_width > max_width || new_height > max_height) {
+            ScaleToFit(&new_width, &new_height, max_width, max_height,
+                       gScaleMode, gScaleRatio);
+        }
+
+#if 0
+        /* Special case: if in PHO_SCALE_SCREEN_RATIO, we don't need to
+         * scale verticals (assuming a landscape screen) down -- it's
+         * better to keep the max dimension of each image the same.
+         */
+        if (new_width <= max_height && new_height <= max_width) {
+            double r = 
+        } else {
+            new_width *= gScaleRatio;
+            new_height *= gScaleRatio;
+        }
+#endif
 
         /* See if new_width and new_height are close enough already
          * that it might not be worth doing the work of scaling:
@@ -667,6 +735,7 @@ void VerboseHelp()
     printf("p\tToggle presentation mode (take up the whole screen, centering the image)\n");
     printf("d\tDelete current image (from disk, after confirming with another d)\n");
     printf("0-9\tRemember image in note list 0 through 9 (to be printed at exit)\n");
+    printf("  (In keywords dialog, alt + 0-9 adds 10, e.g. alt-4 triggers flag 14.\n");
     printf("t\tRotate right 90 degrees\n");
     printf("r\tRotate right 90 degrees\n");
     printf("<Right>\tRotate right 90 degrees\n");

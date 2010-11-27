@@ -63,7 +63,7 @@ char *QuoteString(char *str)
             return newstr;
         }
 
-    /*if there are no spaces or quotes in str, return a copy of str*/
+    /* If there are no spaces or quotes in str, return a copy of str */
     return (char *)g_strdup((gchar *)str);
 }
 
@@ -73,20 +73,25 @@ void AddImgToList(char** strp, char* str)
 
     if (*strp)
     {
-        char* newstr = malloc(strlen(*strp) + strlen(str) + 2);
-        if (!newstr) return;
-        strcpy(newstr, *strp);
-        strcat(newstr, " ");
-        strcat(newstr, str);
+        int newsize = strlen(*strp) + strlen(str) + 2;
+        char* newstr = malloc(newsize);
+        if (!newstr) {
+            free(str);
+            *strp = 0;
+            return;
+        }
+        snprintf(newstr, newsize, "%s %s", *strp, str);
         free(*strp);
         *strp = newstr;
     }
     else
         *strp = strdup(str);
 
+    /* QuoteString allocated a copy, so free that now: */
     free(str);
 }
 
+/* Print a summary to a file, or stdout if NULL */
 void PrintNotes()
 {
     int i;

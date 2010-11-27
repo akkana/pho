@@ -542,8 +542,8 @@ void ChangeWorkingFileSet()
                                             getcwd(buf, BUFSIZ));
     }
 
-	g_signal_connect(G_OBJECT(fsd), "response", G_CALLBACK(SetNewFiles), 0);
-	gtk_widget_show(fsd);
+    g_signal_connect(G_OBJECT(fsd), "response", G_CALLBACK(SetNewFiles), 0);
+    gtk_widget_show(fsd);
 }
 
 

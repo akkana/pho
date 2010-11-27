@@ -149,7 +149,7 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           /* Don't respond to ctrl-F -- that might be an attempt
            * to edit in a text field in the keywords dialog
            */
-          if (event->state & GDK_CONTROL_MASK )
+          if (event->state & GDK_CONTROL_MASK)
               return FALSE;
           SetViewModes(gDisplayMode,
                        ToggleBetween(gScaleMode,
@@ -178,9 +178,12 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
       case GDK_7:
       case GDK_8:
       case GDK_9:
-          ToggleNoteFlag(gCurImage, event->keyval - GDK_0);
+          if (event->state & GDK_MOD1_MASK) /* alt-num: add 10 to num */
+              ToggleNoteFlag(gCurImage, event->keyval - GDK_0 + 10);
+          else
+              ToggleNoteFlag(gCurImage, event->keyval - GDK_0);
           return TRUE;
-      case GDK_t:   /* make life easier for xv users */
+      case GDK_t:   /* make life easier for xv switchers */
       case GDK_r:
       case GDK_Right:
       case GDK_KP_Right:
@@ -219,7 +222,8 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           ToggleInfo();
           return TRUE;
       case GDK_k:
-          SetViewModes(PHO_DISPLAY_KEYWORDS, PHO_SCALE_SCREEN_RATIO, .5);
+          //SetViewModes(PHO_DISPLAY_KEYWORDS, PHO_SCALE_SCREEN_RATIO, .5);
+          SetViewModes(PHO_DISPLAY_KEYWORDS, PHO_SCALE_FIXED, 0.0);
           return TRUE;
       case GDK_o:
           ChangeWorkingFileSet();
@@ -272,8 +276,8 @@ static void CheckArg(char* arg)
             gDisplayMode = PHO_DISPLAY_NORMAL;
         else if (*arg == 'k') {
             gDisplayMode = PHO_DISPLAY_KEYWORDS;
-            gScaleMode = PHO_SCALE_SCREEN_RATIO;
-            gScaleRatio = .5;
+            gScaleMode = PHO_SCALE_FIXED;
+            gScaleRatio = 0.0;
         } else if (*arg == 's') {
             /* find the slideshow delay time, from e.g. pho -s2 */
             if (isdigit(arg[1]))
