@@ -181,8 +181,8 @@ double FracOfScreenSize() {
         return 0.0;    /* Signal to re-call this function later */
 
     if (gMonitorWidth > gMonitorHeight)
-        return gMonitorHeight * .9;
-    return gMonitorWidth * .9;
+        return gMonitorHeight * .95;
+    return gMonitorWidth * .95;
 }
 
 /* Change the view (display and scale) modes,
