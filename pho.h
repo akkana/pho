@@ -71,6 +71,12 @@ extern int gDebug;    /* debugging messages */
   * size times gScaleRatio (i.e. when ratio==1.0, same as normal mode).
   */
 #define PHO_SCALE_SCREEN_RATIO 5
+ /* FIXED: try to make the long dimension of the image be no bigger
+  * than gScaleRatio. If the image is naturally smaller, show it at
+  * its normal size.
+  */
+#define PHO_SCALE_FIXED 6
+
 extern int gScaleMode;
 extern double gScaleRatio;     /* only used for PHO_SCALE_*_RATIO */
 
@@ -85,6 +91,7 @@ extern int gDisplayMode;
  * of the three.
  */
 extern void SetViewModes(int dispmode, int scalemode, double scalefactor);
+extern double FracOfScreenSize();
 
 /* ************** List maintenance functions ************** */
 extern void DeleteItem(PhoImage* item);
