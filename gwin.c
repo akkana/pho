@@ -181,8 +181,8 @@ double FracOfScreenSize() {
         return 0.0;    /* Signal to re-call this function later */
 
     if (gMonitorWidth > gMonitorHeight)
-        return gMonitorHeight * .75;
-    return gMonitorWidth * .75;
+        return gMonitorHeight * .9;
+    return gMonitorWidth * .9;
 }
 
 /* Change the view (display and scale) modes,
@@ -210,7 +210,7 @@ void SetViewModes(int dispmode, int scalemode, double scalefactor)
             gScaleRatio = FracOfScreenSize();
             if (gDebug)
                 printf("Showing keywords dialog from SetViewModes\n");
-            ShowKeywordsDialog();
+            //ShowKeywordsDialog();
         }
         else {
             /* staying in keywords mode but changing some other factor:
@@ -265,6 +265,10 @@ void SetViewModes(int dispmode, int scalemode, double scalefactor)
          */
         ScaleAndRotate(gCurImage, 0);
         MaybeMove();
+    }
+
+    if (gDisplayMode == PHO_DISPLAY_KEYWORDS) {
+        ShowKeywordsDialog();
     }
 }
 

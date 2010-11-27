@@ -223,7 +223,8 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           return TRUE;
       case GDK_k:
           //SetViewModes(PHO_DISPLAY_KEYWORDS, PHO_SCALE_SCREEN_RATIO, .5);
-          SetViewModes(PHO_DISPLAY_KEYWORDS, PHO_SCALE_FIXED, 0.0);
+          //SetViewModes(PHO_DISPLAY_KEYWORDS, PHO_SCALE_FIXED, 0.0);
+          ToggleKeywordsMode();
           return TRUE;
       case GDK_o:
           ChangeWorkingFileSet();

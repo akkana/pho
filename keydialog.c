@@ -21,7 +21,17 @@ static PhoImage* sLastImage = 0;
 
 static void LeaveKeywordsMode()
 {
-    SetViewModes(PHO_DISPLAY_NORMAL, gScaleMode, gScaleRatio);
+    SetViewModes(PHO_DISPLAY_NORMAL, PHO_SCALE_NORMAL, 1.0);
+}
+
+void ToggleKeywordsMode()
+{
+    if (gDisplayMode == PHO_DISPLAY_KEYWORDS)
+        LeaveKeywordsMode();
+    else {
+        SetViewModes(PHO_DISPLAY_KEYWORDS, PHO_SCALE_FIXED, 0.0);
+        ThisImage();
+    }
 }
 
 /* Make sure we remember any changes that have been made in the dialog */
@@ -255,6 +265,11 @@ void ShowKeywordsDialog()
     /* Calling this from UpdateKeywordsDialog somehow sends focus
      * back to the image window.
     KeepOnTop(KeywordsDialog);
+     */
+    /*
+    gdk_window_raise(GTK_WIDGET(KeywordsDialog)->window);
+     * XXX Why does raise raise forever? Isn't there some way
+     * to raise once but still let the user control the stacking??
      */
 
     /* Save any state we have from the previous image */
