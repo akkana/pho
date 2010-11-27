@@ -1,116 +1,130 @@
-/2009, Pho 0.9.7-xxx:
-    Add ToggleBetween to better manage transitions between various modes
-    and make sure proper scaling and redraw happens.
+11/26/2010, Pho 0.9.7-pre6:
+	Much more reliable scaling code -- this (I hope) fixes the
+	problems with aspect ratio upon rotation.
+	New PHO_SCALE_FIXED mode: keep image's larger dimension <= the given
+	size (stored confusingly in gScaleRatio).
+	Use PHO_SCALE_FIXED and .75 times the shorter dimension of the 
+	screen for Keywords mode.
+	Alt+num toggles 10+num flag.
+
+4/10/2010, Pho 0.9.7-pre5:
+	Fix a slew of subtle bugs involving going back and forward im the
+	image list (e.g. when specifying nonexistent images). Add some
+	information on how to test for regressions.
+
+2/9/2009, Pho 0.9.7-pre4:
+	Add ToggleBetween to better manage transitions between various modes
+	and make sure proper scaling and redraw happens.
 
 12/15/2009, Pho 0.9.7-pre3:
-    More cleanup of rotation/scaling, and transitions from one mode
-    to the next.
+	More cleanup of rotation/scaling, and transitions from one mode
+	to the next.
 
 9/26/2009, Pho 0.9.7-pre2:
-    Add ability to add new image files or change the list without restarting.
-    Total cleanup/rewrite of rotate/scale logic.
-    Remove old gtk1 code.
+	Add ability to add new image files or change the list without restarting.
+	Total cleanup/rewrite of rotate/scale logic.
+	Remove old gtk1 code.
 
 N/N/2009, Pho 0.9.7-pre1:
-    List images with incorrect exif rotation;
-    smarter PHO_REMOTE (can do other things, not just GIMP);
-    don't go fullscreen from Ctrl-F in the keywords dialog.
-    fix a minor Mac build issue.
+	List images with incorrect exif rotation;
+	smarter PHO_REMOTE (can do other things, not just GIMP);
+	don't go fullscreen from Ctrl-F in the keywords dialog.
+	fix a minor Mac build issue.
 
 11/9/2008, Pho 0.9.6:
-    RELEASE! The only difference from 0.9.6-pre3 is to change
-    the default PHO_REMOTE command from gimp-remote to gimp,
-    since gimp-remote is obsolete and no longer provided in Linux
-    distros (and never was, on Mac or Win).
+	RELEASE! The only difference from 0.9.6-pre3 is to change
+	the default PHO_REMOTE command from gimp-remote to gimp,
+	since gimp-remote is obsolete and no longer provided in Linux
+	distros (and never was, on Mac or Win).
 
 10/2/2008, Pho 0.9.6-pre3:
-    Change the list next/prev code to fix (I hope) a bug where pho
-    would get confused and cycle from the last image back to the first.
+	Change the list next/prev code to fix (I hope) a bug where pho
+	would get confused and cycle from the last image back to the first.
 
 8/13/2008, Pho 0.9.6-pre2:
-    Simplify exif/Makefile so it'll work on FreeBSD and other
-    systems where make is non-GNU make
+	Simplify exif/Makefile so it'll work on FreeBSD and other
+	systems where make is non-GNU make
 
 N/N/2007, Pho 0.9.6-pre1:
-    Add new Keywords mode and keywords dialog.
-    Add stay-on-top code for prompt and keywords dialogs.
-    Clean up a lot of spurious expose events that gtk was sending,
-    in the hopes of curing the double-draws visible on slow machines.
-    (There are still some a few left, from resize events.)
-    A few minor fixes to work better with xinerama.
+	Add new Keywords mode and keywords dialog.
+	Add stay-on-top code for prompt and keywords dialogs.
+	Clean up a lot of spurious expose events that gtk was sending,
+	in the hopes of curing the double-draws visible on slow machines.
+	(There are still some a few left, from resize events.)
+	A few minor fixes to work better with xinerama.
 
 8/6/2007, Pho 0.9.5.1:
-    Fix a buffer overflow bug on the 'g' (gimp-remote) key.
+	Fix a buffer overflow bug on the 'g' (gimp-remote) key.
 
 3/20/2007, Pho 0.9.5:
-    No changes from pre5 except some manual and html page updates.
+	No changes from pre5 except some manual and html page updates.
 
 3/5/2007, Pho 0.9.5-pre5:
-    Check for a PHO_ARGS environment variable. Add a -P argument to force non-presentation mode. Fix a few bugs with double/half size and with scaling.
-    Make note 0 work properly. 
+	Check for a PHO_ARGS environment variable. Add a -P argument to force non-presentation mode. Fix a few bugs with double/half size and with scaling.
+	Make note 0 work properly. 
 
 7/24/2005, Pho 0.9.5-pre4:
-    Double and half size weren't working properly;
-    couldn't use arrow and spacebar to get out of the final Quit confirmation dialog (though ESC always worked). 
+	Double and half size weren't working properly;
+	couldn't use arrow and spacebar to get out of the final Quit confirmation dialog (though ESC always worked). 
 
 10/9/2004, Pho 0.9.5-pre3:
-    Fixed a crash bug when revisiting an image which was previously rotated.
-    Added a workaround for Metacity's evil window size handling.
-    Made the background black when in presentation mode. 
+	Fixed a crash bug when revisiting an image which was previously rotated.
+	Added a workaround for Metacity's evil window size handling.
+	Made the background black when in presentation mode. 
 
 9/30/2004, Pho 0.9.5-pre2:
-    Fixed some bugs involving ending up at the wrong image when deleting or pressing HOME. Cleaned up handing of image list.
-    Fixed an aspect ratio problem. 
+	Fixed some bugs involving ending up at the wrong image when deleting or pressing HOME. Cleaned up handing of image list.
+	Fixed an aspect ratio problem. 
 
 7/13/2004, Pho 0.9.5-pre1:
-    Rewrote the image list handling to use a linked list. Lots of associated code cleanup.
-    Port to gtk2, and build under either gtk1 or gtk2.
-    Add new "fullscreen mode" (e.g. for presentations, or for difficult window managers).
-    Various futile attempts to hang on to window focus in various window managers. 
+	Rewrote the image list handling to use a linked list. Lots of associated code cleanup.
+	Port to gtk2, and build under either gtk1 or gtk2.
+	Add new "fullscreen mode" (e.g. for presentations, or for difficult window managers).
+	Various futile attempts to hang on to window focus in various window managers. 
 
 9/30/2003, Pho 0.9.2:
-    Don't try to move the window unless the image size has changed (fix the annoying bug where pho wouldn't let you move windows).
-    Also fix a crash after dismissing the info dialog by clicking on the windowmanager "X". 
+	Don't try to move the window unless the image size has changed (fix the annoying bug where pho wouldn't let you move windows).
+	Also fix a crash after dismissing the info dialog by clicking on the windowmanager "X". 
 
 2/26/2003, Pho 0.9.1:
-    Rusty Russell: fix an off-by-one error in rotation code, reducing the need for extra memory;
-    Brian Langenberger: bracket printed filenames with quotes if they contain spaces or quote characters. 
+	Rusty Russell: fix an off-by-one error in rotation code, reducing the need for extra memory;
+	Brian Langenberger: bracket printed filenames with quotes if they contain spaces or quote characters. 
 
 1/8/2003, Pho 0.9:
-    Fix pho.spec version, and a make clean bug. 
+	Fix pho.spec version, and a make clean bug. 
 
 12/3/2002, Pho 0.9pre2:
-    Fix a crash in the quit dialog. 
+	Fix a crash in the quit dialog. 
 
 11/27/2002, Pho 0.9pre1:
-    Add EXIF handling, using code from jhead, by Matthias Wandel. 
+	Add EXIF handling, using code from jhead, by Matthias Wandel. 
 
 10/18/2002, Pho 0.8:
-    Build RPM and deb; show image size in titlebar; add home key. 
+	Build RPM and deb; show image size in titlebar; add home key. 
 
 8/13/2002, Pho 0.7:
-    Put image name in titlebar; prompt after last image before quitting; add fullscreen mode. 
+	Put image name in titlebar; prompt after last image before quitting; add fullscreen mode. 
 
 7/28/2002, Pho 0.6.1:
-    Fixed a bug with printing a note set on the last image. 
+	Fixed a bug with printing a note set on the last image. 
 
 7/21/2002, Pho 0.6:
-    Code cleanup, change the handling of the notes structures. 
+	Code cleanup, change the handling of the notes structures. 
 
 7/21/2002, Pho 0.5.1:
-    Fix a bug where image rotations were wrong when going backward. 
+	Fix a bug where image rotations were wrong when going backward. 
 
 7/11/2002, Pho 0.5:
-    Add delete dialog, and really delete files on disk. 
+	Add delete dialog, and really delete files on disk. 
 
 7/3/2002, Pho 0.4:
-    Fixed a bug with gif rotation. 
+	Fixed a bug with gif rotation. 
 
 7/1/2002, Pho 0.3:
-    Rename yass to pho, add info dialog. 
+	Rename yass to pho, add info dialog. 
 
 6/28/2002, Yass 0.2
-    Some added features; add manual and make install target. 
+	Some added features; add manual and make install target. 
 
 6/24/2002, Yass 0.1:
-    First release.
+	First release.
