@@ -1,7 +1,7 @@
 #ifndef JHEAD_H
 #define JHEAD_H 1
 
-#include <sys/param.h>
+#include <limits.h>
 #include <time.h>
 #include <stdio.h>
 

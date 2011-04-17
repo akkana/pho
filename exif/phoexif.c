@@ -53,7 +53,7 @@ static char* FtoS(float f)
     return buf;
 }
 
-int HasExif()
+int HasExif(void)
 {
     return (ImageInfo.FileName[0] != '\0');
 }
