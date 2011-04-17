@@ -474,12 +474,20 @@ void ScaleAndRotate(PhoImage* img, int degrees)
 
         /* Because curRot is going back to zero, that means we
          * might need to swap new_width and new_height, in case
-         * the aspect ratio is changing
-        //if (img->curRot % 180 != 0) {
-         */
+         * the aspect ratio is changing.
         if (degrees % 180 != 0) {
+        if ((img->curRot + degrees) % 180 != 0) {
+         * new_width and new_height have already taken into account
+         * the desired rotation (degrees); the important thing is
+         * whether the current rotation is 90 degrees off.
+         */
+        if (img->curRot % 180 != 0) {
             SWAP(new_width, new_height);
+            if (gDebug)
+                printf("Swapping new width/height: %dx%d\n",
+                       new_width, new_height);
         }
+        else printf("NOT swapping\n");
 
         /* image->curRot is going to be set back to zero when we load
          * from file, so adjust current planned rotation accordingly.
