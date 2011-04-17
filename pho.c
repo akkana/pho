@@ -487,7 +487,6 @@ void ScaleAndRotate(PhoImage* img, int degrees)
                 printf("Swapping new width/height: %dx%d\n",
                        new_width, new_height);
         }
-        else printf("NOT swapping\n");
 
         /* image->curRot is going to be set back to zero when we load
          * from file, so adjust current planned rotation accordingly.
