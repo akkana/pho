@@ -36,7 +36,10 @@ Start with a file with EXIF orientation, rotate it 4 ways, forward then back
 
 SCALING/MODE TESTS
 
-(something to test fullscreen and fullsize modes)
+pho test-img/squares.jpg
+Press F for fullsize; make sure all squares are still square.
+Try rotating, both in full-sized and normal modes, and make sure
+everything stays square.
 
 go between presentation and normal mode, while advancing images.
 
