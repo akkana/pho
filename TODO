@@ -4,13 +4,24 @@ let me know!
 
 BUGS:
 
-- EXIF rotation problems (maybe fixed)
+- "Error scaling up to 682788 x 512216: probably out of memory"
+  leaves pho in a state where it can't do anything else.
+  To reproduce: run in keywords mode and use = key.
+  Bad state is fixed; but why do we have an error scaling?
+  Okay, we understand that now, but it leaves a question:
+  what is the actual difference between PHO_SCALE_FIXED and
+  PHO_SCALE_SCREEN_RATIO ?
+
+- dismissing dialog on last image doesn't redraw covered area:
+  how to reproduce?
+
+- EXIF rotation problems (mostly fixed, may still be a few edge cases)
 
 - Going from presentation mode to non-presentation mode,
   we don't get an expose so we don't get a chance to check the
-  frame size and adjust window size accordingly.
+  frame size and adjust window size accordingly. (fixed?)
 
-- Calling DrawImage too many times
+- Calling DrawImage too many times. (much improved, still not perfect)
 
 
 - Show cursor in text fields in keywords dialog (gtk bug, probably can't fix)

@@ -311,7 +311,7 @@ static void ScaleToFit(int *width, int *height,
  *
  * degrees is the increment from the current rotation (curRot).
  */
-void ScaleAndRotate(PhoImage* img, int degrees)
+int ScaleAndRotate(PhoImage* img, int degrees)
 {
 #define true_width img->trueWidth
 #define true_height img->trueHeight
@@ -372,7 +372,9 @@ void ScaleAndRotate(PhoImage* img, int degrees)
             max_height = gMonitorHeight;
         }
 
-        /* If we're in fixed mode, make sure we've set the scale ratio */
+        /* If we're in fixed mode, make sure we've set the "scale ratio"
+         * to the screen size:
+         */
         if (gScaleMode == PHO_SCALE_FIXED && gScaleRatio == 0.0)
             gScaleRatio = FracOfScreenSize();
 
@@ -515,8 +517,6 @@ void ScaleAndRotate(PhoImage* img, int degrees)
     if (degrees != 0 &&
         (new_width > img->curWidth || new_height > img->curHeight)) {
         if (gDebug) printf("Rotating before scaling up\n");
-        printf("Will be scaling from %dx%d to %dx%d\n",
-               img->curWidth, img->curHeight, new_width, new_height);
         RotateImage(img, degrees);
         degrees = 0;    /* finished with rotation */
     }
@@ -537,13 +537,13 @@ void ScaleAndRotate(PhoImage* img, int degrees)
          * Later: now it's documented. Whew.
          */
         if (!newimage || gdk_pixbuf_get_width(newimage) < 1) {
-            printf("\007Error scaling up to %d x %d: probably out of memory\n",
-                   new_width, new_height);
             if (newimage)
                 gdk_pixbuf_unref(newimage);
+            printf("\007Error scaling from %d x %d to %d x %d: probably out of memory\n",
+                   img->curWidth, img->curHeight, new_width, new_height);
             Prompt("Couldn't scale up: probably out of memory", "Bummer", 0,
                    "\n ", "");
-            return;
+            return -1;
         }
         if (gDebug)
             printf("Scale from %dx%d = %dx%d to %dx%d = %dx%d\n",
@@ -568,6 +568,7 @@ void ScaleAndRotate(PhoImage* img, int degrees)
      * changes in the window size or position.
      */
     PrepareWindow();
+    return 0;
 }
 
 PhoImage* NewPhoImage(char* fnam)

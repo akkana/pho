@@ -191,11 +191,11 @@ double FracOfScreenSize() {
 /* XXX Pho really needs a state table defining which commands
  * take which state to which new state!
  */
-void SetViewModes(int dispmode, int scalemode, double scalefactor)
+int SetViewModes(int dispmode, int scalemode, double scalefactor)
 {
     if (dispmode == gDisplayMode && scalemode == gScaleMode
         && scalefactor == gScaleRatio)
-        return;
+        return 0;
     if (gDebug)
         printf("SetViewModes(%d, %d, %f (was %d, %d, %f)\n",
                dispmode, scalemode, scalefactor,
@@ -204,13 +204,13 @@ void SetViewModes(int dispmode, int scalemode, double scalefactor)
     if (dispmode == PHO_DISPLAY_KEYWORDS) {
         if (gDisplayMode != PHO_DISPLAY_KEYWORDS) {
             /* switching to keyword mode from some other mode */
-            //gScaleMode = PHO_SCALE_SCREEN_RATIO;
-            //gScaleRatio = .5;
             gScaleMode = PHO_SCALE_FIXED;
             gScaleRatio = FracOfScreenSize();
+            /*
             if (gDebug)
                 printf("Showing keywords dialog from SetViewModes\n");
-            //ShowKeywordsDialog();
+            ShowKeywordsDialog();
+             */
         }
         else {
             /* staying in keywords mode but changing some other factor:
@@ -263,13 +263,16 @@ void SetViewModes(int dispmode, int scalemode, double scalefactor)
          * XXX unfortunately this doesn't work when changing from keywords
          * to fullscreen/normal.
          */
-        ScaleAndRotate(gCurImage, 0);
+        int ret = ScaleAndRotate(gCurImage, 0);
+        if (ret != 0) return ret;
         MaybeMove();
     }
 
     if (gDisplayMode == PHO_DISPLAY_KEYWORDS) {
         ShowKeywordsDialog();
     }
+
+    return 0;
 }
 
 /* DrawImage is called from the expose callback.

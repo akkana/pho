@@ -52,33 +52,48 @@ extern GdkPixbuf* gImage;
 
 extern int gDebug;    /* debugging messages */
 
-/* ************** Scaling modes ************** */
+/* ************** (Way too many) Scaling Modes ************** */
+
 /* Normal: show at full size if it fits on screen, otherwise size to screen. */
 #define PHO_SCALE_NORMAL       0
+
 /* Full Screen: make it as big as necessary to fill the screen,
- * even if that means scaling up.
+ * even if that means scaling up. Good for e.g. small comics.
  */
 #define PHO_SCALE_FULLSCREEN   1
+
 /* Full Size: show at full size (1:1 pixel) even if it's bigger
  * than the screen.
  */
 #define PHO_SCALE_FULLSIZE     2
- /* IMG_RATIO: pho will scale the image to an absolute multiple of
+
+/* IMG_RATIO: pho will scale the image to an absolute multiple of
   * the true image size.
   */
 #define PHO_SCALE_IMG_RATIO    4
- /* SCREEN_RATIO: pho will show the image no larger than the screen
+
+/* SCREEN_RATIO: pho will show the image no larger than the screen
   * size times gScaleRatio (i.e. when ratio==1.0, same as normal mode).
   */
 #define PHO_SCALE_SCREEN_RATIO 5
- /* FIXED: try to make the long dimension of the image be no bigger
+
+/* FIXED: try to make the long dimension of the image be no bigger
   * than gScaleRatio. If the image is naturally smaller, show it at
   * its normal size.
   */
 #define PHO_SCALE_FIXED 6
 
 extern int gScaleMode;
-extern double gScaleRatio;     /* only used for PHO_SCALE_*_RATIO */
+
+/* Scale Ratio is used in two ways: for PHO_SCALE_*_RATIO, it's a
+ * ratio like 1.0, 0.5, 2.0 to indicate how we're scaling compared
+ * to screen size or original image size.
+ * But in PHO_SCALE_FIXED mode, it's overloaded to store a size
+ * slightly less than the smaller of the two screen dimensions:
+ * the size in which either dimension of the image has to fit,
+ * regardless of rotation.
+ */
+extern double gScaleRatio;
 
 /* ************** Display modes ************** */
 #define PHO_DISPLAY_NORMAL       0
@@ -90,7 +105,7 @@ extern int gDisplayMode;
  * other housekeeping and is the recommended way to set ANY
  * of the three.
  */
-extern void SetViewModes(int dispmode, int scalemode, double scalefactor);
+extern int SetViewModes(int dispmode, int scalemode, double scalefactor);
 extern double FracOfScreenSize();
 
 /* ************** List maintenance functions ************** */
@@ -120,12 +135,13 @@ extern void SetKeywordsDialogToggle(int which, int newval);
 /* Other routines that need to be public */
 extern void PrepareWindow();
 extern void DrawImage();
-extern void ScaleAndRotate(PhoImage* img, int degrees);
+extern int ScaleAndRotate(PhoImage* img, int degrees);
 
 extern PhoImage* AddImage(char* filename);
 extern void DeleteImage(PhoImage* img);
 extern void ClearImageList();
 extern void ChangeWorkingFileSet();
+extern void ToggleKeywordsMode();
 
 extern void Usage();
 extern void VerboseHelp();

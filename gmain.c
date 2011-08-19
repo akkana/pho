@@ -34,6 +34,9 @@ static int ModeForScaling(int oldmode)
       case PHO_SCALE_FULLSIZE:
         return PHO_SCALE_IMG_RATIO;
 
+      case PHO_SCALE_FIXED:
+          return PHO_SCALE_FIXED;
+
       case PHO_SCALE_NORMAL:
       case PHO_SCALE_FULLSCREEN:
       default:
@@ -110,6 +113,21 @@ static void RunPhoCommand()
             execl("/bin/sh", "sh", "-c", buf, (char*)0);
         }
     }
+}
+
+void TryScale(float times)
+{
+    /* Save the view modes, in case this fails */
+    int saveScaleMode = gScaleMode;
+    double saveScaleRatio = gScaleRatio;
+    int saveDisplayMode = gDisplayMode;
+
+    if (SetViewModes(gDisplayMode, ModeForScaling(gScaleMode),
+                     gScaleRatio * times) == 0)
+        return;
+
+    /* Oops! It didn't work. Try to reset back to previous settings */
+    SetViewModes(saveDisplayMode, saveScaleMode, saveScaleRatio);
 }
 
 gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
@@ -204,16 +222,12 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
       case GDK_plus:
       case GDK_KP_Add:
       case GDK_equal:
-          SetViewModes(gDisplayMode, ModeForScaling(gScaleMode),
-                       gScaleRatio * 2.);
-          ScaleAndRotate(gCurImage, 0);
+          TryScale(2.);
           return TRUE;
       case GDK_minus:
       case GDK_slash:
       case GDK_KP_Subtract:
-          SetViewModes(gDisplayMode, ModeForScaling(gScaleMode),
-                       gScaleRatio / 2.);
-          ScaleAndRotate(gCurImage, 0);
+          TryScale(.5);
           return TRUE;
       case GDK_g:  /* start gimp, or some other app */
           RunPhoCommand();
@@ -222,8 +236,6 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           ToggleInfo();
           return TRUE;
       case GDK_k:
-          //SetViewModes(PHO_DISPLAY_KEYWORDS, PHO_SCALE_SCREEN_RATIO, .5);
-          //SetViewModes(PHO_DISPLAY_KEYWORDS, PHO_SCALE_FIXED, 0.0);
           ToggleKeywordsMode();
           return TRUE;
       case GDK_o:
