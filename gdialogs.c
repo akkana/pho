@@ -438,32 +438,27 @@ int Prompt(char* msg, char* yesStr, char* noStr, char* yesChars, char* noChars)
     int qYesNo;
 
     if (!yesStr)
-        yesStr = "Yes";
-    if (!noStr)
-        noStr = "Cancel";
+        yesStr = "OK";
 
     gYesChars = yesChars ? yesChars : defaultYesChars;
     gNoChars = noChars ? noChars : defaultNoChars;
 
-    if (promptDialog && question && yesBtn && noBtn)
-    {
-        gtk_label_set_text(GTK_LABEL(question), msg);
-        gtk_label_set_text(GTK_LABEL(GTK_BIN(yesBtn)->child), yesStr);
-        gtk_label_set_text(GTK_LABEL(GTK_BIN(noBtn)->child), noStr);
-    }
-    else
+    if (!promptDialog)
     {
         /* First time through: make the dialog */
         promptDialog = gtk_dialog_new_with_buttons("Question",
                                                    GTK_WINDOW(gWin),
                                                    GTK_DIALOG_MODAL,
-                                                   yesStr, 1,
-                                                   noStr, 0,
                                                    NULL);
         KeepOnTop(promptDialog);
 
-        /* Make sure Enter will activate OK, not Cancel */
-        /*
+        /* Create the buttons manually, so we'll have their handles: */
+        yesBtn = gtk_dialog_add_button((GtkDialog*)promptDialog,
+                                       GTK_STOCK_OK, 1);
+        noBtn = gtk_dialog_add_button((GtkDialog*)promptDialog,
+                                       GTK_STOCK_CANCEL, 0);
+
+        /* Make sure Enter will activate OK, not Cancel
         gtk_dialog_set_default_response(GTK_DIALOG(promptDialog),
                                         GTK_RESPONSE_OK);
          */
@@ -476,6 +471,26 @@ int Prompt(char* msg, char* yesStr, char* noStr, char* yesChars, char* noChars)
         gtk_box_pack_start(GTK_BOX(GTK_DIALOG(promptDialog)->vbox),
                            question, TRUE, TRUE, 15);
         gtk_widget_show(question);
+    }
+    else
+        gtk_label_set_text(GTK_LABEL(question), msg);
+
+    /* Set the button labels and show/hide the buttons requested.
+     * We always have a Yes button, but No/Cancel is optional.
+     */
+    if (yesStr) {
+        gtk_button_set_label(GTK_BUTTON(yesBtn), yesStr);
+        gtk_widget_show(yesBtn);
+    }
+    else {
+        gtk_widget_hide(yesBtn);
+    }
+    if (noStr) {
+        gtk_button_set_label(GTK_BUTTON(noBtn), noStr);
+        gtk_widget_show(noBtn);
+    }
+    else {
+        gtk_widget_hide(noBtn);
     }
 
     gtk_widget_show(promptDialog);
