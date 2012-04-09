@@ -1,1 +1,2 @@
-shlibs:Depends=libatk1.0-0 (>= 1.20.0), libgtk2.0-0 (>= 2.12.0), libcairo2 (>= 1.6.0), libc6 (>= 2.4), libpango1.0-0 (>= 1.20.5), libglib2.0-0 (>= 2.12.0)
+shlibs:Depends=libatk1.0-0 (>= 1.29.3), libc6 (>= 2.7), libcairo2 (>= 1.2.4), libfontconfig1 (>= 2.8.0), libfreetype6 (>= 2.2.1), libglib2.0-0 (>= 2.16.0), libgtk2.0-0 (>= 2.8.0), libpango1.0-0 (>= 1.14.0)
+misc:Depends=

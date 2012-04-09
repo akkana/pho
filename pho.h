@@ -29,7 +29,11 @@ typedef struct PhoImage_s {
     struct PhoImage_s* prev;
     struct PhoImage_s* next;
     char* comment;
+    char* capname; /* Caption file name */
 } PhoImage;
+
+extern char *gCapFileFormat; /* Format for opening caption/comment file */
+extern void read_comment(PhoImage* img);
 
 /* Number of bits in unsigned long noteFlags */
 #define NUM_NOTES ((sizeof (unsigned long) * 8) - 1)

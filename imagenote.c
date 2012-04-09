@@ -12,6 +12,8 @@
 #include <stdlib.h>       /* for malloc() */
 #include <glib.h>
 #include <ctype.h>
+#include <fcntl.h>
+#include <unistd.h>    /* for write() */
 
 static char *sFlagFileList[NUM_NOTES];
 
@@ -97,6 +99,7 @@ void PrintNotes()
     int i;
     char *rot90=0, *rot180=0, *rot270=0, *rot0=0, *unmatchExif=0;
     PhoImage* img;
+    int capfile;
 
     /* Should free up memory here, e.g. for sFlagFileList,
      * but since this is only called right before exit,
@@ -108,8 +111,19 @@ void PrintNotes()
     img = gFirstImage;
     while (img)
     {
-        if (img->comment)
+        if (img->comment) {
             printf("Comment %s: %s\n", img->filename, img->comment);
+            if (img->capname) {
+                capfile = open(img->capname, O_WRONLY|O_TRUNC|O_CREAT, 0666);
+                if (capfile >= 0) {
+                    write(capfile, img->comment,strlen(img->comment));
+                    write(capfile, "\n",1);
+                    close(capfile);
+                } else {
+                    perror(img->capname);
+                }
+            }
+	}
         if (img->noteFlags)
         {
             int flag, j;

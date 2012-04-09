@@ -1,3 +1,11 @@
+pho (0.9.8) unstable; urgency=low
+  * -c now allows custom specification of caption/comment file.
+ -- david <somloieater@gmail.com>  Sun, 8 Apr 2011 11:15:00 +0200
+
+pho (0.9.7) unstable; urgency=low
+  * add .cap file support for captions - read into comment field and saved on exit
+ -- david <somloieater@gmail.com>  Sun, 8 Apr 2011 11:15:00 +0200
+
 pho (0.9.6) unstable; urgency=low
 
   * Add Keyword mode.

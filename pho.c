@@ -12,7 +12,10 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
+#include <string.h>
 #include <unistd.h>    /* for unlink() */
+#include <fcntl.h>     /* for symbols like O_RDONLY */
 
 /* ************* Definition of globals ************ */
 PhoImage* gFirstImage = 0;
@@ -26,6 +29,9 @@ int gMonitorHeight = 0;
 GdkPixbuf* gImage = 0;
 
 int gDebug = 0;    /* debugging messages */
+
+#define BIGBUFSZ 10240
+char bigbuffer[BIGBUFSZ];
 
 int gScaleMode = PHO_SCALE_NORMAL;
 double gScaleRatio = 1.0;
@@ -64,10 +70,38 @@ int ShowImage()
     return 0;
 }
 
+
+void read_comment(PhoImage* img)
+{
+    int F;
+    int a;
+    F = open(img->capname, O_RDONLY);
+    if (F >= 0) {
+        img->comment=calloc(1, 1023);
+        if (!(img->comment)) {
+            perror("read_caption: Allocating ram");
+            return;
+        } 
+        read(F, img->comment, 1022);
+        for(a=0; a<1023 && img->comment[a] != 0; a++) {
+            if (img->comment[a] == '\n') {
+                img->comment[a] = ' ';
+            }
+        }
+        close(F);
+        if (gDebug)
+            fprintf(stderr, "Read comment file %s\n", img->capname);
+    } else if (gDebug) {
+        fprintf(stderr, "Failed to open comment file %s:%s\n",
+                img->capname, strerror(errno));
+    }
+}
+	
 static int LoadImageFromFile(PhoImage* img)
 {
     GError* err = NULL;
     int rot;
+    size_t caplength;
 
     if (img == 0)
         return -1;
@@ -88,6 +122,15 @@ static int LoadImageFromFile(PhoImage* img)
         fprintf(stderr, "Can't open %s: %s\n", img->filename, err->message);
         return -1;
     }
+    /* How much ram do we need for the caption filename? */
+    caplength = snprintf(bigbuffer, BIGBUFSZ, gCapFileFormat, img->filename);
+    if (strncmp(img->filename, bigbuffer, caplength) == 0) {
+        fprintf(stderr," Caption filename expanded to same as image filename.\nCannot continue safely\n");
+        return -1;
+    }
+    img->capname=calloc(1, caplength+2);
+    strncpy(img->capname, bigbuffer, caplength+1);
+    read_comment(img);
 
     img->curWidth = gdk_pixbuf_get_width(gImage);
     img->curHeight = gdk_pixbuf_get_height(gImage);
@@ -722,6 +765,7 @@ void Usage()
     printf("\t-k: Keywords mode (show a Keywords dialog for each image)\n");
     printf("\t-n: Replace each image window with a new window (helpful for some window managers)\n");
     printf("\t-sN: Slideshow mode, where N is the timeout in seconds\n");
+    printf("\t-cC: Caption/Comment file pattern, format string for reworking filename\n");
     printf("\t-d: Debug messages\n");
     printf("\t-h: Help: Print this summary\n");
     printf("\t-v: Verbose help: Print a summary of key bindings\n");
