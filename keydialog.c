@@ -11,8 +11,11 @@
 #include <gdk/gdkkeysyms.h>
 #include <stdio.h>      /* needed on Mac, not on Linux, for sprintf */
 #include <ctype.h>
+#include <string.h>
+#include <stdlib.h>     /* for malloc() and free() */
 
 static GtkWidget* KeywordsDialog = 0;
+static GtkWidget* KeywordsCaption = 0;
 static GtkWidget* KeywordsDEntry[NUM_NOTES] = {0};
 static GtkWidget* KeywordsDToggle[NUM_NOTES] = {0};
 static GtkWidget* KeywordsDImgName = 0;
@@ -39,6 +42,9 @@ void RememberKeywords()
 {
     int i, mask, flags;
 
+    if (!sLastImage)
+        return;
+
     flags = 0;
     for (i=0, mask=1; i < NUM_NOTES; ++i, mask <<= 1)
     {
@@ -46,8 +52,13 @@ void RememberKeywords()
             gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(KeywordsDToggle[i])))
             flags |= mask;
     }
-    if (sLastImage)
-        sLastImage->noteFlags = flags;
+
+    sLastImage->noteFlags = flags;
+
+    /* and save a caption, if any */
+    if (sLastImage->caption)
+        free(sLastImage->caption);
+    sLastImage->caption = strdup((char*)gtk_entry_get_text((GtkEntry*)KeywordsCaption));
 }
 
 void SetKeywordsDialogToggle(int which, int newval)
@@ -72,8 +83,8 @@ void UpdateKeywordsDialog()
     sprintf(buffer, "pho keywords (%s)", gCurImage->filename);
     gtk_window_set_title(GTK_WINDOW(KeywordsDialog), buffer);
 
-    s = gCurImage->comment;
-    /*gtk_entry_set_text(GTK_ENTRY(KeywordsDEntry), s ? s : "");*/
+    s = gCurImage->caption;
+    gtk_entry_set_text(GTK_ENTRY(KeywordsCaption), s ? s : "");
 
     gtk_label_set_text(GTK_LABEL(KeywordsDImgName), gCurImage->filename);
 
@@ -190,7 +201,7 @@ static void AddNewKeywordField()
 static void MakeNewKeywordsDialog()
 {
     GtkWidget *ok, *label;
-    GtkWidget *dlg_vbox, *sep, *btn_box;
+    GtkWidget *dlg_vbox, *sep, *btn_box, *hbox;
     int i;
 
     /* Use a toplevel window, so it won't pop up centered on the image win */
@@ -235,9 +246,23 @@ static void MakeNewKeywordsDialog()
                        TRUE, TRUE, 4);
     gtk_widget_show(KeywordsDImgName);
 
-    label = gtk_label_new("To add a new keyword, enter it in the last box and hit Enter:");
+    label = gtk_label_new("To add a new keyword, hit Enter in the last box:");
     gtk_box_pack_start(GTK_BOX(KeywordsContainer), label, TRUE, TRUE, 4);
     gtk_widget_show(label);
+
+    /* Add the caption field */
+    hbox = gtk_hbox_new(FALSE, 3);
+    gtk_box_pack_start(GTK_BOX(KeywordsContainer), hbox,
+                       TRUE, TRUE, 4);
+    label = gtk_label_new("Caption:");
+    gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 4);
+    gtk_widget_show(label);
+
+    KeywordsCaption = gtk_entry_new();
+    gtk_box_pack_start(GTK_BOX(hbox), KeywordsCaption, TRUE, TRUE, 4);
+    gtk_widget_show(KeywordsCaption);
+
+    gtk_widget_show(hbox);
 
     /* Make sure all the entries are initialized */
     for (i=0; i < NUM_NOTES; ++i)

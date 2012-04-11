@@ -93,13 +93,171 @@ void AddImgToList(char** strp, char* str)
     free(str);
 }
 
-/* Print a summary to a file, or stdout if NULL */
+
+/* Captions:
+ * captions may be stored in one file per image, or they may
+ * all be in one file in lines like
+ * imgname: caption
+ * This is controlled by gCapFileFormat: if it has a %s in it,
+ * that will be replaced by the current image file name.
+ */
+
+static int GlobalCaptionFile()
+{
+    char* cp;
+
+    /* For captions, are we going to put them all in one file,
+     * or in individual files? That's controlled by whether
+     * gCapFileFormat includes a '%s" in it, i.e., will it
+     * substitute the name of the image file inside caption filenames.
+     */
+    for (cp = gCapFileFormat; *cp != 0; ++cp) {
+        if (cp[0] == '%' && cp[1] == 's')
+            return 0;
+    }
+
+    /* If we got throught he loop without seeing %s, then the
+     * caption file is global.
+     */
+    return 1;
+}
+
+/* Return the appropriate caption file name for this image */
+static char* CapFileName(PhoImage* img)
+{
+    /* How much ram do we need for the caption filename? */
+    static char buf[BUFSIZ];
+    int caplength = snprintf(buf, BUFSIZ, gCapFileFormat, img->filename);
+    if (strncmp(img->filename, buf, caplength) == 0) {
+        fprintf(stderr,
+           "Caption filename expanded to same as image filename. Bailing!\n");
+        return 0;
+    }
+    return buf;
+}
+
+/* Read any caption that might be in the caption file.
+ * If the caption file is global, though, we read the file once
+ * for the first image and cache them.
+ */
+void ReadCaption(PhoImage* img)
+{
+    int i;
+    int capfile;
+    char* capfilename;
+
+    static int sFirstTime = 1;
+    static int sGlobalCaptions = 0;
+    static char** sCaptionFileList = 0;
+    static char** sCaptionList = 0;
+    static int sNumCaptions = 0;
+
+    if (sFirstTime) {
+        sFirstTime = 0;
+        sGlobalCaptions = GlobalCaptionFile();
+        if (sGlobalCaptions) {
+            /* Read the global file */
+            char line[10000];
+            int numlines = 0;
+
+            FILE* capfile = fopen(gCapFileFormat, "r");
+
+            if (!capfile)    /* No captions to read, nothing to do */
+                return;
+
+            /* Make a first pass through the file just to count lines */
+            while (fgets(line, sizeof line, capfile)) {
+                char* colon = strchr(line, ':');
+                if (colon)
+                    ++numlines;
+            }
+
+            /* Now we can allocate space for the lists of files/captions */
+            sCaptionFileList = malloc(numlines * (sizeof (char*)));
+            sCaptionList = malloc(numlines * (sizeof (char*)));
+
+            /* and loop through again to actually read the captions */
+            rewind(capfile);
+            while (fgets(line, sizeof line, capfile)) {
+                char* cp;
+
+                /* Line should look like: imagename: blah blah */
+                char* colon = strchr(line, ':');
+                if (!colon) continue;
+
+                /* terminate the filename string */
+                *colon = '\0';
+                sCaptionFileList[sNumCaptions] = strdup(line);
+
+                /* Skip the colon and any spaces immediately after it */
+                ++colon;
+                while (*colon == ' ')
+                    ++colon;
+                /* strip off the terminal newline */
+                for (cp = colon; *cp != '\0'; ++cp)
+                    if (*cp == '\n' || *cp == '\r') {
+                        *cp = '\0';
+                        break;
+                    }
+
+                /* Now colon points to the beginning of the caption */
+                sCaptionList[sNumCaptions] = strdup(colon);
+
+                ++sNumCaptions;
+            }
+            fclose(capfile);
+        }
+    }
+
+    /* Now we've done the first-time reading of the file, if needed. */
+    if (sGlobalCaptions) {
+        for (i=0; i < sNumCaptions; ++i)
+            if (!strcmp(sCaptionFileList[i], img->filename)) {
+                img->caption = sCaptionList[i];
+                return;
+            }
+        img->caption = 0;
+        return;
+    }
+
+    /* If we get here, caption files are per-image.
+     * So look for the appropriate caption file.
+     */
+
+    capfilename = CapFileName(img);
+    if (!capfilename)
+        return;
+
+    capfile = open(capfilename, O_RDONLY);
+    if (capfile < 0)
+        return;
+    printf("Reading caption from %s\n", capfilename);
+
+#define MAX_CAPTION 1023
+    img->caption = calloc(1, MAX_CAPTION);
+    if (!(img->caption)) {
+        perror("Couldn't allocate memory for caption");
+        return;
+    } 
+    read(capfile, img->caption, MAX_CAPTION-1);
+    for (i=0; i < MAX_CAPTION && img->caption[i] != 0; ++i) {
+        if (img->caption[i] == '\n') {
+            img->caption[i] = ' ';
+        }
+    }
+    close(capfile);
+    if (gDebug)
+        fprintf(stderr, "Read caption file %s\n", capfilename);
+}
+
+/* Finally, the routine that prints a summary to a file or stdout */
 void PrintNotes()
 {
     int i;
     char *rot90=0, *rot180=0, *rot270=0, *rot0=0, *unmatchExif=0;
-    PhoImage* img;
-    int capfile;
+    PhoImage *img;
+    FILE *capfile = 0;
+    int useGlobalCaptionFile = GlobalCaptionFile();
 
     /* Should free up memory here, e.g. for sFlagFileList,
      * but since this is only called right before exit,
@@ -111,16 +269,36 @@ void PrintNotes()
     img = gFirstImage;
     while (img)
     {
-        if (img->comment) {
-            printf("Comment %s: %s\n", img->filename, img->comment);
-            if (img->capname) {
-                capfile = open(img->capname, O_WRONLY|O_TRUNC|O_CREAT, 0666);
-                if (capfile >= 0) {
-                    write(capfile, img->comment,strlen(img->comment));
-                    write(capfile, "\n",1);
-                    close(capfile);
-                } else {
-                    perror(img->capname);
+        if (img->caption && img->caption[0] && gCapFileFormat) {
+            if (gDebug)
+                printf("Caption %s: %s\n", img->filename, img->caption);
+
+            /* If we have a global captions file and we haven't
+             * opened it yet, do so now.
+             */
+            if (useGlobalCaptionFile && gCapFileFormat && !capfile) {
+                capfile = fopen(gCapFileFormat, "w");
+                if (!capfile) {
+                    perror(gCapFileFormat);
+                    gCapFileFormat = 0;  /* don't try again to write to it */
+                }
+            }
+
+            if (capfile) {    /* One shared caption file */
+                /* capfile is already open, so append to it: */
+                fprintf(capfile, "%s: %s\n\n", img->filename, img->caption);
+
+            } else if (gCapFileFormat) {   /* need individual caption files */
+                char* capname = CapFileName(img);
+                if (capname) {
+                    capfile = fopen(capname, "w");
+                    if (capfile) {
+                        fputs(img->caption, capfile);
+                        fclose(capfile);
+                        capfile = 0;
+                    }
+                    else
+                        perror(capname);
                 }
             }
 	}
@@ -166,6 +344,9 @@ void PrintNotes()
         if (img == gFirstImage) break;
     }
 
+    if (capfile)
+        fclose(capfile);
+
     /* Now we've looped over all the structs, so we can print out
      * the tables of rotation and notes.
      */
@@ -191,4 +372,3 @@ void PrintNotes()
         }
     printf("\n");
 }
-

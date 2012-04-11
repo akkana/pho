@@ -18,7 +18,7 @@
 #include <string.h>
 #include <ctype.h>
 
-char * gCapFileFormat = "%s.cap";
+char * gCapFileFormat = "Captions";
 
 /* Toggle a variable between two modes, preferring the first.
  * If it's anything but mode1 it will end up as mode1.
@@ -300,23 +300,16 @@ static void CheckArg(char* arg)
             else Usage();
             if (gDebug)
                 printf("Slideshow delay %d seconds\n", gDelaySeconds);
-        } else if (*arg =='c') {
-            int capfmtlen;
-            capfmtlen = strlen(arg+1);
-            if(capfmtlen == 0) {
-                fprintf(stderr, "Zero length argument to -c makes no sense\n");
-                Usage();
-            }
-            gCapFileFormat = calloc(1,capfmtlen+2);
-            strncpy(gCapFileFormat, arg+1, capfmtlen+1);
-            arg += capfmtlen;
+        } else if (*arg == 'c') {
+            gCapFileFormat = strdup(arg+1);
             if (gDebug)
                 printf("Format set to '%s'\n", gCapFileFormat);
-            if (strstr(gCapFileFormat, "%s") == NULL) {
-                fprintf(stderr, "Caption/comment file format string must contain a single %%s format marker,\nwhich is replaced by the file name\n");
-                Usage();
+
+            /* Can't follow this with any other letters -- they're all
+             * part of the filename -- so return.
+             */
+            return;
 	    }
-	}
     }
 }
 

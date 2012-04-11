@@ -221,7 +221,10 @@ static gint HandleInfoKeyPress(GtkWidget* widget, GdkEventKey* event)
 void ToggleInfo()
 {
     GtkWidget *ok;
-    GtkWidget *label, *vbox, *box, *scroller;
+    GtkWidget *label, *vbox, *box;
+#ifdef SCROLLER
+    GtkWidget *scroller;
+#endif
     int i;
 
     if (gDebug) printf("ToggleInfo\n");
@@ -259,7 +262,6 @@ void ToggleInfo()
                                           vbox);
     gtk_widget_show(vbox);
 #else /* SCROLLER */
-    scroller = 0;  /* warning fix */
     vbox = GTK_DIALOG(InfoDialog)->vbox;
 #endif /* SCROLLER */
 
