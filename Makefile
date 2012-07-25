@@ -21,7 +21,7 @@ INSTALLPREFIX = ${DESTDIR}/usr/local
 
 TARFILE = pho-$(VERSION).tar.gz
 
-EXIFLIB = exif/libphoexif.a
+EXIFLIB = exif/libphoexif.a -lm
 
 SRCS = pho.c gmain.c phoimglist.c gwin.c imagenote.c gdialogs.c keydialog.c
 
