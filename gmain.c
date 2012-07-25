@@ -270,6 +270,33 @@ PhoImage* AddImage(char* filename)
     return img;
 }
 
+static void parseGeom(char* geom, int* width, int* height)
+{
+    int num;
+    if (!isdigit(*geom)) {
+        printf("Geometry '%s' must start with a digit\n", geom);
+        Usage();
+    }
+    num = atoi(geom);
+    if (num > 0)
+        *width = num;
+
+    /* Now see if there's a height */
+    while (*(++geom)) {
+        if (*geom == 'x') {
+            ++geom;
+            if (!isdigit(*geom)) {
+                printf("Number after 'x' in geometry must start with a digit, not %s\n", geom);
+                Usage();
+            }
+            num = atoi(geom);
+            if (num > 0)
+                *height = num;
+            return;
+        }
+    }
+}
+
 /* CheckArg takes a string, like -Pvg, and sets all the relevant flags. */
 static void CheckArg(char* arg)
 {
@@ -285,9 +312,22 @@ static void CheckArg(char* arg)
             VerboseHelp();
         else if (*arg == 'n')
             gMakeNewWindows = 1;
-        else if (*arg == 'p')
+        else if (*arg == 'p') {
             gDisplayMode = PHO_DISPLAY_PRESENTATION;
-        else if (*arg == 'P')
+            if (arg[1] == '\0') {
+                /* Normal presentation mode -- center everything
+                 * and size to the current display.
+                 */
+                gPresentationWidth = 0;
+                gPresentationHeight = 0;
+            } else {
+                char* geom = arg+1;
+                if (*geom == 'p') ++geom;
+                gPresentationWidth = 0;
+                gPresentationHeight = 0;
+                parseGeom(geom, &gPresentationWidth, &gPresentationHeight);
+            }
+        } else if (*arg == 'P')
             gDisplayMode = PHO_DISPLAY_NORMAL;
         else if (*arg == 'k') {
             gDisplayMode = PHO_DISPLAY_KEYWORDS;

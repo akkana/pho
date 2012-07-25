@@ -302,6 +302,18 @@ void DrawImage()
          * only fullscreens the current monitor, not all of them.
          */
         gtk_window_get_size(GTK_WINDOW(gWin), &width, &height);
+
+        /* If we have a presentation screen size set (e.g. for a projector
+         * that has a different resolution from our native monitor),
+         * Fudge the screen size and center based on a virtual screen
+         * starting in the upper left corner of our current screen.
+         * That way, it will center on the projector or other device.
+         */
+        if (gPresentationWidth > 0)
+            width = gPresentationWidth;
+        if (gPresentationHeight > 0)
+            height = gPresentationHeight;
+
         dstX = (width - gCurImage->curWidth) / 2;
         dstY = (height - gCurImage->curHeight) / 2;
     }

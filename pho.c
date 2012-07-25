@@ -25,6 +25,10 @@ PhoImage* gCurImage = 0;
 int gMonitorWidth = 0;
 int gMonitorHeight = 0;
 
+/* Effective resolution, e.g. if we'll be sending to a projector */
+int gPresentationWidth = 0;
+int gPresentationHeight = 0;
+
 /* We only have one image at a time, so make it global. */
 GdkPixbuf* gImage = 0;
 
@@ -722,7 +726,9 @@ void Usage()
 {
     printf("pho version %s.  Copyright 2002-2009 Akkana Peck akkana@shallowsky.com.\n", VERSION);
     printf("Usage: pho [-dhnp] image [image ...]\n");
-    printf("\t-p: Presentation mode (full screen)\n");
+    printf("\t-p: Presentation mode (full screen, centered)\n");
+    printf("\t-p[resolution]: Projector mode:\n\tlike presentation mode but in upper left corner\n");
+    printf("\t-P: No presentation mode (separate window) -- default\n");
     printf("\t-k: Keywords mode (show a Keywords dialog for each image)\n");
     printf("\t-n: Replace each image window with a new window (helpful for some window managers)\n");
     printf("\t-sN: Slideshow mode, where N is the timeout in seconds\n");
