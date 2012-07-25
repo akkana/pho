@@ -84,7 +84,7 @@ static int LoadImageFromFile(PhoImage* img)
 
     /* Free the current image */
     if (gImage) {
-        gdk_pixbuf_unref(gImage);
+        g_object_unref(gImage);
         gImage = 0;
     }
 
@@ -546,7 +546,7 @@ int ScaleAndRotate(PhoImage* img, int degrees)
          */
         if (!newimage || gdk_pixbuf_get_width(newimage) < 1) {
             if (newimage)
-                gdk_pixbuf_unref(newimage);
+                g_object_unref(newimage);
             printf("\007Error scaling from %d x %d to %d x %d: probably out of memory\n",
                    img->curWidth, img->curHeight, new_width, new_height);
             Prompt("Couldn't scale up: probably out of memory", "Bummer", 0,
@@ -561,7 +561,7 @@ int ScaleAndRotate(PhoImage* img, int degrees)
                    gdk_pixbuf_get_width(newimage),
                    gdk_pixbuf_get_height(newimage));
         if (gImage)
-            gdk_pixbuf_unref(gImage);
+            g_object_unref(gImage);
         gImage = newimage;
 
         img->curWidth = gdk_pixbuf_get_width(gImage);
@@ -716,7 +716,7 @@ static int RotateImage(PhoImage* img, int degrees)
 
     img->curRot = (img->curRot + degrees + 360) % 360;
 
-    gdk_pixbuf_unref(gImage);
+    g_object_unref(gImage);
     gImage = newImage;
 
     return 0;
