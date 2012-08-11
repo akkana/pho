@@ -30,7 +30,7 @@ SRCS = pho.c gmain.c phoimglist.c gwin.c imagenote.c gdialogs.c keydialog.c
 OBJS = $(subst .c,.o,$(SRCS))
 
 pho: $(EXIFLIB) $(OBJS)
-	$(CC) -o $@ $(OBJS) $(EXIFLIB) $(GLIBS) $(LDFLAGS)
+	$(CC) -o $@ $(OBJS) $(EXIFLIB) $(GLIBS) $(LDFLAGS) -lm
 
 cflags:
 	echo $(CFLAGS)
