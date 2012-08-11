@@ -51,6 +51,7 @@ extern PhoImage* gCurImage;
 /* Monitor resolution */
 extern int gMonitorWidth, gMonitorHeight;
 extern int gPhysMonitorWidth, gPhysMonitorHeight;
+extern int gPresentationWidth, gPresentationHeight;
 
 /* We only have one image at a time, so make it global. */
 extern GdkPixbuf* gImage;
