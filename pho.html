@@ -19,9 +19,10 @@ and making notes about what to do with each image --
 for instance, for going through hundreds of
 images after uploading them from a digital camera.
 
-<p><b>Pho 0.9.7 is released!</b>
-
-<p>To get it, <a href="#download">skip to the download section.</a>
+<p>
+The current version is <b> pho 0.9.7-pre8.</b>
+<br>
+To get it, <a href="#download">skip to the download section.</a>
 
 <p>
 The big change here is Keywords mode. It uses the same note flags
@@ -30,6 +31,11 @@ annotate a directory of images with strings. You can type in phrases
 for each note, and you can have up to 31 notes now, not just 10.
 If you use Pho to categorize your photos, you'll find Keywords mode
 very handy.
+
+<p>
+In Keywords mode you can also type in a unique image comment for each
+image. Comments aren't tied to the numbered image flags -- each image
+has its own comment.
 
 <p>
 There's also a new slideshow mode, where you specify the interval in seconds
@@ -69,7 +75,6 @@ re-read the file on disk.
 
 <p>
 <a href="#download">Skip to the download section</a>.
-
 
 <h2>Why another image viewer?  Surely there are plenty of those?</h2>
 
@@ -160,10 +165,25 @@ in gimp, and 3 on the photos I want to save as desktop backgrounds.
 <a name="download">
 <h2>Download: Getting pho</h2>
 <p>
+<b>Current version:</b> 
+<a href="pho-0.9.7-pre8.tar.gz">pho-0.9.7-pre8.tar.gz</a>.
+(source tarball).
 <p>
-Try the new pho 0.9.6 release!
-Source tarball only: <a href="pho-0.9.6.tar.gz">pho-0.9.6.tar.gz</a>.
+I've stopped linking to pho 0.9.6 because even though it's not
+officially released, pho-0.9.7-pre is so much better and more stable.
 <p>
+<b>Latest source tree:</b>
+<a href="https://github.com/akkana/pho">Pho is now hosted on Github</a>,
+and you can get the latest source tree there, as well as file
+bugs or otherwise participate.
+<p>
+There's also a
+<a href="http://code.google.com/p/pho/">Google Code mirror</a>
+which may not be quite as up-to-date.
+
+<p>
+Ancient 0.9.6 packages:
+<br />
 <b>Ubuntu (Hardy) package: <a
 href="pho_0.9.6_i386-hardy.deb">pho_0.9.6_i386-hardy.deb</a></b>
 <br />
@@ -187,14 +207,14 @@ it should be able to run with the new experimental native gtk
 libraries too. If you've tried it, let me know how it works!
 
 <p>
-<b>Dependencies:</b>
+<h3>Dependencies:</h3>
 pho uses the gtk+-2.0 libraries (though if it can't find them, 
 it can run slightly less functionally with gtk1 and gdk-pixbuf).
 You may need to edit the Makefile if your system has these libraries
 installed in different place from my system (sorry, no autoconf yet).
 <p>
 To compile pho, you'll need a compiler, GTK, and all the libraries
-it depends on. For example, on Ubuntu Feisty, this command should get you
+it depends on. For example, on Ubuntu, this command should get you
 what you need:
 <pre>
 aptitude install build-essential libgtk2.0-dev
@@ -206,6 +226,27 @@ feature it really needs ... <a href="../../mailme.html">let me know!</a>
 
 <h2>Changelog</h2>
 <dl>
+<dt>4/10/2012, <a href="pho-0.9.7-pre8.tar.gz">Pho 0.9.7-pre8</a>:
+<dd>Add captions/image comments (from David <somloieater@gmail.com>) with -c.
+    Improve scaling up from keywords mode (but some scaling issues remain).
+    More aspect ratio fixing and code cleanup.
+<dt>4/17/2011, <a href="pho-0.9.7-pre7.tar.gz">Pho 0.9.7-pre7</a>:
+<dd>Fix aspect ratio of fullsize mode on vertical images;
+    increase keyword dialog height, and add some keyword dialog
+    reliability fixes; fix build warnings reported on Irix.
+<dt>11/26/2010, <a href="pho-0.9.7-pre6.tar.gz">Pho 0.9.7-pre6</a>:
+<dd>Much more reliable scaling code -- this (I hope) fixes the
+    problems with aspect ratio upon rotation.
+    New PHO_SCALE_FIXED mode: keep image's larger dimension <= the given size.
+    Use PHO_SCALE_FIXED and .75 times the shorter dimension of the screen
+    for Keywords mode.
+    Alt+num toggles 10+num flag.
+<dt>4/10/2010, <a href="pho-0.9.7-pre5.tar.gz">Pho 0.9.7-pre5</a>:
+<dd>Fix a slew of subtle bugs involving going back and forward in the image
+list (e.g. when specifying nonexistent images). Add some information
+on how to test for regressions.
+<dt>2/9/2009, <a href="pho-0.9.7-pre4.tar.gz">Pho 0.9.7-pre4</a>:
+<dd>Fix a race condition involving the keywords dialog getting focus.
 <dt>12/15/2009, <a href="pho-0.9.7-pre3.tar.gz">Pho 0.9.7-pre3</a>:
 <dd>More cleanup of rotation/scaling, and transitions from one mode
     to the next.
