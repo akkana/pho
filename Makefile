@@ -48,7 +48,7 @@ tar: clean $(TARFILE)
 $(TARFILE): 
 	( make clean && \
 	  cd .. && \
-	  tar czvf $(TARFILE) --exclude=.svn --owner=root $(CWDBASE) && \
+	  tar czvf $(TARFILE) --exclude=.svn --exclude=.git --owner=root $(CWDBASE) && \
 	  mv $(TARFILE) $(CWD) && \
 	  echo Created $(TARFILE) \
 	)
