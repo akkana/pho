@@ -733,6 +733,7 @@ void Usage()
     printf("\t-n: Replace each image window with a new window (helpful for some window managers)\n");
     printf("\t-sN: Slideshow mode, where N is the timeout in seconds\n");
     printf("\t-cpattern: Caption/Comment file pattern, format string for reworking filename\n");
+    printf("\t--: Assume no more flags will follow\n");
     printf("\t-d: Debug messages\n");
     printf("\t-h: Help: Print this summary\n");
     printf("\t-v: Verbose help: Print a summary of key bindings\n");

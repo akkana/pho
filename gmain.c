@@ -358,14 +358,20 @@ int main(int argc, char** argv)
     /* Initialize some defaults from environment variables,
      * before reading cmdline args.
      */
+    int options = 1;
+
     char* env = getenv("PHO_ARGS");
     if (env && *env)
         CheckArg(env);
 
     while (argc > 1)
     {
-        if (argv[1][0] == '-')
-            CheckArg(argv[1]);
+        if (argv[1][0] == '-' && options) {
+            if (strcmp(argv[1], "--"))
+                CheckArg(argv[1]);
+            else
+                options = 0;
+        }
         else {
             AddImage(argv[1]);
         }
