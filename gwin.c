@@ -189,7 +189,7 @@ double FracOfScreenSize() {
  * and re-display the image if necessary.
  */
 /* XXX Pho really needs a state table defining which commands
- * take which state to which new state!
+ * take which state to which new state! What a mess.
  */
 int SetViewModes(int dispmode, int scalemode, double scalefactor)
 {

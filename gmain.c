@@ -34,12 +34,12 @@ static int ModeForScaling(int oldmode)
     {
       case PHO_SCALE_IMG_RATIO:
       case PHO_SCALE_FULLSIZE:
+      case PHO_SCALE_NORMAL:
         return PHO_SCALE_IMG_RATIO;
 
       case PHO_SCALE_FIXED:
           return PHO_SCALE_FIXED;
 
-      case PHO_SCALE_NORMAL:
       case PHO_SCALE_FULLSCREEN:
       default:
         return PHO_SCALE_SCREEN_RATIO;
@@ -224,12 +224,18 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
       case GDK_plus:
       case GDK_KP_Add:
       case GDK_equal:
-          TryScale(2.);
+          if (event->state & GDK_CONTROL_MASK)
+              TryScale(1.25);
+          else
+              TryScale(2.);
           return TRUE;
       case GDK_minus:
       case GDK_slash:
       case GDK_KP_Subtract:
-          TryScale(.5);
+          if (event->state & GDK_CONTROL_MASK)
+              TryScale(.8);
+          else
+              TryScale(.5);
           return TRUE;
       case GDK_g:  /* start gimp, or some other app */
           RunPhoCommand();
