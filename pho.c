@@ -590,6 +590,9 @@ PhoImage* NewPhoImage(char* fnam)
 
 void ReallyDelete(PhoImage* delImg)
 {
+    /* Make sure the keywords dialog doesn't save a pointer to this image */
+    NoCurrentKeywords();
+
     if (unlink(delImg->filename) < 0)
     {
         printf("OOPS!  Can't delete %s\n", delImg->filename);

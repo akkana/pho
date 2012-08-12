@@ -21,6 +21,7 @@ extern void ShowKeywordsDialog();
 extern void HideKeywordsDialog();
 extern void UpdateKeywordsDialog();
 extern void RememberKeywords();
+extern void NoCurrentKeywords();   /* use when deleting current image */
 
 /* A function dialogs must call to stay on top of the image window */
 extern void KeepOnTop(GtkWidget* dialog);

@@ -58,7 +58,16 @@ void RememberKeywords()
     /* and save a caption, if any */
     if (sLastImage->caption)
         free(sLastImage->caption);
-    sLastImage->caption = strdup((char*)gtk_entry_get_text((GtkEntry*)KeywordsCaption));
+    sLastImage->caption = strdup((char*)gtk_entry_get_text(
+                                     (GtkEntry*)KeywordsCaption));
+}
+
+/* When deleting an image, we need to clear any notion of sLastImage
+ * or else we'll crash trying to access it.
+ */
+void NoCurrentKeywords()
+{
+    sLastImage = 0;
 }
 
 void SetKeywordsDialogToggle(int which, int newval)
