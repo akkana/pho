@@ -52,12 +52,6 @@ static const char * CurrentFile;
 // Command line options flags
 static int DoModify     = FALSE;
        int ShowTags     = FALSE;    // Do not show raw by default.
-static char * ApplyCommand = NULL;  // Apply this command to all images.
-static char * FilterModel = NULL;
-static int    ExifOnly    = FALSE;
-
-static char * ExifXferScrFile = NULL;// Extract Exif header from this file, and
-                                    // put it into the jpegs processed.
 
 static int SupressNonFatalErrors = TRUE; // Wether or not to pint warnings on recoverable errors
 
@@ -97,126 +91,13 @@ void ErrNonfatal(char * msg, int a1, int a2)
 } 
 
 //--------------------------------------------------------------------------
-// Apply the specified command to the jpeg file.
-//--------------------------------------------------------------------------
-static void DoCommand(const char * FileName)
-{
-    int a,e;
-    char ExecString[400];
-    char TempName[200];
-    int TempUsed = FALSE;
-
-    e = 0;
-
-    // Make a temporary file in the destination directory by changing last char.
-    strcpy(TempName, FileName);
-    a = strlen(TempName)-1;
-    TempName[a] = TempName[a] == 't' ? 'z' : 't';
-
-    // Build the exec string.  &i and &o in the exec string get replaced by input and output files.
-    for (a=0;;a++){
-        if (ApplyCommand[a] == '&'){
-            if (ApplyCommand[a+1] == 'i'){
-                // Input file.
-                if (strstr(FileName, " ")){
-                    e += sprintf(ExecString+e, "\"%s\"",FileName);
-                }else{
-                    // No need for quoting (that way I can put a relative path in front)
-                    e += sprintf(ExecString+e, "%s",FileName);
-                }
-                a += 1;
-                continue;
-            }
-            if (ApplyCommand[a+1] == 'o'){
-                // Needs an output file distinct from the input file.
-                e += sprintf(ExecString+e, "\"%s\"",TempName);
-                a += 1;
-                TempUsed = TRUE;
-                unlink(TempName);// Remove any pre-existing temp file
-                continue;
-            }
-        }
-        ExecString[e++] = ApplyCommand[a];
-        if (ApplyCommand[a] == 0) break;
-    }
-
-    printf("Cmd:%s\n",ExecString);
-
-    errno = 0;
-    a = system(ExecString);
-
-    if (a || errno){
-        // A command can however fail without errno getting set or system returning an error.
-        if (errno) perror("system");
-        ErrFatal("Problem executing specified command");
-    }
-
-    if (TempUsed){
-        // Don't delete original file until we know a new one was created by the command.
-        struct stat dummy;
-        if (stat(TempName, &dummy) == 0){
-            unlink(FileName);
-            rename(TempName, FileName);
-        }else{
-            ErrFatal("specified command did not produce expected output file");
-        }
-    }
-}
-
-//--------------------------------------------------------------------------
-// check if this file should be skipped based on contents.
-//--------------------------------------------------------------------------
-static int CheckFileSkip(void)
-{
-    // I sometimes add code here to only process images based on certain
-    // criteria - for example, only to convert non progressive jpegs to progressives, etc..
-
-    if (FilterModel){
-        // Filtering processing by camera model.
-        if (strstr(ImageInfo.CameraModel, FilterModel) == NULL){
-            // Skip.
-            return TRUE;
-
-        }
-    }
-
-    if (ExifOnly){
-        // Filtering by EXIF only.  Skip all files that have no Exif.
-        if (FindSection(M_EXIF) == NULL){
-            return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-//--------------------------------------------------------------------------
-// Subsititute original name for '&i' if present in specified name.
-// This to allow specifying relative names when manipulating multiple files.
-//--------------------------------------------------------------------------
-static void RelativeName(char * OutFileName, const char * NamePattern, const char * OrigName)
-{
-    // If the filename contains substring "&i", then substitute the 
-    // filename for that.  This gives flexibility in terms of processing
-    // multiple files at a time.
-    char * Subst;
-    Subst = strstr(NamePattern, "&i");
-    if (Subst){
-        strncpy(OutFileName, NamePattern, Subst-NamePattern);
-        OutFileName[Subst-NamePattern] = 0;
-        strncat(OutFileName, OrigName, PATH_MAX);
-        strncat(OutFileName, Subst+2, PATH_MAX);
-    }else{
-        strcpy(OutFileName, NamePattern); 
-    }
-}
-
-//--------------------------------------------------------------------------
 // Do selected operations to one file at a time.
 //--------------------------------------------------------------------------
 void ProcessFile(const char * FileName)
 {
+#ifdef APPLY_COMMAND
     int Modified = FALSE;
+#endif /* APPLY_COMMAND */
     ReadMode_t ReadMode = READ_EXIF;
 
     CurrentFile = FileName;
@@ -240,47 +121,6 @@ void ProcessFile(const char * FileName)
     }
 
     strncpy(ImageInfo.FileName, FileName, PATH_MAX);
-
-    if (ApplyCommand){
-        // Applying a command is special - the headers from the file have to be
-        // pre-read, then the command executed, and then the image part of the file read.
-
-        if (!ReadJpegFile(FileName, READ_EXIF)) return;
-
-        #ifdef MATTHIAS
-            if (AutoResize){
-                // Automatic resize computation - to customize for each run...
-                if (AutoResizeCmdStuff() == 0){
-                    DiscardData();
-                    return;
-                }
-            }
-        #endif // MATTHIAS
-
-        if (CheckFileSkip()){
-            DiscardData();
-            return;
-        }
-
-        DiscardAllButExif();
-
-        DoCommand(FileName);
-        Modified = TRUE;
-
-        ReadMode = READ_IMAGE;   // Don't re-read exif section again on next read.
-    }else if (ExifXferScrFile){
-        char RelativeExifName[PATH_MAX+1];
-
-        // Make a relative name.
-        RelativeName(RelativeExifName, ExifXferScrFile, FileName);
-
-        if(!ReadJpegFile(RelativeExifName, READ_EXIF)) return;
-
-        DiscardAllButExif();    // Don't re-read exif section again on next read.
-
-        Modified = TRUE;
-        ReadMode = READ_IMAGE;
-    }
 
     FilesMatched += 1;
 
