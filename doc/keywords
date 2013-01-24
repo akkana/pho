@@ -1,0 +1,107 @@
+Using Pho to tag photos with keywords
+
+This is a description of how I use Pho to tag my photos. This is by no
+means the only way to do this, and I welcome hearing about better solutions.
+
+I run pho -k *.jpg in a directory. Keywords mode shows each photo
+at a smaller-than-usual size, and brings up a Keywords dialog at the
+same time. The Keywords dialog has a Caption field at the top,
+and a list (initially only one) of numbered keyword fields below it.
+Initially, focus is in the first keyword text field of the dialog.
+
+I look at the first photo and say "Oh, that's a bluebird", and type
+"bluebird" in the text field. So keyword #0 will be "bluebird".
+At this point, the keyword doesn't apply to this photo, because
+the 0 button isn't pressed. Pho should probably notice that I'm typing
+something and automatically toggle the button, but for now, I do it
+either with the mouse or by pressing <Ctrl>0. In the Keywords dialog,
+<Ctrl> and any digit will toggle the corresponding button;
+<Ctrl><Alt> and any digit will toggle ten plus the corresponding number.
+
+Okay, now my first photo is tagged with Bluebird. I move on to the next
+image. Since hitting spacebar while I'm in that text field will just
+add a space to the keyword ("bluebird "), I use <Ctrl>Space.
+(Of course, I could also move the mouse into the image window and hit
+the spacebar there, but that's more hassle. The goal is to drive the
+whole process from the keyboard without needing to switch to the mouse.)
+
+The second image has a bluebird too, but now it's sitting on a maple
+tree with the leaves in beautiful fall colors.  The Keywords dialog
+still shows "bluebird" as the 0th tag, but the 0 button isn't
+pressed. I hit <Ctrl>Space to tag it as a bluebird photo. But I want
+some more tags for this image, too. So I hit Return, which opens up
+a tag #1 (focus is in the text field already) and type "maple tree".
+The 1 button is already selected -- pho assumes that if I'm adding a
+tag, it's because it applies to this image. I hit Return again and
+add a "fall colors" tag. This image now has three tags, 0, 1 and 2.
+
+<Ctrl>Space moves to the next image. That's the tree but the bluebird
+has flown away. I hold <Ctrl> down and type 1 2 to add the "maple tree"
+and "fall colors" tags.
+
+At any time, if an image has a unique, particularly interesting story
+involved with it I can add something to the Caption field. Captions
+aren't shared among images; they're unique to each image. I don't use
+captions myself; they were added for another pho user who uses a
+different tagging scheme from mine.
+
+I continue tagging images, and if I get to the last image in the
+directory and haven't had more than 10 tags, I'm happy. When there
+are more than 10 tags, 0-9, it gets a little more complicated: I
+have to remember to use <Ctrl><Alt>. That still works fine but
+sometimes switching <Alt> on and off (for an image where I want
+tag 5 and also tag 12) can sometimes get confusing. Sometimes I
+even go to the mouse for tags above 9, though I try not to.
+If the tag list gets quite long (especially if it goes over 20,
+though that's rare), I may make a note of the last tagged image,
+quit and restart pho from where I left off with a fresh tags list.
+
+KEYWORDS FILES
+
+Okay, I've been through the whole directory and tagged everything,
+and pho gets to the last image and quits. What now?
+
+Pho prints all the tags on standard output, something like this:
+
+bluebird: img_6938.jpg img_6939.jpg
+
+maple tree: img_6939.jpg img_6940.jpg
+
+fall colors: img_6939.jpg img_6940.jpg img_6953.jpg
+
+(It also prints other things, like captions, rotation information and
+such, but that's not relevant to this document.)
+
+I save that list in a file called Keywords. I use the mouse to select
+all the keywords info pho has just printed out, cat > Keywords and
+paste the pho output into the file, then close it with <Ctrl>d.
+
+Yes, pho should save it to keywords directly, and should read in
+initial information from a Keywords file if it exists. It wouldn't
+even be that hard to add; I just haven't gotten around to it.
+
+If there's already a Keywords file (perhaps it's a really big photo
+collection and I stopped halfway through because I had too many
+keywords piling up), I use cat >> Keywords to append to the file.
+
+SEARCHING KEYWORDS FILES
+
+Okay, great, now I have a big hierarchy of directories that each have
+a file named Keywords along with a lot of JPG files. What now?
+
+I have a little script called fotogr,
+https://github.com/akkana/scripts/blob/master/fotogr
+that recursively searches directories and looks for keywords (or key
+phrases) inside any file named Keywords.
+
+So if I want to know what photos I took of lakes in 2012, I cd to
+~/Images/2012 and type fotogr lake.
+
+fotogr isn't very smart, though: it can't do any boolean logic, like
+looking for photos that include a lake AND fall color. That's
+something I've been wanting to add, but haven't come up with a
+sensible syntax for it. yet.
+
+
+
+
