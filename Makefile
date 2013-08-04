@@ -58,7 +58,7 @@ deb: pho
 
 install: pho
 	$(INSTALL) pho $(INSTALLPREFIX)/bin/pho
-	$(INSTALL) pho.1 $(INSTALLPREFIX)/man/man1/pho.1
+	$(INSTALL) doc/pho.1 $(INSTALLPREFIX)/man/man1/pho.1
 
 clean:
 	rm -f *.[oas] *.ld core* pho xpho pho-*.tar.gz *.rpm
