@@ -346,6 +346,8 @@ static void CheckArg(char* arg)
             else Usage();
             if (gDebug)
                 printf("Slideshow delay %d seconds\n", gDelaySeconds);
+        } else if (*arg == 'r') {
+            gRepeat = 1;
         } else if (*arg == 'c') {
             gCapFileFormat = strdup(arg+1);
             if (gDebug)

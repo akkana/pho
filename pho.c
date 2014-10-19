@@ -43,6 +43,9 @@ int gDisplayMode = PHO_DISPLAY_NORMAL;
 int gDelaySeconds = 0;
 int gPendingTimeout = 0;
 
+/* Loop back to the first image after showing the last one */
+int gRepeat = 0;
+
 static int RotateImage(PhoImage* img, int degrees);    /* forward */
 
 static gint DelayTimer(gpointer data)
@@ -186,14 +189,17 @@ int NextImage()
             /* We're to the end of the list, after deleting something bogus */
             return -1;
 
-        else if ((gCurImage->next == 0) || (gCurImage->next == gFirstImage))
+        else if (!gCurImage->next || (gCurImage->next == gFirstImage))
             /* We're at the end of the list, can't go farther.
              * However, we may have gotten here by trying to go to
              * the next image and failing, in which case we no longer
              * have a pixmap loaded. So we still need to LoadImage,
              * but we'll want to return -1 to indicate we didn't progress.
              */
-            retval = -1;
+            if (gRepeat)
+                gCurImage = gFirstImage;
+            else
+                retval = -1;
 
         /* We only want to go to ->next the first time;
          * if we're looping because of an error, gCurImage is already set.
@@ -729,17 +735,18 @@ void Usage()
 {
     printf("pho version %s.  Copyright 2002-2009 Akkana Peck akkana@shallowsky.com.\n", VERSION);
     printf("Usage: pho [-dhnp] image [image ...]\n");
-    printf("\t-p: Presentation mode (full screen, centered)\n");
+    printf("\t-p:  Presentation mode (full screen, centered)\n");
     printf("\t-p[resolution]: Projector mode:\n\tlike presentation mode but in upper left corner\n");
-    printf("\t-P: No presentation mode (separate window) -- default\n");
-    printf("\t-k: Keywords mode (show a Keywords dialog for each image)\n");
-    printf("\t-n: Replace each image window with a new window (helpful for some window managers)\n");
+    printf("\t-P:  No presentation mode (separate window) -- default\n");
+    printf("\t-k:  Keywords mode (show a Keywords dialog for each image)\n");
+    printf("\t-n:  Replace each image window with a new window (helpful for some window managers)\n");
     printf("\t-sN: Slideshow mode, where N is the timeout in seconds\n");
+    printf("\t-r:  Repeat: loop back to the first image after showing the last\n");
     printf("\t-cpattern: Caption/Comment file pattern, format string for reworking filename\n");
-    printf("\t--: Assume no more flags will follow\n");
-    printf("\t-d: Debug messages\n");
-    printf("\t-h: Help: Print this summary\n");
-    printf("\t-v: Verbose help: Print a summary of key bindings\n");
+    printf("\t--:  Assume no more flags will follow\n");
+    printf("\t-d:  Debug messages\n");
+    printf("\t-h:  Help: Print this summary\n");
+    printf("\t-v:  Verbose help: Print a summary of key bindings\n");
     exit(1);
 }
 

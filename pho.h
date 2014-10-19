@@ -131,6 +131,9 @@ extern int gMakeNewWindows;
  */
 extern int gDelaySeconds;
 
+/* Loop back to the first image after showing the last one */
+extern int gRepeat;
+
 /* Get the keyword string associated with a note number */
 extern char* KeywordString(int notenum);
 
