@@ -1,6 +1,6 @@
 # Makefile for pho
 
-VERSION = 0.9.8
+VERSION = 1.0pre1
 
 # Locate the gtk/gdk libraries (thanks to nev for this!)
 GTKFLAGS := $(shell pkg-config --cflags gtk+-2.0 gdk-2.0 2> /dev/null)

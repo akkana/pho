@@ -1,3 +1,19 @@
+7/9/2016, pho 1.0pre1
+	Add middlemouse dragging in presentation mode.
+
+9/5/2012, pho-0.9.8
+	Finally! An actual release!
+
+4/10/2012, Pho 0.9.7-pre8
+	Add captions/image comments (from David <somloieater@gmail.com>) with -c.
+	Improve scaling up from keywords mode (but some scaling issues remain).
+	More aspect ratio fixing and code cleanup.
+
+4/17/2011, Pho 0.9.7-pre7
+	Fix aspect ratio of fullsize mode on vertical images;
+	increase keyword dialog height, and add some keyword dialog
+	reliability fixes; fix build warnings reported on Irix.
+
 11/26/2010, Pho 0.9.7-pre6:
 	Much more reliable scaling code -- this (I hope) fixes the
 	problems with aspect ratio upon rotation.
