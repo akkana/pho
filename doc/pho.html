@@ -38,7 +38,7 @@ image. Comments aren't tied to the numbered image flags -- each image
 has its own comment.
 
 <p>
-There's also a new slideshow mode, where you specify the interval in seconds
+There's also a slideshow mode, where you specify the interval in seconds
 (e.g. pho -p -s5 for a 5-second delay between images).
 You can use this for a screensaver, or just to go through slides
 automatically. Hitting the spacebar cancels slideshow mode.
@@ -153,6 +153,15 @@ Then the following keys work:
 <dt>q                       <dd>Quit.
 </dl>
 
+<p>
+Presentation mode makes pho fullscreen; it also enables mouse bindings,
+where dragging with the middle mouse button will pan in the image.
+By default, pho will scale images to fit the screen, but if you
+zoom in, either with f (full size) or + (double size), panning
+is useful. (In non-presentation mode, you can use your window manager
+to move the window.)
+
+<p>
 pho will remember the correct (last shown) rotation for each image.
 When it exits (either because the last image was viewed or because
 the user typed q), it will print out the images that need to be
