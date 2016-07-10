@@ -324,6 +324,44 @@ void DrawImage()
 
         dstX = (width - gCurImage->curWidth) / 2 + sDragOffsetX;
         dstY = (height - gCurImage->curHeight) / 2 + sDragOffsetY;
+
+        /* But we probably shouldn't allow dragging the image
+         * completely off the screen -- just drag to the point where
+         * a corner is visible.
+         */
+        /* Left edge */
+        if (gCurImage->curWidth > gMonitorWidth
+            && dstX < gMonitorWidth - gCurImage->curWidth)
+            dstX = gMonitorWidth - gCurImage->curWidth;
+        else if (gCurImage->curWidth <= gMonitorWidth && dstX <= 0)
+            dstX = 0;
+
+        /* Top edge */
+        if (gCurImage->curHeight > gMonitorHeight
+            && dstY < gMonitorHeight - gCurImage->curHeight)
+            dstY = gMonitorHeight - gCurImage->curHeight;
+        else if (gCurImage->curHeight <= gMonitorHeight && dstY <= 0)
+            dstY = 0;
+
+        /* Right edge */
+        if (gCurImage->curWidth < gMonitorWidth
+            && dstX > gMonitorWidth - gCurImage->curWidth)
+            dstX = gMonitorWidth - gCurImage->curWidth;
+        else if (gCurImage->curWidth >= gMonitorWidth
+                 && dstX > 0)
+            dstX = 0;
+
+        /* Bottom edge */
+        if (gCurImage->curHeight < gMonitorHeight
+            && dstY > gMonitorHeight - gCurImage->curHeight)
+            dstY = gMonitorHeight - gCurImage->curHeight;
+        else if (gCurImage->curHeight >= gMonitorHeight
+                 && dstY > 0)
+            dstY = 0;
+
+        /* XXX Would be good to reset sDragOffsetX and sDragOffsetY
+         * in these cases so they don't get crazily out of kilter.
+         */
     }
     else {
         /* Update the titlebar */
@@ -414,6 +452,7 @@ HandleRelease(GtkWidget *widget, GdkEventButton *event)
 static gboolean
 HandleMotionNotify(GtkWidget *widget, GdkEventMotion *event)
 {
+#define DRAGRESTART 3
     int x, y;
     GdkModifierType state;
     gdk_window_get_pointer (widget->window, &x, &y, &state);
@@ -421,8 +460,51 @@ HandleMotionNotify(GtkWidget *widget, GdkEventMotion *event)
     if (state & GDK_BUTTON2_MASK) {
         sDragOffsetX += x - sDragStartX;
         sDragOffsetY += y - sDragStartY;
+        /* Drag offsets will get sanity checked when we show the image,
+         * to disallow dragging the image entirely off the screen.
+         */
+
+        /* We've handled this drag, so the next motion event
+         * should start from here.
+         */
         sDragStartX = x;
         sDragStartY = y;
+
+        /* Assuming we're definitely in presentation mode,
+         * the user probably can't see the pointer, and it's confusing
+         * and frustrating when the mouse hits the edge of the screen
+         * and it's not obvious what to do about it.
+         * So when that happens, warp it to the opposite side of the screen.
+         */
+        if (gDisplayMode == PHO_DISPLAY_PRESENTATION) {
+            int warpToX = -1;
+            int warpToY = -1;
+            if (x >= gMonitorWidth-1) {
+                warpToX = DRAGRESTART;
+                warpToY = y;
+            }
+            else if (x <= 1) {
+                warpToX = gMonitorWidth-DRAGRESTART;
+                warpToY = y;
+            }
+            if (y >= gMonitorHeight-1) {
+                warpToX = x;
+                warpToY = DRAGRESTART;
+            }
+            else if (y <= 1) {
+                warpToX = x;
+                warpToY = gMonitorHeight-DRAGRESTART;
+            }
+            /* If we've hit an edge of the screen, warp to the opposite edge */
+            if (warpToX >= 0 && warpToY >= 0) {
+                gdk_display_warp_pointer(gtk_widget_get_display(widget),
+                                         gdk_drawable_get_screen(sDrawingArea->window),
+                                         warpToX, warpToY);
+                sDragStartX = warpToX;
+                sDragStartY = warpToY;
+            }
+        }
+
         /* This flickers: would be nice to collapse events more */
         DrawImage();
     }
