@@ -1,5 +1,7 @@
 *.o
 *.a
 pho
-
+build-stamp
+configure-stamp
+pho.debhelper.log
 
