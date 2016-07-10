@@ -1,3 +1,9 @@
+pho (1.0pre1) unstable; urgency=low
+  * Add middlemouse dragging in presentation mode.
+  * Add keywords mode.
+  * Assorted stability, bug and documentation fixes.
+ -- Akkana Peck <akkana@shallowsky.com>  Sat, 9 Jul 2016 15:09:42 -0700
+
 pho (0.9.8) unstable; urgency=low
   * Add -p resolution option, for use with projectors.
   * -c now allows custom specification of caption/comment file.
