@@ -141,6 +141,8 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           DeleteImage(gCurImage);
           break;
       case GDK_space:
+      case GDK_Page_Down:
+      case GDK_KP_Page_Down:
           /* If we're in slideshow mode, cancel the slideshow */
           if (gDelaySeconds > 0) {
               gDelaySeconds = 0;
@@ -151,6 +153,8 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           }
           return TRUE;
       case GDK_BackSpace:
+      case GDK_Page_Up:
+      case GDK_KP_Page_Up:
           PrevImage();
           return TRUE;
       case GDK_Home:
