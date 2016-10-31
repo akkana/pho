@@ -48,73 +48,57 @@ static int ModeForScaling(int oldmode)
 
 static void RunPhoCommand()
 {
-    char* pos;
+    int i;
     char* cmd = getenv("PHO_CMD");
     if (cmd == 0) cmd = "gimp";
+    else if (! *cmd) {
+        if (gDebug)
+            printf("PHO_CMD set to NULL, not running anything\n");
+        return;
+    }
     else if (gDebug)
         printf("Calling PHO_CMD %s\n", cmd);
 
-    /* PHO_CMD command can have a %s in it but doesn't need to.
-     * If it does, we'll use sprintf and system(),
-     * otherwise we'll properly use vfork() and execlp().
+    gint gargc;
+    gchar** gargv;
+    gchar** new_argv = 0;
+    GError *gerror = 0;
+    if (! g_shell_parse_argv (cmd, &gargc, &gargv, &gerror)) {
+        fprintf(stderr, "Couldn't parse PHO_CMD %s\nError was %s",
+                cmd, gerror->message);
+        return;
+    }
+
+    /* PHO_CMD command can have a %s in it; if it does, substitute filename. */
+    int added_arg = 0;
+    for (i=1; i<gargc; ++i) {
+        if (gargv[i][0] == '%' && gargv[i][1] == 's') {
+            gargv[i] = gCurImage->filename;
+            added_arg = 1;
+        }
+    }
+    /* If it didn't have a %s, then we have to allocate a whole new argv array
+     * so we can add the filename argument at the end.
+     * Note that glib expects the argv to be zero terminated --
+     * it provides an argc from g_shell_parse_args() but doesn't
+     * take one in g_spawn_async().
      */
-    if ((pos = strchr(cmd, '%')) == 0 || pos[1] != 's') {
-        if (fork() == 0) {      /* child process */
-            if (gDebug)
-                printf("Child: about to exec %s, %s\n",
-                       cmd, gCurImage->filename);
-            execlp(cmd, cmd, gCurImage->filename, (char*)0);
-        }
+    if (! added_arg) {
+        int new_argc = gargc + 2;
+        gchar** new_argv = malloc(sizeof(gchar *) * new_argc);
+        for (i=0; i<gargc; ++i)
+            new_argv[i] = gargv[i];
+        new_argv[gargc] = gCurImage->filename;
+        new_argv[gargc+1] = 0;
+        gargv = new_argv;
     }
-    else {
-        /* If there's a %s in the filename, then we'll pass
-         * the command to sh -c. That means we should put
-         * single quotes around the filename to guard against
-         * evil filenames like "`rm -rf ~`".
-         * But that also means we have to escape any single
-         * quotes in that filename.
-         */
-        int len;
-        char *buf, *bufp, *cmdp;
-        int numquotes = 0;
-        int did_subst = 0;
 
-        /* Count any single quotes in the filename */
-        for (len = 0, buf = gCurImage->filename; buf[len]; ++len)
-            if (buf[len] == '\'')
-                ++numquotes;
-        /* len is now the # chars in filename, not including null */
+    if (! g_spawn_async(NULL, gargv,
+                        NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, &gerror))
+        fprintf(stderr, "Couldn't spawn %s: \"%s\"\n", cmd, gerror->message);
 
-        buf = malloc(strlen(cmd) + len + numquotes + 1);
-        /* -2 because we lose the %s, +2 for the two quotes we add,
-         * and another for each \ we need to add to escape a quote.
-         */
-
-        /* copy cmd into buf, substituting the filename for %s */
-        for (bufp = buf, cmdp = cmd; *cmdp; )
-        {
-            if (!did_subst && cmdp[0] == '%' && cmdp[1] == 's') {
-                *(bufp++) = '\'';
-                strncpy(bufp, gCurImage->filename, len);
-                bufp += len;
-                *(bufp++) = '\'';
-                cmdp += 2;
-                did_subst = 1;
-            }
-            else if (cmd[0] == '\'') {
-                *(bufp++) = '\\';
-                *(bufp++) = '\'';
-            }
-            else
-                *(bufp++) = *(cmdp++);
-        }
-        *bufp = 0;
-        if (fork() == 0) {      /* child process */
-            if (gDebug)
-                printf("Child: about to exec sh -c \"%s\"\n", buf);
-            execl("/bin/sh", "sh", "-c", buf, (char*)0);
-        }
-    }
+    if (new_argv)
+        free(new_argv);
 }
 
 void TryScale(float times)
@@ -361,7 +345,7 @@ static void CheckArg(char* arg)
              * part of the filename -- so return.
              */
             return;
-	    }
+        }
     }
 }
 
