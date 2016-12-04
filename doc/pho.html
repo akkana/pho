@@ -18,44 +18,53 @@ images quickly, rotating or deleting some,
 and making notes about what to do with each image --
 for instance, for going through hundreds of
 images after uploading them from a digital camera.
-
-<p>
-The current version is <b> pho 0.9.8.</b>
-<br>
-To get it, <a href="#download">skip to the download section.</a>
-
-<p>
-You can now customize the command called up with the 'g' key.
-It defaults to gimp (not gimp-remote as in previous pho versions),
-but you can call any program you like,
-e.g. view the current image in firefox with
-<code>export PHO_CMD="firefox %s"</code> --
-don't forget the %s for the filename!
-
-<p>
-BSD users: pho should build on *BSD now as of 0.9.6-pre2.
-If it doesn't, please let me know.
-
-<p>
-Other changes include major work on scaling modes. Double and half size
-mode now behave differently depending on whether you're in normal or
-full size mode, and the scaling factor (e.g. half size) is remembered
-as you go from image to image.
-
-<p>
-<b>Warning: I've swapped the meanings of f and F. I found that I
-use full size mode all the time, whereas I seldom use full screen,
-and when I do, I use it once at the beginning of a session (e.g.
-to view a bunch of cartoons scaled up). So it makes more sense
-to have full size on f (easier to type).</b>
-
-<p>
-I've also done quite a bit of performance work, to reduce the number
-of redraws, speed up rotates, and reduce the number of times Pho has to
-re-read the file on disk.
-
 <p>
 <a href="#download">Skip to the download section</a>.
+
+<h2>Why another image viewer?  Surely there are plenty of those?</h2>
+
+<p>
+I used to use xv for paging through images -- it was quite a good
+viewing program. But aside from being non-free and increasingly hard
+to get on Linux, it had a few features which annoyed me.
+For example, it creates a directory called .xvpics in every directory
+it touches; and if an image has to be resized to fit the screen, and
+after that you save it (perhaps after rotating it), it saves at the
+smaller size and boom, there goes your high-res image.
+
+<p>
+But, more important, there were a few extra things I needed.
+During image triage, I need to be able to do a few things quickly:
+<ul>
+<li>Rotate images by multiples of 90 degrees, and remember the rotations
+    in case I want to rotate the files on disk after I'm done viewing.
+<li>Delete bad images.
+<li>Note which images I might want to put on a web page.
+<li>Copy a few of the best horizontals to my Backgrounds (wallpaper) directory.
+</ul>
+With xv, I found that I was writing these lists on paper, or trying
+to keep track of them in my head.  That's dumb!  Why not make the
+computer do that work?  So I did.
+
+<p>
+Since I first wrote pho back in 2002 years ago, I keep hearing about other
+image viewers, and thinking maybe pho was redundant.  But every time I
+search, I can't find any other image viewers that are similarly
+efficient for paging through large collections of images.  So I guess
+I'll keep maintaining pho!
+
+<p>
+Pho can read any format supported by gdk-pixbuf.  I haven't found a
+list of those formats anywhere, but it seems to be substantial.
+It doesn't read GIMP's native XCF, and it doesn't read PhotoCD.
+You can convert those to other formats using the ImageMagick utility.
+
+<p>
+Pho can delete images on disk, but it can't save rotated images yet.
+I use my <a href="../imagebatch/">imagebatch</a> scripts for that,
+or you can use a commandline utility like <a
+href="http://imagemagick.org">ImageMagick</a>
+(which is what my imagebatch scripts use under the hood).
 
 <h2>How to use pho</h2>
 
@@ -72,7 +81,8 @@ Then the following keys work:
 <dt>d                 <dd>Bring up a delete dialog (another d deletes the file)
 <dt>i                       <dd>Show information about the image
                                 (includes EXIF info and JPEG comment, if any).
-<dt>0-9                     <dd>Add this image to the appropriate list.
+<dt>0-9                     <dd>Tag the image with a number.
+                                These tag lists will be printed out when you exit.
 <dt>f                       <dd>Toggle in and out of "full size mode"
       (show the image at its native size, even if that's too big
        to fit on screen)
@@ -90,8 +100,7 @@ Then the following keys work:
 <dt>q                       <dd>Quit.
 </dl>
 
-<p>
-Pho will remember the correct (last shown) rotation for each image.
+pho will remember the correct (last shown) rotation for each image.
 When it exits (either because the last image was viewed or because
 the user typed q), it will print out the images that need to be
 rotated and deleted (it does not actually change the files on disk),
@@ -100,102 +109,57 @@ For example, I might press 1 on all the photos I want to save for
 a web page, 2 on the couple of photos that need additional editing
 in gimp, and 3 on the photos I want to save as desktop backgrounds.
 
-<h3>Modes</h3>
-
-<h4>Presentation mode</h4>
+<h2>Keywords Mode</h2>
+<p>
+Keywords mode uses the same note flags
+that Pho has always had, but gives you an easier way to
+annotate a directory of images with strings. You can type in phrases
+for each note, and you can have up to 31 notes now, not just 10.
+If you use Pho to categorize your photos, you'll find Keywords mode
+very handy.
 
 <p>
-Normally, Pho shows images in its own window, and it tries hard to
-move and resize the window as needed to keep the window the right size
-and  over the mouse.
-<p>
-Presentation mode (-p) makes pho fullscreen.
-It also enables dragging with the middle mouse button to pan in the image.
-By default, pho will scale images to fit the screen, so there's no
-need to pan; but if you zoom in, either with f (full size) or +
-(double size), you may want a way to move around in the image.
- (In non-presentation mode, the image is in its own window, so you
-can move the window using your window manager.)
-Pho's author uses presentation mode as her default: <code>PHO_ARGS=-p</code>
-and runs <code>pho -P</code> in the rare cases where she doesn't want
-fullscreen.
+(By the way, if you want to do more serious tagging of images,
+you might be interested in my
+<a href="https://github.com/akkana/metapho">metapho</a> app.
+As I started to extend Pho's Keywords mode even further,
+I realized that tagging and viewing were two different things,
+and rather than try to shoehorn real tagging into Pho
+I'd be better off starting with an entirely different user interface.
+Pho and Metapho work well as separate apps, and complement each other.)
 
-<h4>Slideshow mode</h4>
+<p>
+In Keywords mode you can also type in a unique image comment for each
+image. Comments aren't tied to the numbered image flags -- each image
+has its own comment.
+
 <p>
 There's also a new slideshow mode, where you specify the interval in seconds
 (e.g. pho -p -s5 for a 5-second delay between images).
 You can use this for a screensaver, or just to go through slides
 automatically. Hitting the spacebar cancels slideshow mode.
 
-<h4>Keywords mode</h4>
 <p>
-Keywords mode gives you an easy way to annotate a directory of images
-with strings. You can type in phrases for each note, and you can have
-up to 31 notes now.
-You can also type in a unique image comment for each
-image. Comments aren't tied to the numbered image flags -- each image
-has its own comment.
-<p>
-Keywords and comments are available in every pho mode (via the info dialog:
-type i in any image to see current keywords and comment). Keywords mode
-just gives better access to this.
-However, you may find <a href="https://github.com/akkana/metapho">metapho</a>
-to be a better way to mange keywords.
-
-<h2>Why another image viewer?  Surely there are plenty of those?</h2>
-
-<p>
-I used to use xv for paging through images -- it's quite a good
-viewing program -- but it had a few features which annoyed me.  For
-example, it creates a directory called .xvpics in every directory it touches;
-and if an image has to be resized to fit the screen, and after that
-you save it (perhaps after rotating it), it saves at the smaller size
-and boom, there goes your high-res image.
-
-<p>
-But, more important, there were a few extra things I needed.
-During image triage, I need to be able to do a few things quickly:
-<ul>
-<li>Rotate images by multiples of 90 degrees, and remember the rotations.
-<li>Delete bad images.
-<li>Copy a few of the best horizontals to my Backgrounds (wallpaper) directory.
-<li>Note which images I might want to put on a web page (after resizing).
-</ul>
-With xv, I found that I was writing these lists on paper, or trying
-to keep track of them in my head.  That's dumb!  Why not make the
-computer do that work?  So I did.
-
-<p>
-Since I wrote pho several years ago, I keep hearing about other
-image viewers, and thinking maybe pho was redundant.  But I recently
-did a search, and couldn't come up with any other image viewers that
-are similarly efficient for paging through large collections of
-images.  So I guess I'll keep maintaining pho!
-
-<p>
-Pho can read any format supported by gdk-pixbuf.  I haven't found a
-list of those formats anywhere, but it seems to be substantial.
-The only format I've hit so far that it doesn't read is photocd.
-You can convert those to other formats using the ImageMagick utility.
-
-<p>
-Pho can delete images on disk, but it doesn't save rotated images.
-I use my <a href="../imagebatch/">imagebatch</a> scripts for that,
-or you can use a commandline utility like <a
-href="http://imagemagick.org">ImageMagick</a>
-(which is what my imagebatch scripts use under the hood).
+You can now customize the command called up with the 'g' key.
+It defaults to gimp (not gimp-remote as in previous pho versions),
+but you can call any program you like,
+e.g. view the current image in firefox with
+<code>export PHO_CMD="firefox %s"</code> --
+don't forget the %s for the filename!
 
 <a name="download">
 <h2>Download: Getting pho</h2>
 <p>
-<b>Current version:</b> 
-<a href="pho-0.9.8.tar.gz">pho-0.9.8.tar.gz</a>.
-(source tarball).
-<p>
 <b>Latest source tree:</b>
 <a href="https://github.com/akkana/pho">Pho is now hosted on Github</a>,
-and you can get the latest source tree there, as well as file
-bugs or otherwise participate.
+and you can always get the latest source tree there, as well as file
+bugs or otherwise participate. Click on "Clone or download" for a
+download link -- unfortunately, GitHub only offers zip files, not tarballs.
+<p>
+<b>Current released version:</b>
+<a href="pho-1.0pre1.tar.gz">pho-1.0pre1.tar.gz</a>.
+(source tarball).
+<!--
 <p>
 There's also an old
 <a href="http://code.google.com/p/pho/">Google Code repository</a>
@@ -213,8 +177,7 @@ Debian/Ubuntu packages for 0.9.8:
 <dd><a href="http://shallowsky.com/software/pho/pho_0.9.8.tar.gz">pho_0.9.8.tar.gz</a>
 <dd><a href="http://shallowsky.com/software/pho/pho_0.9.8_i386.changes">pho_0.9.8_i386.changes</a>
 </dl>
-<p>
-I will get the Ubuntu packages onto Launchpad soon, I hope.
+ -->
 
 <p>
 <b>Ancient Windows binary (requires gtk+): <a
@@ -229,24 +192,165 @@ if you have the appropriate gtk/gdk headers and libraries
 I've only seen it used as an X11 application, but in theory
 it should be able to run with the new experimental native gtk
 libraries too.
+Unfortunately I don't have a Mac available to provide Mac builds.
 
 <p>
 <h3>Dependencies:</h3>
-pho uses the gtk+-2.0 libraries (though if it can't find them, 
-it can run slightly less functionally with gtk1 and gdk-pixbuf).
+pho uses the gtk+-2.0 libraries.
 You may need to edit the Makefile if your system has these libraries
 installed in different place from my system (sorry, no autoconf yet).
 <p>
-To compile pho, you'll need a compiler, GTK, and all the libraries
-it depends on. For example, on Ubuntu, this command should get you
-what you need:
+To compile pho, you'll need a C compiler such as gcc,
+plus gtk+, and all the libraries it depends on.
+For example, on Debian or Ubuntu, this command should
+get you what you need:
 <pre>
 aptitude install build-essential libgtk2.0-dev
 </pre>
 
 <p>
-If you like pho, or if you think it's promising but there's some
+If you like pho, or if you think there's some
 feature it really needs ... <a href="../../mailme.html">let me know!</a>
+Or file a bug on GitHub.
+
+<p>
+BSD users: pho should build just fine on *BSD if you have the
+required libraries. If it doesn't, please let me know.
+
+<h2>Changelog</h2>
+
+<dt>2016, <a href="pho-1.0pre1.tar.gz">pho-1.0pre1</a>:
+    Lots of changes, I need to update the web page before the
+    final 1.0 release,
+    but meanwhile you can check the git log.
+
+<dt>9/5/2012, <a href="pho-0.9.8.tar.gz">pho-0.9.8</a>:
+<dd>Finally! An actual release!
+    Keywords mode; major work on more reliable scaling modes;
+    swapped the meaning of f and F; lots of performance work
+    since the last release.
+
+<dt>4/10/2012, <a href="pho-0.9.7-pre8.tar.gz">Pho 0.9.7-pre8</a>:
+<dd>Add captions/image comments (from David <somloieater@gmail.com>) with -c.
+    Improve scaling up from keywords mode (but some scaling issues remain).
+    More aspect ratio fixing and code cleanup.
+<dt>4/17/2011, <a href="pho-0.9.7-pre7.tar.gz">Pho 0.9.7-pre7</a>:
+<dd>Fix aspect ratio of fullsize mode on vertical images;
+    increase keyword dialog height, and add some keyword dialog
+    reliability fixes; fix build warnings reported on Irix.
+<dt>11/26/2010, <a href="pho-0.9.7-pre6.tar.gz">Pho 0.9.7-pre6</a>:
+<dd>Much more reliable scaling code -- this (I hope) fixes the
+    problems with aspect ratio upon rotation.
+    New PHO_SCALE_FIXED mode: keep image's larger dimension <= the given size.
+    Use PHO_SCALE_FIXED and .75 times the shorter dimension of the screen
+    for Keywords mode.
+    Alt+num toggles 10+num flag.
+<dt>4/10/2010, <a href="pho-0.9.7-pre5.tar.gz">Pho 0.9.7-pre5</a>:
+<dd>Fix a slew of subtle bugs involving going back and forward in the image
+list (e.g. when specifying nonexistent images). Add some information
+on how to test for regressions.
+<dt>2/9/2009, <a href="pho-0.9.7-pre4.tar.gz">Pho 0.9.7-pre4</a>:
+<dd>Fix a race condition involving the keywords dialog getting focus.
+<dt>12/15/2009, <a href="pho-0.9.7-pre3.tar.gz">Pho 0.9.7-pre3</a>:
+<dd>More cleanup of rotation/scaling, and transitions from one mode
+    to the next.
+<dt>9/26/2009, <a href="pho-0.9.7-pre2.tar.gz">Pho 0.9.7-pre2</a>:
+<dd>
+  Add ability to add new image files or change the list without restarting.
+  Total cleanup/rewrite of rotate/scale logic.
+  Remove old gtk1 code.
+<dt>??/??/2009, <a href="pho-0.9.7-pre1.tar.gz">Pho 0.9.7-pre1</a>:
+<dd>Clean up rotation code;
+    List images with incorrect exif rotation;
+    smarter PHO_REMOTE (can do other things, not just GIMP);
+    don't go fullscreen from Ctrl-F in the keywords dialog.
+    fix a minor Mac build issue.
+<dt>11/9/2008, <a href="pho-0.9.6.tar.gz">Pho 0.9.6</a>:
+<dd>RELEASE! The only difference from 0.9.6-pre3 is to change
+    the default PHO_REMOTE command from gimp-remote to gimp,
+    since gimp-remote is obsolete and no longer provided in Linux
+    distros (and never was, on Mac or Win).
+<dt>10/2/2008, <a href="pho-0.9.6-pre3.tar.gz">Pho 0.9.6-pre3</a>:
+<dd>Change the list next/prev code to fix (I hope) a bug where pho
+    would get confused and cycle from the last image back to the first.
+<dt>8/13/2008, <a href="pho-0.9.6-pre2.tar.gz">Pho 0.9.6-pre2</a>:
+<dd>Simplify exif/Makefile so it'll work on FreeBSD and other
+    systems where make is non-GNU make.
+<dt>8/11/2008, <a href="pho-0.9.6-pre1.tar.gz">Pho 0.9.6-pre1</a>:
+<dd>Add Keyword mode. Add slideshow mode. Swap -f and -F.
+    Add PHO_REMOTE environment variable.
+    Lots of performance and stability work.
+<dt>8/6/2007, <a href="pho-0.9.5.1.tar.gz">Pho 0.9.5.1</a>:
+<dd>Fix a buffer overflow bug on the 'g' key,
+    which runs gimp-remote on the current file.
+<dt>3/20/2007, <a href="pho-0.9.5.tar.gz">Pho 0.9.5</a>:
+<dd>No changes except some manual and html page updates.
+<dt>3/5/2007, <a href="pho-0.9.5-pre5.tar.gz">Pho 0.9.5-pre5</a>:
+<dd>Check for a PHO_ARGS environment variable.
+    Add a -P argument to force non-presentation mode.
+    Fix a few bugs with double/half size and with scaling.<br>
+    Make note 0 work properly.
+<dt>7/24/2005, <a href="pho-0.9.5-pre4.tar.gz">Pho 0.9.5-pre4</a>:
+<dd>Double and half size weren't working properly;
+    <br>couldn't use arrow and spacebar to get out of the final Quit
+    confirmation dialog (though ESC always worked).
+<dt>10/9/2004, <a href="pho-0.9.5-pre3.tar.gz">Pho 0.9.5-pre3</a>:
+<dd>Fixed a crash bug when revisiting an image which was previously rotated.
+    <br>Added a workaround for Metacity's evil window size handling.
+    <br>Made the background black when in presentation mode.
+<dt>9/30/2004, <a href="pho-0.9.5-pre2.tar.gz">Pho 0.9.5-pre2</a>:
+<dd>Fixed some bugs involving ending up at the wrong image when
+    deleting or pressing HOME.  Cleaned up handing of image list.<br>
+    Fixed an aspect ratio problem.
+<dt>7/13/2004, <a href="pho-0.9.5-pre1.tar.gz">Pho 0.9.5-pre1</a>:
+<dd>Rewrote the image list handling to use a linked list.
+    Lots of associated code cleanup.<br>
+    Port to gtk2, and build under either gtk1 or gtk2.<br>
+    Add new "fullscreen mode" (e.g. for presentations, or for difficult
+    window managers).<br>
+    Various futile attempts to hang on to window focus in various window
+    managers.
+<dt>9/30/2003, <a href="pho-0.9.2.tar.gz">Pho 0.9.2</a>:
+<dd>Don't try to move the window unless the image size has changed
+    (fix the annoying bug where pho wouldn't let you move windows).
+    <br>
+    Also fix a crash after dismissing the info dialog by clicking
+    on the windowmanager "X".
+<dt>2/26/2003, <a href="pho-0.9.1.tar.gz">Pho 0.9.1</a>:
+<dd>Rusty Russell: fix an off-by-one error in rotation code,
+  reducing the need for extra memory;
+  <br>
+  Brian Langenberger: bracket printed filenames with quotes if
+  they contain spaces or quote characters.
+<dt>1/8/2003, <a href="pho-0.9.tar.gz">Pho 0.9</a>:
+<dd>Fix pho.spec version, and a make clean bug.
+<dt>12/3/2002, <a href="pho-0.9pre2.tar.gz">Pho 0.9pre2</a>:
+<dd>Fix a crash in the quit dialog.
+<dt>11/27/2002, <a href="pho-0.9pre1.tar.gz">Pho 0.9pre1</a>:
+<dd>Add EXIF handling, using code from
+ <a href="http://www.sentex.net/~mwandel/jhead/">jhead, by Matthias Wandel</a>.
+<dt>10/18/2002, <a href="pho-0.8.tar.gz">Pho 0.8</a>:
+<dd>Build RPM and deb; show image size in titlebar; add home key.
+<dt>8/13/2002, <a href="pho-0.7.tgz">Pho 0.7</a>:
+<dd>Put image name in titlebar; prompt after last image before quitting;
+    add fullscreen mode.
+<dt>7/28/2002, <a href="pho-0.6.1.tgz">Pho 0.6.1</a>:
+<dd>Fixed a bug with printing a note set on the last image.
+<dt>7/21/2002, <a href="pho-0.6.tgz">Pho 0.6</a>:
+<dd>Code cleanup, change the handling of the notes structures.
+<dt>7/21/2002, <a href="pho-0.5.1.tgz">Pho 0.5.1</a>:
+<dd>Fix a bug where image rotations were wrong when going backward.
+<dt>7/11/2002, <a href="pho-0.5.tgz">Pho 0.5</a>:
+<dd>Add delete dialog, and really delete files on disk.
+<dt>7/3/2002, <a href="pho-0.4.tgz">Pho 0.4</a>:
+<dd>Fixed a bug with gif rotation.
+<dt>7/1/2002, Pho 0.3:
+<dd>Rename yass to pho, add info dialog.
+<dt>6/28/2002, Yass 0.2
+<dd>Some added features; add manual and make install target.
+<dt>6/24/2002, Yass 0.1:
+<dd>First release.
+</dl>
 
 <hr>
 <a href="../">Akkana's Software</a><br>
