@@ -96,7 +96,7 @@ Then the following keys work:
                                 file list (New replaces all the old images,
                                 Add just adds new files to the list)
 <dt>g                       <dd>Run gimp on this image
-    (or set PHO_REMOTE to an alternate command).
+    (or set PHO_CMD to an alternate command).
 <dt>q                       <dd>Quit.
 </dl>
 
@@ -262,12 +262,12 @@ on how to test for regressions.
 <dt>??/??/2009, <a href="pho-0.9.7-pre1.tar.gz">Pho 0.9.7-pre1</a>:
 <dd>Clean up rotation code;
     List images with incorrect exif rotation;
-    smarter PHO_REMOTE (can do other things, not just GIMP);
+    smarter PHO_CMD (can do other things, not just GIMP);
     don't go fullscreen from Ctrl-F in the keywords dialog.
     fix a minor Mac build issue.
 <dt>11/9/2008, <a href="pho-0.9.6.tar.gz">Pho 0.9.6</a>:
 <dd>RELEASE! The only difference from 0.9.6-pre3 is to change
-    the default PHO_REMOTE command from gimp-remote to gimp,
+    the default PHO_CMD command from gimp-remote to gimp,
     since gimp-remote is obsolete and no longer provided in Linux
     distros (and never was, on Mac or Win).
 <dt>10/2/2008, <a href="pho-0.9.6-pre3.tar.gz">Pho 0.9.6-pre3</a>:
@@ -278,7 +278,7 @@ on how to test for regressions.
     systems where make is non-GNU make.
 <dt>8/11/2008, <a href="pho-0.9.6-pre1.tar.gz">Pho 0.9.6-pre1</a>:
 <dd>Add Keyword mode. Add slideshow mode. Swap -f and -F.
-    Add PHO_REMOTE environment variable.
+    Add PHO_CMD environment variable.
     Lots of performance and stability work.
 <dt>8/6/2007, <a href="pho-0.9.5.1.tar.gz">Pho 0.9.5.1</a>:
 <dd>Fix a buffer overflow bug on the 'g' key,

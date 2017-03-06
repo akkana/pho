@@ -43,13 +43,13 @@
 
 N/N/2009, Pho 0.9.7-pre1:
 	List images with incorrect exif rotation;
-	smarter PHO_REMOTE (can do other things, not just GIMP);
+	smarter PHO_CMD (can do other things, not just GIMP);
 	don't go fullscreen from Ctrl-F in the keywords dialog.
 	fix a minor Mac build issue.
 
 11/9/2008, Pho 0.9.6:
 	RELEASE! The only difference from 0.9.6-pre3 is to change
-	the default PHO_REMOTE command from gimp-remote to gimp,
+	the default PHO_CMD command from gimp-remote to gimp,
 	since gimp-remote is obsolete and no longer provided in Linux
 	distros (and never was, on Mac or Win).
 

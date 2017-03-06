@@ -773,13 +773,18 @@ void VerboseHelp()
     printf("i\tShow/hide info dialog\n");
     printf("o\tChange the working file set (add files or make a new list)\n");
     printf("g\tRun gimp on the current image\n");
-    printf("\t(or set PHO_REMOTE to an alternate command)\n");
+    printf("\t(or set PHO_CMD to an alternate command)\n");
     printf("q\tQuit\n");
     printf("<esc>\tQuit (or hide a dialog, if one is showing)\n");
     printf("\n");
     printf("Pho mouse bindings:\n");
     printf("In presentation mode: drag with middlemouse to pan/move.\n");
-    exit(1);
+    printf("\n");
+    printf("Pho environment variables:\n");
+    printf("PHO_ARGS: default arguments (e.g. -p)\n");
+    printf("PHO_CMD : command to run when pressing g (default: gimp).\n");
+    printf("          Use an empty string if you don't want any command.\n");
+    exit(0);
 }
 
 

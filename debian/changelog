@@ -13,7 +13,7 @@ pho (0.9.8) unstable; urgency=low
 pho (0.9.7) unstable; urgency=low
   * Add ability to add new image files or change the list without restarting.
   * Reorganize some scaling options.
-  * More configurable PHO_REMOTE variable.
+  * More configurable PHO_CMD variable.
   * Allow up to 31 notes flags.
   * Swap meanings of f and F.
   * Lots of code cleanup and reliability fixes.
@@ -27,9 +27,9 @@ pho (0.9.6) unstable; urgency=low
   * Add Keyword mode.
   * Add slideshow mode.
   * Swap -f and -F.
-  * Add PHO_REMOTE environment variable.
-  * Simplify exif/Makefile so it'll work on FreeBSD and other systems where make is non-GNU make. 
-  * Change the list next/prev code to fix (I hope) a bug where pho would get confused and cycle from the last image back to the first. 
+  * Add PHO_CMD environment variable.
+  * Simplify exif/Makefile so it'll work on FreeBSD and other systems where make is non-GNU make.
+  * Change the list next/prev code to fix (I hope) a bug where pho would get confused and cycle from the last image back to the first.
   * Lots of performance and stability work.
 
  -- Akkana Peck <akkana@shallowsky.com>  Sun, 9 Nov 2008 16:20:00 -0800
