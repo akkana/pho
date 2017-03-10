@@ -119,6 +119,48 @@ void TryScale(float times)
 gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
 {
     if (gDebug) printf("\nKey event\n");
+    if (event->state) {
+        switch (event->keyval)
+        {
+            case GDK_f:
+                /* Don't respond to ctrl-F -- that might be an attempt
+                 * to edit in a text field in the keywords dialog.
+                 * But we don't do anything on f with any modifier key either.
+                 */
+                return FALSE;
+            case GDK_0:
+            case GDK_1:
+            case GDK_2:
+            case GDK_3:
+            case GDK_4:
+            case GDK_5:
+            case GDK_6:
+            case GDK_7:
+            case GDK_8:
+            case GDK_9:
+                if (event->state & GDK_MOD1_MASK) { /* alt-num: add 10 to num */
+                    ToggleNoteFlag(gCurImage, event->keyval - GDK_0 + 10);
+                    return TRUE;
+                }
+                return FALSE;
+            case GDK_equal:
+                if (event->state & GDK_CONTROL_MASK) {
+                    TryScale(1.25);
+                    return TRUE;
+                }
+                return FALSE;
+            case GDK_KP_Subtract:
+                if (event->state & GDK_CONTROL_MASK) {
+                    TryScale(.8);
+                    return TRUE;
+                }
+                return FALSE;
+            default:
+                return FALSE;
+        }
+    }
+
+    /* Now we know no modifier keys were down. */
     switch (event->keyval)
     {
       case GDK_d:
@@ -154,11 +196,6 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
           ShowImage();
           return TRUE;
       case GDK_f:   /* Full size mode: show image bit-for-bit */
-          /* Don't respond to ctrl-F -- that might be an attempt
-           * to edit in a text field in the keywords dialog
-           */
-          if (event->state & GDK_CONTROL_MASK)
-              return FALSE;
           SetViewModes(gDisplayMode,
                        ToggleBetween(gScaleMode,
                                      PHO_SCALE_FULLSIZE, PHO_SCALE_NORMAL),
@@ -186,10 +223,7 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
       case GDK_7:
       case GDK_8:
       case GDK_9:
-          if (event->state & GDK_MOD1_MASK) /* alt-num: add 10 to num */
-              ToggleNoteFlag(gCurImage, event->keyval - GDK_0 + 10);
-          else
-              ToggleNoteFlag(gCurImage, event->keyval - GDK_0);
+          ToggleNoteFlag(gCurImage, event->keyval - GDK_0);
           return TRUE;
       case GDK_t:   /* make life easier for xv switchers */
       case GDK_r:
@@ -212,22 +246,16 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
       case GDK_plus:
       case GDK_KP_Add:
       case GDK_equal:
-          if (event->state & GDK_CONTROL_MASK)
-              TryScale(1.25);
-          else
-              TryScale(2.);
+          TryScale(2.);
           return TRUE;
       case GDK_minus:
       case GDK_slash:
       case GDK_KP_Subtract:
-          if (event->state & GDK_CONTROL_MASK)
-              TryScale(.8);
-          else
-              TryScale(.5);
+          TryScale(.5);
           return TRUE;
       case GDK_g:  /* start gimp, or some other app */
           RunPhoCommand();
-          break;
+          return TRUE;
       case GDK_i:
           ToggleInfo();
           return TRUE;
