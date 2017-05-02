@@ -167,7 +167,7 @@ static gint handleKeywordsKeyPress(GtkWidget* widget, GdkEventKey* event)
 /* Add a new keyword field to the dialog */
 static void AddNewKeywordField()
 {
-    int i;
+    long i;
     GtkWidget* label;
     char buf[BUFSIZ];
 
@@ -179,7 +179,7 @@ static void AddNewKeywordField()
             gtk_box_pack_start(GTK_BOX(KeywordsContainer), hbox,
                                TRUE, TRUE, 4);
 
-            sprintf(buf, "%-2d", i);
+            sprintf(buf, "%-2ld", i);
             KeywordsDToggle[i] = gtk_toggle_button_new_with_label(buf);
             gtk_box_pack_start(GTK_BOX(hbox), KeywordsDToggle[i],
                                FALSE, FALSE, 4);
@@ -201,7 +201,7 @@ static void AddNewKeywordField()
     }
 
     /* If we got here, we've overflowed */
-    sprintf(buf, "That's all: sorry, only %d keywords at once", NUM_NOTES);
+    sprintf(buf, "That's all: sorry, only %ld keywords at once", NUM_NOTES);
     label = gtk_label_new(buf);
     gtk_box_pack_start(GTK_BOX(KeywordsContainer), label, TRUE, TRUE, 4);
     gtk_widget_show(label);
