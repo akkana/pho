@@ -129,7 +129,7 @@ extern int gMakeNewWindows;
 /* Seconds delay between images in slideshow mode.
  * Normally 0, no slideshow.
  */
-extern int gDelaySeconds;
+extern int gDelayMillis;
 
 /* Loop back to the first image after showing the last one */
 extern int gRepeat;

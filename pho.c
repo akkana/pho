@@ -40,7 +40,7 @@ double gScaleRatio = 1.0;
 int gDisplayMode = PHO_DISPLAY_NORMAL;
 
 /* Slideshow delay is zero by default -- no slideshow. */
-int gDelaySeconds = 0;
+int gDelayMillis = 0;
 int gPendingTimeout = 0;
 
 /* Loop back to the first image after showing the last one */
@@ -50,7 +50,7 @@ static int RotateImage(PhoImage* img, int degrees);    /* forward */
 
 static gint DelayTimer(gpointer data)
 {
-    if (gDelaySeconds == 0)    /* slideshow mode was cancelled */
+    if (gDelayMillis == 0)    /* slideshow mode was cancelled */
         return FALSE;
 
     if (gDebug) printf("-- Timer fired\n");
@@ -65,15 +65,15 @@ int ShowImage()
     ScaleAndRotate(gCurImage, 0);
     /* Keywords dialog will be updated if necessary from DrawImage */
 
-    if (gDelaySeconds > 0 && gPendingTimeout == 0
+    if (gDelayMillis > 0 && gPendingTimeout == 0
         && (gCurImage->next != 0 || gCurImage->next != gFirstImage)) {
-        if (gDebug) printf("Adding timeout for %d msec\n", gDelaySeconds*1000);
-        gPendingTimeout = g_timeout_add (gDelaySeconds * 1000, DelayTimer, 0);
+        if (gDebug) printf("Adding timeout for %d msec\n", gDelayMillis);
+        gPendingTimeout = g_timeout_add (gDelayMillis, DelayTimer, 0);
     }
 
     return 0;
 }
-	
+
 static int LoadImageFromFile(PhoImage* img)
 {
     GError* err = NULL;

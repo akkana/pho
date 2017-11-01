@@ -170,8 +170,8 @@ gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
       case GDK_Page_Down:
       case GDK_KP_Page_Down:
           /* If we're in slideshow mode, cancel the slideshow */
-          if (gDelaySeconds > 0) {
-              gDelaySeconds = 0;
+          if (gDelayMillis > 0) {
+              gDelayMillis = 0;
           }
           else if (NextImage() != 0) {
               if (Prompt("Quit pho?", "Quit", "Continue", "qx \n", "cn") != 0)
@@ -357,11 +357,11 @@ static void CheckArg(char* arg)
             gScaleRatio = 0.0;
         } else if (*arg == 's') {
             /* find the slideshow delay time, from e.g. pho -s2 */
-            if (isdigit(arg[1]))
-                gDelaySeconds = atoi(arg+1);
+            if (isdigit(arg[1]) || arg[1] == '.')
+                gDelayMillis = (int)(atof(arg+1) * 1000.);
             else Usage();
             if (gDebug)
-                printf("Slideshow delay %d seconds\n", gDelaySeconds);
+                printf("Slideshow delay %d milliseconds\n", gDelayMillis);
         } else if (*arg == 'r') {
             gRepeat = 1;
         } else if (*arg == 'c') {
