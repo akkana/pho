@@ -704,7 +704,8 @@ void process_EXIF (unsigned char * ExifSection, unsigned int length)
     }
 
     if (ShowTags){
-        printf("Non settings part of Exif header: %d bytes\n",ExifSection+length-LastExifRefd);
+        printf("Non settings part of Exif header: %ld bytes\n",
+               ExifSection+length-LastExifRefd);
     }
 }
 
