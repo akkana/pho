@@ -11,13 +11,6 @@ BUILDING:
 To build pho, type: make
 To install the binary and manual page, type (as root): make install
 
-Make will build two binaries: in addition to pho (a gtk app),
-xpho is the first and simplest version of pho, which uses only
-xlib to display, and can't put up any dialogs.
-xpho is not installed by make install.
-It is included here primarily as an example of how to use
-gdk_pixbuf_xlib, which comes in handy now and then.
-
 The current Makefile has been tested on Redhat 7.3 and Debian Woody,
 and assumes gtk 1.2 (and gtk-devel) as well as gdk-pixbuf 1.0.
 You may need to edit the Makefile on some other systems,

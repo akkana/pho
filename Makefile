@@ -32,7 +32,7 @@ pho: $(EXIFLIB) $(OBJS)
 cflags:
 	echo $(CFLAGS)
 
-all: pho xpho
+all: pho
 
 $(EXIFLIB): exif/*.c
 	(cd exif && $(MAKE))
@@ -61,7 +61,7 @@ install: pho
 	$(INSTALL) doc/pho.1 $(INSTALLPREFIX)/man/man1/pho.1
 
 clean:
-	rm -f *.[oas] *.ld core* pho xpho pho-*.tar.gz *.rpm
+	rm -f *.[oas] *.ld core* pho pho-*.tar.gz *.rpm
 	rm -f build-stamp configure-stamp
 	rm -rf debian/pho
 	cd exif; make clean
