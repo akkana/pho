@@ -175,17 +175,20 @@ int NextImage()
      */
     while (1)
     {
-        if (gFirstImage == 0)
+        if (gFirstImage == 0) {
             /* There's no list! How can we go to the next item? */
+            if (gDebug)
+                printf("NextImage: there's no list!\n");
             return -1;
+        }
 
-        if (gCurImage == 0) {  /* no image loaded yet, first call */
+        if (! gCurImage) {  /* no image loaded yet, first call */
             if (gDebug)
                 printf("NextImage: going to first image\n");
             gCurImage = gFirstImage;
         }
 
-        else if (looping && gCurImage->next == gFirstImage)
+        if (looping && gCurImage == gFirstImage)
             /* We're to the end of the list, after deleting something bogus */
             return -1;
 
@@ -786,10 +789,4 @@ void VerboseHelp()
     printf("          Use an empty string if you don't want any command.\n");
     exit(0);
 }
-
-
-
-
-
-
 

@@ -27,43 +27,70 @@ static void FreePhoImage(PhoImage* img)
     free(img);
 }
 
-/* Delete an image, or gCurImage if item == 0.
+static void printImageList()
+{
+    PhoImage* im = gFirstImage;
+    PhoImage* lastIm = gFirstImage->prev;
+    while (im) {
+        if (im == gCurImage)
+            printf("> %s\n", im->filename);
+        else
+            printf("  %s\n", im->filename);
+        if (im == lastIm)
+            break;
+        im = im->next;
+    }
+    printf("\n");
+}
+
+/* Delete an image from the image list (not from disk).
+ * Will use gCurImage if item == 0.
  * Update gCurImage if need be.
  */
 void DeleteItem(PhoImage* item)
 {
+    if (gDebug) {
+        printf("Removing image %s from image list\n", item->filename);
+        printf("Image list before removal:\n");
+        printImageList();
+    }
+
     if (!item)
         item = gCurImage;
 
-        /* Is this the only image? */
+    /* Is this the only image? */
     if (item == gFirstImage && item->next == gFirstImage) {
         gFirstImage = gCurImage = 0;
     }
     else {
-        PhoImage* newitem = item->next;
-
-        newitem->prev = item->prev;
-        newitem->prev->next = newitem;
-
-        /* Only change gCurImage if item was the current image. */
-        if (item == gCurImage) {
-            /* If we just deleted the last item, newitem will be gFirstImage.
-             * But we don't really want to loop around; we should stop
-             * upon reaching the last image, and stay on the new last image.
-             * Of course, this assumes that there's more than one item left.
-             */
-            if (newitem == gFirstImage && newitem->prev != gFirstImage)
-                gCurImage = newitem->prev;
-            else
-                gCurImage = newitem;
+        /* Is it the first image? */
+        if (item == gFirstImage) {
+            if (gCurImage)
+                gCurImage = item->next;
+            gFirstImage = item->next;
         }
 
-        if (item == gFirstImage)
-            gFirstImage = newitem;
+        /* Is it the last image? */
+        else if (item == gFirstImage->prev) {
+            gFirstImage->prev = item->prev;   // New last image
+            item->prev->next = gFirstImage;
+        }
+
+        item->next->prev = item->prev;
+        item->prev->next = item->next;
+
+        if (gCurImage)
+            gCurImage = item->next;
     }
 
     /* It's disconnected.  Free all the memory */
     FreePhoImage(item);
+
+    /* What does the list look like now? */
+    if (gDebug) {
+        printf("Image list after removal:\n");
+        printImageList();
+    }
 }
 
 /* Append an item to the end of the list */
