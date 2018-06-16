@@ -39,7 +39,7 @@ $(EXIFLIB): exif/*.c
 
 tar: clean $(TARFILE)
 
-$(TARFILE): 
+$(TARFILE):
 	( make clean && \
 	  cd .. && \
 	  tar czvf $(TARFILE) --exclude=.svn --exclude=.git --owner=root $(CWDBASE) && \
