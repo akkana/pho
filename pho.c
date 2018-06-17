@@ -163,69 +163,52 @@ int ThisImage()
     return 0;
 }
 
+/* Go to the next image after gCurImage,
+ * or the first image if gCurImage isn't set. If an image fails to load,
+ * delete it from the image list and move on to the next image.
+ */
 int NextImage()
 {
-    int retval = 0;
-    int looping = 0;
     if (gDebug)
         printf("\n================= NextImage ====================\n");
+
+    PhoImage* origCurImage = gCurImage;
 
     /* Loop, since images may fail to load
      * and may need to be deleted from the list
      */
     while (1)
     {
-        if (gFirstImage == 0) {
+        if (! gFirstImage) {
             /* There's no list! How can we go to the next item? */
             if (gDebug)
-                printf("NextImage: there's no list!\n");
+                printf("NextImage: empty list!\n");
             return -1;
         }
 
-        if (! gCurImage) {  /* no image loaded yet, first call */
+        if (! gCurImage) {
             if (gDebug)
                 printf("NextImage: going to first image\n");
             gCurImage = gFirstImage;
         }
-
-        if (looping && gCurImage == gFirstImage)
-            /* We're to the end of the list, after deleting something bogus */
+        else if (gCurImage->next == gFirstImage) {  /* end of the list */
             return -1;
-
-        else if (!gCurImage->next || (gCurImage->next == gFirstImage))
-            /* We're at the end of the list, can't go farther.
-             * However, we may have gotten here by trying to go to
-             * the next image and failing, in which case we no longer
-             * have a pixmap loaded. So we still need to LoadImage,
-             * but we'll want to return -1 to indicate we didn't progress.
-             */
-            if (gRepeat)
-                gCurImage = gFirstImage;
-            else
-                retval = -1;
-
-        /* We only want to go to ->next the first time;
-         * if we're looping because of an error, gCurImage is already set.
-         */
-        else if (!looping)
+        }
+        else {
             gCurImage = gCurImage->next;
+        }
 
         if (LoadImageAndRotate(gCurImage) == 0) {   /* Success! */
             ShowImage();
-            return retval;
+            return 0;
         }
 
-        /* The image didn't load. Remove it from the list.
-         * That means we're going to loop around and try again,
-         * so keep gCurImage where it is (but change gCurImage->next).
-         */
+        /* gCurImage failed to load. */
         if (gDebug)
             printf("Skipping '%s' (didn't load)\n", gCurImage->filename);
         DeleteItem(gCurImage);
-        looping = 1;
+        gCurImage = origCurImage;
     }
-    /* NOTREACHED */
-    return 0;
 }
 
 int PrevImage()

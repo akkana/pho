@@ -29,6 +29,10 @@ static void FreePhoImage(PhoImage* img)
 
 static void printImageList()
 {
+    if (! gFirstImage) {
+        printf("  No images\n");
+        return;
+    }
     PhoImage* im = gFirstImage;
     PhoImage* lastIm = gFirstImage->prev;
     while (im) {
