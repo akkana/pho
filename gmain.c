@@ -348,6 +348,22 @@ static void CheckArg(char* arg)
                 gPresentationWidth = 0;
                 gPresentationHeight = 0;
                 parseGeom(geom, &gPresentationWidth, &gPresentationHeight);
+
+                /* Check for width without height, in case the user
+                 * ran something like pho -p1024, which is almost
+                 * certainly a mistake.
+                 */
+                if (gPresentationWidth && !gPresentationHeight) {
+                    fprintf(stderr,
+                            "Presentation width %d given with no height.\n\n",
+                            gPresentationWidth);
+                    Usage();
+                }
+                /* Note there's no check for the opposite, height without width.
+                 * For that, the user would have had to specify something like
+                 * 0x768; in the unlikely event the user does that,
+                 * maybe it means they really want it for some strange reason.
+                 */
             }
         } else if (*arg == 'P')
             gDisplayMode = PHO_DISPLAY_NORMAL;
