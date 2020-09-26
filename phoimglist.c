@@ -49,7 +49,7 @@ static void printImageList()
 
 /* Delete an image from the image list (not from disk).
  * Will use gCurImage if item == 0.
- * Update gCurImage if need be.
+ * Update gCurImage if needed.
  */
 void DeleteItem(PhoImage* item)
 {
@@ -78,13 +78,14 @@ void DeleteItem(PhoImage* item)
         else if (item == gFirstImage->prev) {
             gFirstImage->prev = item->prev;   // New last image
             item->prev->next = gFirstImage;
+            if (gCurImage)
+                gCurImage = item->prev;
         }
+        else if (gCurImage)
+            gCurImage = item->next;
 
         item->next->prev = item->prev;
         item->prev->next = item->next;
-
-        if (gCurImage)
-            gCurImage = item->next;
     }
 
     /* It's disconnected.  Free all the memory */

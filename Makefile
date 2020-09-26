@@ -1,6 +1,6 @@
 # Makefile for pho
 
-VERSION = 1.0pre1
+VERSION = 1.0
 
 # Locate the gtk/gdk libraries (thanks to nev for this!)
 GTKFLAGS := $(shell pkg-config --cflags gtk+-2.0 gdk-2.0 2> /dev/null)
@@ -61,7 +61,7 @@ install: pho
 	$(INSTALL) doc/pho.1 $(INSTALLPREFIX)/man/man1/pho.1
 
 clean:
-	rm -f *.[oas] *.ld core* pho pho-*.tar.gz *.rpm
+	rm -f *.[oas] *.ld core* pho pho-*.tar.gz *.rpm *.tar.gz
 	rm -f build-stamp configure-stamp
 	rm -rf debian/pho
 	cd exif; make clean

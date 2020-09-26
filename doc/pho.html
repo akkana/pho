@@ -24,43 +24,44 @@ images after uploading them from a digital camera.
 <h2>Why another image viewer?  Surely there are plenty of those?</h2>
 
 <p>
-I used to use xv for paging through images -- it was quite a good
-viewing program. But aside from being non-free and increasingly hard
-to get on Linux, it had a few features which annoyed me.
-For example, it creates a directory called .xvpics in every directory
-it touches; and if an image has to be resized to fit the screen, and
-after that you save it (perhaps after rotating it), it saves at the
-smaller size and boom, there goes your high-res image.
-
+Back in the early days of Linux (and, before that, Unix),
+I used to use a program called xv for paging through images.
+It  was quite a good viewing program, but it was non-free and had
+a few bugs and quirks that annoyed me.
+But, more important, there were a few extra features I wanted.
 <p>
-But, more important, there were a few extra things I needed.
+I take a lot of photos.
 During image triage, I need to be able to do a few things quickly:
 <ul>
 <li>Rotate images by multiples of 90 degrees, and remember the rotations
     in case I want to rotate the files on disk after I'm done viewing.
 <li>Delete bad images.
-<li>Note which images I might want to put on a web page.
-<li>Copy a few of the best horizontals to my Backgrounds (wallpaper) directory.
+<li>Note which images I might want to put on a web page, or otherwise
+treat specially, like emailing them to a friend or using them for
+desktop wallpaper.
 </ul>
-With xv, I found that I was writing these lists on paper, or trying
+With xv (or most of the modern Linux image viewers), I found that I
+was writing these lists on paper, or trying
 to keep track of them in my head.  That's dumb!  Why not make the
 computer do that work?  So I did.
 
 <p>
-Since I first wrote pho back in 2002 years ago, I keep hearing about other
-image viewers, and thinking maybe pho was redundant.  But every time I
-search, I can't find any other image viewers that are similarly
+Since I first wrote pho back in 2002, I keep hearing about other
+image viewers, and thinking maybe pho was redundant.
+But I'm still not sure any modern image viewer is similarly
 efficient for paging through large collections of images.  So I guess
 I'll keep maintaining pho!
 
 <p>
 Pho can read any format supported by gdk-pixbuf.  I haven't found a
-list of those formats anywhere, but it seems to be substantial.
+list of those formats anywhere, but it includes most common formats.
 It doesn't read GIMP's native XCF, and it doesn't read PhotoCD.
-You can convert those to other formats using the ImageMagick utility.
+It reads some cameras' raw formats but not others.
+Unfortunately I don't have any control over gdk-pixbuf's format list.
 
 <p>
-Pho can delete images on disk, but it can't save rotated images yet.
+Pho can delete images on disk, but it can't save rotated images.
+It merely prints out the list of images that need to be rotated.
 I use my <a href="../imagebatch/">imagebatch</a> scripts for that,
 or you can use a commandline utility like <a
 href="http://imagemagick.org">ImageMagick</a>
@@ -74,7 +75,7 @@ Then the following keys work:
 <dl>
 <dt>space                   <dd>Go to next image.
 <dt>backspace, -            <dd>Go to previous image.
-<dt>r, t, right-arrow       <dd>Rotate right (clockwise). 
+<dt>r, t, right-arrow       <dd>Rotate right (clockwise).
 <dt>R, T, l, L, left-arrow  <dd>Rotate left (counter-clockwise).
 <dt>up-arrow                <dd>Rotate 180 degrees.
 <dt>home                    <dd>Go back to the first image.
@@ -157,7 +158,7 @@ bugs or otherwise participate. Click on "Clone or download" for a
 download link -- unfortunately, GitHub only offers zip files, not tarballs.
 <p>
 <b>Current released version:</b>
-<a href="pho-1.0pre1.tar.gz">pho-1.0pre1.tar.gz</a>.
+<a href="pho-1.0.tar.gz">pho-1.0.tar.gz</a>.
 (source tarball).
 <!--
 <p>
@@ -186,13 +187,15 @@ href="pho-0.9.5-pre5.zip">pho-0.9.5-pre5.zip</a>.</b>
 
 <p>
 <b>Mac users:</b>
-Pho definitely does work on Mac OS X
-if you have the appropriate gtk/gdk headers and libraries
-(my husband uses it).
+Pho definitely does work on Mac OS X: my husband uses it frequently.
+You need the appropriate gtk/gdk headers and libraries.
 I've only seen it used as an X11 application, but in theory
 it should be able to run with the new experimental native gtk
 libraries too.
-Unfortunately I don't have a Mac available to provide Mac builds.
+
+<p>
+BSD users: pho should build just fine on *BSD if you have the
+required libraries. If it doesn't, please let me know.
 
 <p>
 <h3>Dependencies:</h3>
@@ -211,16 +214,18 @@ aptitude install build-essential libgtk2.0-dev
 <p>
 If you like pho, or if you think there's some
 feature it really needs ... <a href="../../mailme.html">let me know!</a>
-Or file a bug on GitHub.
-
-<p>
-BSD users: pho should build just fine on *BSD if you have the
-required libraries. If it doesn't, please let me know.
+Or file an issue on GitHub.
 
 <h2>Changelog</h2>
 
+<dt>2020, <a href="pho-1.0.tar.gz">pho-1.0</a>:
+<dd>I realized I never formally released 1.0. There have been a few minor
+    changes since 1.0pre1, but nothing substantial. Basically, pho
+    is stable, it does what I need, and hasn't had any feature requests
+    in years.
+
 <dt>2016, <a href="pho-1.0pre1.tar.gz">pho-1.0pre1</a>:
-    Lots of changes, I need to update the web page before the
+<dd>Lots of changes, I need to update the web page before the
     final 1.0 release,
     but meanwhile you can check the git log.
 
