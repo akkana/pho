@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #include <gdk/gdk.h>
+#include <gdk/gdkscreen.h>
 
 /* Some window managers don't deal well with windows that resize,
  * or don't retain focus if a resized window no longer contains
@@ -23,6 +24,11 @@
  * Offer an option to make new windows instead.
  */
 int gMakeNewWindows = 0;
+
+/* Which monitor to use. If negative, don't specify,
+ * let the window manager decide.
+ */
+int gUseMonitor = -1;
 
 /* The size our window frame adds on the top left of the image */
 gint sFrameWidth = 10;
@@ -50,7 +56,9 @@ static GtkWidget *sDrawingArea = 0;
  */
 static int sExposed = 0;
 
-static void NewWindow(); /* forward */
+/* forward definitions */
+static void NewWindow();
+static void MoveWin2Monitor(int whichmon, int x, int y);
 
 static void hide_cursor(GtkWidget* w)
 {
@@ -538,6 +546,19 @@ static gint HandleExpose(GtkWidget* widget, GdkEventExpose* event)
         }
     }
 
+    /* If a specific monitor was specified, move the window now.
+     * Unfortunately that means it briefly appears on the default monitor,
+     * then moves to the specified one. I haven't found any way to
+     * get monitor information before the first window is exposed;
+     * the map and configure events are both too early
+     * (configure works for presentation mode but not normal mode).
+     */
+    if (gUseMonitor >= 0) {
+        gint root_x, root_y;
+        gdk_window_get_position(gWin->window, &root_x, &root_y);
+        MoveWin2Monitor(gUseMonitor, root_x, root_y);
+    }
+
     /* Make sure the window can resize smaller */
     if (!gMakeNewWindows)
         gtk_widget_set_size_request(GTK_WIDGET(gWin), 1, 1);
@@ -583,11 +604,38 @@ static gint HandleDelete(GtkWidget* widget, GdkEventKey* event, gpointer data)
     return TRUE; /* Never called -- just here to keep gcc happy. */
 }
 
+/* Move to a specific monitor */
+void MoveWin2Monitor(int whichmon, int x, int y)
+{
+    if (! gWin->window)
+        return;
+
+    GdkScreen* screen = gdk_drawable_get_screen(gWin->window);
+    gint nMonitors = gdk_screen_get_n_monitors(screen);
+    GdkRectangle rect;
+    if (gDebug) {
+        printf("Found %d monitors:\n", nMonitors);
+        for (gint i=0; i < nMonitors; ++i) {
+            gdk_screen_get_monitor_geometry(screen, i, &rect);
+            printf("  %d x %d (%d, %d)\n",
+                   rect.width, rect.height, rect.x, rect.y);
+        }
+    }
+    if (whichmon >= nMonitors) {
+        gtk_window_move(GTK_WINDOW(gWin), x, y);
+        return;
+    }
+    gdk_screen_get_monitor_geometry(screen, whichmon, &rect);
+    if (gDebug)
+        printf("Moving to monitor %d\n", nMonitors);
+    gtk_window_move(GTK_WINDOW(gWin), rect.x + x, rect.y + y);
+}
+
 /* Make a new window, destroying the old one. */
 static void NewWindow()
 {
-    gint root_x = -1;
-    gint root_y = -1;
+    gint root_x = 0;
+    gint root_y = 0;
 
     sExposed = 0;    /* reset the exposed flag */
 
@@ -600,6 +648,9 @@ static void NewWindow()
     }
 
     gWin = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+
+    if (gUseMonitor >= 0)
+        MoveWin2Monitor(gUseMonitor, root_x, root_y);
 
     gtk_window_set_wmclass(GTK_WINDOW(gWin), "pho", "Pho");
 
@@ -663,7 +714,6 @@ static void NewWindow()
     /* Must come after show(), hide_cursor needs a window */
     if (gDisplayMode == PHO_DISPLAY_PRESENTATION)
         hide_cursor(sDrawingArea);
-
 }
 
 /**
@@ -677,11 +727,8 @@ static void NewWindow()
  *
  * For Pho: this is a replacement for gdk_window_focus
  * due to the issue in http://bugzilla.gnome.org/show_bug.cgi?id=150668
- * 
+ *
  **/
-#define GDK_WINDOW_DISPLAY(win)       gdk_drawable_get_display(win)
-#define GDK_WINDOW_SCREEN(win)	      gdk_drawable_get_screen(win)
-#define GDK_WINDOW_XROOTWIN(win)      GDK_ROOT_WINDOW()
 
 /* PrepareWindow is responsible for making the window the right
  * size and position, so the user doesn't see flickering.

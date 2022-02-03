@@ -552,7 +552,7 @@ void ChangeWorkingFileSet()
 
     if (gCurImage && gCurImage->filename && gCurImage->filename[0] == '/')
         gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(fsd),
-                                            g_dirname(gCurImage->filename));
+                                    g_path_get_dirname(gCurImage->filename));
     else {
         char buf[BUFSIZ];
         gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(fsd),

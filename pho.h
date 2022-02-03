@@ -9,8 +9,13 @@
 
 /* Want this include to be the smallest possible include which
  * grabs GTK_MAJOR_VERSION.
+ * However, gtk2 has internal errors that produce an ugly bunch
+ * of deprecation warnings, and they refuse to fix them.
+ * This turns off those warnings.
  */
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 #include <gtk/gtk.h>
+G_GNUC_END_IGNORE_DEPRECATIONS
 
 /* Images are kept in a doubly linked list.
  * gFirstImage is the beginning;
@@ -125,6 +130,9 @@ extern void ClearImageList();
  * the mouse pointer. This allows making new windows instead.
  */
 extern int gMakeNewWindows;
+
+/* Bring up windows on a specific monitor */
+extern int gUseMonitor;
 
 /* Seconds delay between images in slideshow mode.
  * Normally 0, no slideshow.

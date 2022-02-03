@@ -332,6 +332,13 @@ static void CheckArg(char* arg)
             Usage();
         else if (*arg == 'v')
             VerboseHelp();
+        else if (*arg == 'm') {
+            if (isdigit(arg[1]) || arg[1] == '.')
+                gUseMonitor = (int)(atof(arg+1));
+            else Usage();
+            if (gDebug)
+                printf("Slideshow delay %d milliseconds\n", gDelayMillis);
+        }
         else if (*arg == 'n')
             gMakeNewWindows = 1;
         else if (*arg == 'p') {

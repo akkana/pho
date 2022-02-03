@@ -725,6 +725,7 @@ void Usage()
     printf("\t-p[resolution]: Projector mode:\n\tlike presentation mode but in upper left corner\n");
     printf("\t-P:  No presentation mode (separate window) -- default\n");
     printf("\t-k:  Keywords mode (show a Keywords dialog for each image)\n");
+    printf("\t-mN: Use monitor number N.\n");
     printf("\t-n:  Replace each image window with a new window (helpful for some window managers)\n");
     printf("\t-sN: Slideshow mode, where N is the timeout in seconds\n");
     printf("\t-r:  Repeat: loop back to the first image after showing the last\n");
