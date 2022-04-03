@@ -556,7 +556,10 @@ static gint HandleExpose(GtkWidget* widget, GdkEventExpose* event)
     if (gUseMonitor >= 0) {
         gint root_x, root_y;
         gdk_window_get_position(gWin->window, &root_x, &root_y);
+        /*
+        printf("HandleExpose: moving to monitor %d\n", gUseMonitor);
         MoveWin2Monitor(gUseMonitor, root_x, root_y);
+        */
     }
 
     /* Make sure the window can resize smaller */
@@ -607,8 +610,11 @@ static gint HandleDelete(GtkWidget* widget, GdkEventKey* event, gpointer data)
 /* Move to a specific monitor */
 void MoveWin2Monitor(int whichmon, int x, int y)
 {
-    if (! gWin->window)
+    if (! gWin->window) {
+        if (gDebug)
+            printf("MoveWin2Monitor: no window yet, can't set monitor\n");
         return;
+    }
 
     GdkScreen* screen = gdk_drawable_get_screen(gWin->window);
     gint nMonitors = gdk_screen_get_n_monitors(screen);
@@ -648,9 +654,6 @@ static void NewWindow()
     }
 
     gWin = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-
-    if (gUseMonitor >= 0)
-        MoveWin2Monitor(gUseMonitor, root_x, root_y);
 
     gtk_window_set_wmclass(GTK_WINDOW(gWin), "pho", "Pho");
 
@@ -714,6 +717,14 @@ static void NewWindow()
     /* Must come after show(), hide_cursor needs a window */
     if (gDisplayMode == PHO_DISPLAY_PRESENTATION)
         hide_cursor(sDrawingArea);
+
+    /* Hopefully gWin->window exists by now, so it's safe
+     * to place it on the intended monitor.
+     */
+    if (gUseMonitor >= 0) {
+        MoveWin2Monitor(gUseMonitor, root_x, root_y);
+        // printf("NewWindow: moving to monitor %d\n", gUseMonitor);
+    }
 }
 
 /**
