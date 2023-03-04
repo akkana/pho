@@ -1,20 +1,29 @@
 BUILDING AND INSTALLING pho
 
 REQUIREMENTS:
-pho uses the gdk_pixbuf library for reading, scaling, and displaying
+
+Pho uses GTK+ 2. This is quite an old library (writing this in 2023)
+and may eventually stop being supported. I've tried to port Pho to GTK 3,
+but some of the lower-level calls pho uses have no GTK3 equivalent that
+I've been able to find. When GTK2 stopps being shipped by Linux distros,
+C-based pho will probably become an orphan. Since I use pho all the time,
+many times a day, I will write something to replace it; probably a somewhat
+simpler Python-based program, without the low-level window management (like
+keeping the pointer in the window), but with the same key bindings.
+
+Pho uses the gdk_pixbuf library for reading, scaling, and displaying
 images. So you will need gdk-pixbuf installed in order to run pho.
-To compile it, you will also need gdk-pixbuf-devel.
-The home for gdk_pixbuf is:
-http://developer.gnome.org/doc/API/gdk-pixbuf/index.html
+To compile it, you will also need gdk-pixbuf-devel, or whatever package
+on your system provides include files like gdk-pixbuf/gdk-pixbuf.h.
 
 BUILDING:
 To build pho, type: make
 To install the binary and manual page, type (as root): make install
+or simply copy the binary wherever you want to put it (I use ~/bin).
 
-The current Makefile has been tested on Redhat 7.3 and Debian Woody,
-and assumes gtk 1.2 (and gtk-devel) as well as gdk-pixbuf 1.0.
+The current Makefile works on modern Debian derivatives.
 You may need to edit the Makefile on some other systems,
 or to use other versions of gtk.
-Sorry, there is no configure script for it yet.
+Sorry, there is no configure script for it.
 Feel free to contact me if you have any problems building pho.
 
