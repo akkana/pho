@@ -118,8 +118,17 @@ void TryScale(float times)
 
 gint HandleGlobalKeys(GtkWidget* widget, GdkEventKey* event)
 {
-    if (gDebug) printf("\nKey event\n");
-    if (event->state) {
+    if (gDebug) {
+        printf("\nKey event: ");
+        printf("state:%d, ", event->state);
+        printf("keyval: %x\n", event->keyval);
+    }
+    /* In some desktops, high modifier keys like MOD3_MASK mysteriously
+     * get added to key events where the user didn't press any modifier
+     * keys. So only test for ctrl and alt; ignore all other modifiers.
+     */
+    if (event->state &&
+        (event->state & (GDK_CONTROL_MASK | GDK_MOD1_MASK))) {
         switch (event->keyval)
         {
             case GDK_f:
