@@ -20,6 +20,9 @@
 
 char * gCapFileFormat = "Captions";
 
+/* randomize order in which images will be shown? */
+int gRandomOrder = 0;
+
 /* Toggle a variable between two modes, preferring the first.
  * If it's anything but mode1 it will end up as mode1.
  */
@@ -405,6 +408,8 @@ static void CheckArg(char* arg)
              * part of the filename -- so return.
              */
             return;
+        } else if (*arg == 'R') {
+            gRandomOrder = 1;
         }
     }
 }
@@ -437,6 +442,9 @@ int main(int argc, char** argv)
 
     if (gFirstImage == 0)
         Usage();
+
+    if (gRandomOrder)
+        ShuffleImages();
 
     /* Initialize some variables associated with the notes flags */
     InitNotes();

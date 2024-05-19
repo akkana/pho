@@ -231,6 +231,68 @@ int PrevImage()
     return 0;
 }
 
+int CountImages()
+{
+    if (!gFirstImage)
+        return 0;
+    int numImages = 1;
+    PhoImage* img = gFirstImage;
+    while (img->next != gFirstImage) {
+        ++numImages;
+        img = img->next;
+    }
+    return numImages;
+}
+
+void ShuffleArray(PhoImage** arr, int len)
+{
+    int i, j;
+    for (i = 0; i < len - 1; i++)
+    {
+        j = i + rand() / (RAND_MAX / (len - i) + 1);
+        PhoImage* tmp = arr[j];
+        arr[j] = arr[i];
+        arr[i] = tmp;
+    }
+}
+
+/* Randomize the image list. Does not change gCurImage. */
+void ShuffleImages()
+{
+    if (gDebug)
+        printf("Randomizing image order\n");
+
+    srand(time(NULL));
+
+    /* Now shuffle the list and replace it with the shuffled version. */
+
+    /* count total number of images */
+    int numImages = CountImages();
+    if (numImages < 2)
+        return;
+
+    /* make an array with pointers to each list element: */
+    PhoImage* imgarr[numImages];
+    int i;
+    PhoImage* curImg = gFirstImage;
+    for (i=0; i<numImages; ++i) {
+        imgarr[i] = curImg;
+        curImg = curImg->next;
+    }
+
+    ShuffleArray(imgarr, numImages);
+
+    gFirstImage = curImg = imgarr[0];
+    for (i=0; i<numImages; ++i) {
+        PhoImage* lastImg = curImg;
+        curImg = imgarr[i];
+        lastImg->next = curImg;
+        curImg->prev = lastImg;
+    }
+    /* fill in the last image's next */
+    curImg->next = gFirstImage;
+ }
+
 /* Limit new_width and new_height so that they're no bigger than
  * max_width and max_height. This doesn't actually scale, just
  * calculates dimensions and returns them in *width and *height.
@@ -725,6 +787,7 @@ void Usage()
     printf("\t-p[resolution]: Projector mode:\n\tlike presentation mode but in upper left corner\n");
     printf("\t-P:  No presentation mode (separate window) -- default\n");
     printf("\t-k:  Keywords mode (show a Keywords dialog for each image)\n");
+    printf("\t-R:  Randomize order in which images will be shown\n");
     printf("\t-mN: Use monitor number N.\n");
     printf("\t-n:  Replace each image window with a new window (helpful for some window managers)\n");
     printf("\t-sN: Slideshow mode, where N is the timeout in seconds\n");

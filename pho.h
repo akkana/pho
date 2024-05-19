@@ -123,6 +123,7 @@ extern double FracOfScreenSize();
 extern void DeleteItem(PhoImage* item);
 extern void AppendItem(PhoImage* item);
 extern void ClearImageList();
+extern void ShuffleImages();
 
 /* ************** Misc. functions ************** */
 /* Some window managers don't deal well with windows that resize,
