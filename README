@@ -5,6 +5,17 @@ http://www.shallowsky.com/software/pho/
 
 See the man page or the web page for more details on how to use pho.
 
+WARNING: Pho uses the GTK2 toolkit, which is obsolete. I have not been
+successful in rewriting Pho to use either GTK3 or GTK4, due to
+apparently removed functionality and poor documentation.
+
+As of mid-2025, GTK2 is still available for most platforms. But if it
+becomes unavailable, I have been working on a replacement written in
+Python using TkInter instead of GTK. If you want to help test, it's
+currently available as tkpho in my metapho repository (and I've also
+rewritten metapho to use Tk instead of GTK).
+Please file issue reports on any problems you find.
+
 	...Akkana
 
 
